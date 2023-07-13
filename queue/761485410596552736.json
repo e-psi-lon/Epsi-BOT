@@ -1,0 +1,145 @@
+{
+    "channel": null,
+    "loop-song": false,
+    "loop-queue": true,
+    "random": true,
+    "index": 9,
+    "queue": [
+        {
+            "title": "Wellerman (Sea Shanty)",
+            "url": "https://youtube.com/watch?v=qP-7GNoDJ5c",
+            "asker": 708006478807695450,
+            "file": "audio/Wellerman (Sea Shanty).ogg"
+        },
+        {
+            "title": "Wellerman Deutsch - Sinngem\u00e4\u00dfe \u00dcbersetzung des Originaltextes (Walf\u00e4nger Sea Shanty - Seemannslied)",
+            "url": "https://youtube.com/watch?v=l85G_oTou2M",
+            "asker": 708006478807695450,
+            "file": "audio/Wellerman Deutsch - Sinngem\u00e4\u00dfe \u00dcbersetzung des Originaltextes (Walf\u00e4nger Sea Shanty - Seemannslied).ogg"
+        },
+        {
+            "title": "La Strasbourgeoise",
+            "url": "https://youtube.com/watch?v=kHwKdnoMcdE",
+            "asker": 708006478807695450,
+            "file": "audio/La Strasbourgeoise.ogg"
+        },
+        {
+            "title": "La Marseillaise, French National Anthem (Fr/En)",
+            "url": "https://youtube.com/watch?v=4K1q9Ntcr5g",
+            "asker": 708006478807695450,
+            "file": "audio/La Marseillaise, French National Anthem (Fru2215En).ogg"
+        },
+        {
+            "title": "Never Gonna Give You Up",
+            "url": "https://youtube.com/watch?v=dQw4w9WgXcQ",
+            "asker": 708006478807695450,
+            "file": "audio/Never Gonna Give You Up.ogg"
+        },
+        {
+            "title": "Les Sardines",
+            "url": "https://youtube.com/watch?v=PA3P1-aSvKQ",
+            "asker": 708006478807695450,
+            "file": "audio/Les Sardines.ogg"
+        },
+        {
+            "title": "J.J. LIONEL - La danse des canards",
+            "url": "https://youtube.com/watch?v=17vFHKwq8B8",
+            "asker": 708006478807695450,
+            "file": "audio/J.J. LIONEL - La danse des canards.ogg"
+        },
+        {
+            "title": "National Anthem of Switzerland \"Swiss Psalm\" \u00ab Cantique suisse \u00bb - French Version - Hajim\u00e9 Sasaki",
+            "url": "https://youtube.com/watch?v=-Cz4_DKWEG0",
+            "asker": 501303816302362635,
+            "file": "audio/National Anthem of Switzerland u0022Swiss Psalmu0022 \u00ab Cantique suisse \u00bb - French Version - Hajim\u00e9 Sasaki.ogg"
+        },
+        {
+            "title": "Hymne National De L'URSS",
+            "url": "https://youtube.com/watch?v=Rm6q_3WGy9M",
+            "asker": 708006478807695450,
+            "file": "audio/Hymne National De Lu0027URSS.ogg"
+        },
+        {
+            "title": "BOOMBAYAH (KR Ver.)",
+            "url": "https://youtube.com/watch?v=bwmSjveL3Lc",
+            "asker": 501303816302362635,
+            "file": "audio/BOOMBAYAH (KR Ver.).ogg"
+        },
+        {
+            "title": "Je poss\u00e8de des thunes (Clip Int\u00e9gral) - David Castello-Lopes",
+            "url": "https://youtube.com/watch?v=aIVsz5Pj0eE",
+            "asker": 708006478807695450,
+            "file": "audio/Je poss\u00e8de des thunes (Clip Int\u00e9gral) - David Castello-Lopes.ogg"
+        }
+    ],
+    "playlist": {
+        "Playlist de test": [
+            {
+                "title": "Wellerman (Sea Shanty)",
+                "url": "https://youtube.com/watch?v=qP-7GNoDJ5c",
+                "asker": 708006478807695450,
+                "file": "audio/Wellerman (Sea Shanty).ogg"
+            },
+            {
+                "title": "Wellerman Deutsch - Sinngem\u00e4\u00dfe \u00dcbersetzung des Originaltextes (Walf\u00e4nger Sea Shanty - Seemannslied)",
+                "url": "https://youtube.com/watch?v=l85G_oTou2M",
+                "asker": 708006478807695450,
+                "file": "audio/Wellerman Deutsch - Sinngem\u00e4\u00dfe \u00dcbersetzung des Originaltextes (Walf\u00e4nger Sea Shanty - Seemannslied).ogg"
+            },
+            {
+                "title": "La Strasbourgeoise",
+                "url": "https://youtube.com/watch?v=kHwKdnoMcdE",
+                "asker": 708006478807695450,
+                "file": "audio/La Strasbourgeoise.ogg"
+            },
+            {
+                "title": "La Marseillaise, French National Anthem (Fr/En)",
+                "url": "https://youtube.com/watch?v=4K1q9Ntcr5g",
+                "asker": 708006478807695450,
+                "file": "audio/La Marseillaise, French National Anthem (Fru2215En).ogg"
+            },
+            {
+                "title": "Never Gonna Give You Up",
+                "url": "https://youtube.com/watch?v=dQw4w9WgXcQ",
+                "asker": 708006478807695450,
+                "file": "audio/Never Gonna Give You Up.ogg"
+            },
+            {
+                "title": "Les Sardines",
+                "url": "https://youtube.com/watch?v=PA3P1-aSvKQ",
+                "asker": 708006478807695450,
+                "file": "audio/Les Sardines.ogg"
+            },
+            {
+                "title": "J.J. LIONEL - La danse des canards",
+                "url": "https://youtube.com/watch?v=17vFHKwq8B8",
+                "asker": 708006478807695450,
+                "file": "audio/J.J. LIONEL - La danse des canards.ogg"
+            },
+            {
+                "title": "National Anthem of Switzerland \"Swiss Psalm\" \u00ab Cantique suisse \u00bb - French Version - Hajim\u00e9 Sasaki",
+                "url": "https://youtube.com/watch?v=-Cz4_DKWEG0",
+                "asker": 501303816302362635,
+                "file": "audio/National Anthem of Switzerland u0022Swiss Psalmu0022 \u00ab Cantique suisse \u00bb - French Version - Hajim\u00e9 Sasaki.ogg"
+            },
+            {
+                "title": "Hymne National De L'URSS",
+                "url": "https://youtube.com/watch?v=Rm6q_3WGy9M",
+                "asker": 708006478807695450,
+                "file": "audio/Hymne National De Lu0027URSS.ogg"
+            },
+            {
+                "title": "BOOMBAYAH (KR Ver.)",
+                "url": "https://youtube.com/watch?v=bwmSjveL3Lc",
+                "asker": 501303816302362635,
+                "file": "audio/BOOMBAYAH (KR Ver.).ogg"
+            },
+            {
+                "title": "Je poss\u00e8de des thunes (Clip Int\u00e9gral) - David Castello-Lopes",
+                "url": "https://youtube.com/watch?v=aIVsz5Pj0eE",
+                "asker": 708006478807695450,
+                "file": "audio/Je poss\u00e8de des thunes (Clip Int\u00e9gral) - David Castello-Lopes.ogg"
+            }
+        ]
+    }
+}
