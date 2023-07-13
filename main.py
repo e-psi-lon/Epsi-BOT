@@ -273,6 +273,10 @@ async def remove_cache(ctx: discord.ApplicationContext):
 
 def start(instance: Bot):
     # Charger les cogs
+    if not os.path.exists('queue/'):
+        os.mkdir('queue/')
+    if not os.path.exists('audio/'):
+        os.mkdir('audio/')
     cogs = [
         "state",
         "channel",
