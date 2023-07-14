@@ -1,6 +1,4 @@
-import discord
 from discord.ui.item import Item
-import pytube
 from enum import Enum
 from utils import *
 
@@ -16,7 +14,6 @@ class SelectVideo(discord.ui.Select):
         self.placeholder = "Select an audio to play"
         self.min_values = 1
         self.max_values = 1
-        self.view: Research | None
         self.ctx = ctx
         self.options = [
             discord.SelectOption(label=video.title, value=video.watch_url)
@@ -29,21 +26,24 @@ class SelectVideo(discord.ui.Select):
         if self.view.download:
             file, video = download_audio(self.values[0])
             if self.view.format != "ogg":
-                    file = convert(file, self.format)
-            await self.ctx.respond(f'{video.title} downloaded', file=discord.File(file))
+                file = convert(file, self.view.format)
+            # Modifier le message contenant le select pour afficher "{video.title} downloaded}" + le fichier au lieu de "Select an audio to play" + le select
+            await interaction.message.edit(content=f'{video.title} downloaded', view=None, file=discord.File(file))
             return
         if self.view.playlist is not None:
-            await interaction.message.edit(content=f"Add song `{self.values[0]}` to playlist `{self.playlist}`", view=None)
-            queue['playlist'][self.playlist].append(self.values[0])
+            await interaction.message.edit(content=f"Add song `{self.values[0]}` to playlist `{self.view.playlist}`",
+                                           view=None)
+            queue['playlist'][self.view.playlist].append(self.values[0])
             update_queue(self.ctx.guild.id, queue)
         else:
-            await start_song(self.ctx, self.values[0])
+            await start_song(self.ctx, self.values[0], message=interaction.message)
 
 
 class Research(discord.ui.View):
-    def __init__(self, videos, ctx, download: bool = False, format:str | None = None, playlist: str | None = None, *items: Item, timeout: float | None = 180, disable_on_timeout: bool = False):
+    def __init__(self, videos, ctx, download: bool = False, file_format: str | None = None, playlist: str | None = None,
+                 *items: Item, timeout: float | None = 180, disable_on_timeout: bool = False):
         super().__init__(*items, timeout=timeout, disable_on_timeout=disable_on_timeout)
         self.add_item(SelectVideo(videos=videos, ctx=ctx))
         self.playlist = playlist
         self.download = download
-        self.format = format
+        self.format = file_format
