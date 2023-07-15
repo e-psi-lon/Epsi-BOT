@@ -21,7 +21,7 @@ class Queue(commands.Cog):
 
     @commands.slash_command(name="skip", description="Skips the current song")
     async def skip(self, ctx: discord.ApplicationContext,
-                   how_much: discord.Option(int, "How many songs to skip", required=False)):
+                   by: discord.Option(int, "How many songs to skip", required=False)):
         queue = get_queue(ctx.guild.id)
         if len(queue['queue']) == 0:
             await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
@@ -32,46 +32,58 @@ class Queue(commands.Cog):
         if queue['random']:
             # On le désactive temporairement
             queue['random'] = False
-            queue['index'] += how_much if how_much - 2 is not None else 0
-            update_queue(ctx.guild.id, queue)
-            ctx.voice_client.stop()
+        queue['index'] += by - 2 if by is not None else 0
+        update_queue(ctx.guild.id, queue)
+        ctx.voice_client.stop()
         queue['random'] = previous_random
         update_queue(ctx.guild.id, queue)
         embed = discord.Embed(title="Skip", description="Skipped the current song.", color=0x00ff00)
         await ctx.respond(embed=embed)
 
-    @commands.slash_command(name="loop", description="Loops the current song")
-    async def loop(self, ctx: discord.ApplicationContext, toloop: discord.Option(Loop, "The loop type", required=True),
-                   state: discord.Option(bool, "The loop state", required=False)):
+    loop = SlashCommandGroup(name="loop", description="Commands related to looping songs")
+
+    @loop.command(name="song", description="Loops the current song")
+    async def loop_song(self, ctx: discord.ApplicationContext, state: discord.Option(bool, "The loop state", required=False)):
         queue = get_queue(ctx.guild.id)
-        if toloop == Loop.Song:
-            if state is None:
-                queue['loop-song'] = not queue['loop-song']
-                queue['loop-queue'] = False if queue['loop-song'] else queue['loop-queue']
-            else:
-                queue['loop-song'] = state
-                queue['loop-queue'] = False if queue['loop-song'] else queue['loop-queue']
-            embed = discord.Embed(title="Loop",
-                                  description=f"Looping around the current song is now "
-                                              f"{'enabled' if queue['loop-song'] else 'disabled'}"
-                                              f"{' and the queue is now not looped' if queue['loop-song'] else ''}.",
-                                  color=0x00ff00)
-            await ctx.respond(embed=embed)
-        elif toloop == Loop.Queue:
-            if state is None:
-                queue['loop-queue'] = not queue['loop-queue']
-                queue['loop-song'] = False if queue['loop-queue'] else queue['loop-song']
-            else:
-                queue['loop-queue'] = state
-                queue['loop-song'] = False if queue['loop-queue'] else queue['loop-song']
-            embed = discord.Embed(title="Loop",
-                                  description=f"Looping around the queue is now "
-                                              f"{'enabled' if queue['loop-queue'] else 'disabled'}"
-                                              f"{' and the current song is now not looped' if queue['loop-queue'] else ''}.",
-                                  color=0x00ff00)
-            await ctx.respond(embed=embed)
+        if state is None:
+            queue['loop-song'] = not queue['loop-song']
+            queue['loop-queue'] = False if queue['loop-song'] else queue['loop-queue']
+        else:
+            queue['loop-song'] = state
+            queue['loop-queue'] = False if queue['loop-song'] else queue['loop-queue']
+        embed = discord.Embed(title="Loop",
+                                description=f"Looping around the current song is now "
+                                            f"{'enabled' if queue['loop-song'] else 'disabled'}"
+                                            f"{' and the queue is now not looped' if queue['loop-song'] else ''}.",
+                                color=0x00ff00)
+        await ctx.respond(embed=embed)
         update_queue(ctx.guild.id, queue)
-        
+    
+    @loop.command(name="queue", description="Loops the current song")
+    async def loop_queue(self, ctx: discord.ApplicationContext, state: discord.Option(bool, "The loop state", required=False)):
+        queue = get_queue(ctx.guild.id)
+        if state is None:
+            queue['loop-queue'] = not queue['loop-queue']
+            queue['loop-song'] = False if queue['loop-queue'] else queue['loop-song']
+        else:
+            queue['loop-queue'] = state
+            queue['loop-song'] = False if queue['loop-queue'] else queue['loop-song']
+        embed = discord.Embed(title="Loop",
+                                description=f"Looping around the queue is now "
+                                            f"{'enabled' if queue['loop-queue'] else 'disabled'}"
+                                            f"{' and the current song is now not looped' if queue['loop-queue'] else ''}.",
+                                color=0x00ff00)
+        await ctx.respond(embed=embed)
+        update_queue(ctx.guild.id, queue)
+
+    @commands.slash_command(name="now", description="Shows the current song")
+    async def now(self, ctx: discord.ApplicationContext):
+        queue = get_queue(ctx.guild.id)
+        if len(queue['queue']) == 0:
+            await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
+            return
+        embed = discord.Embed(title="Now", description=f"The song is `{queue['queue'][queue['index']]['title']}`.", color=0x00ff00)
+        await ctx.respond(embed=embed)   
 
     @commands.slash_command(name="remove", description="Removes a song from the queue ")
     async def remove(self, ctx: discord.ApplicationContext,
@@ -165,11 +177,7 @@ class Queue(commands.Cog):
         if len(queue['queue']) == 0:
             await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
             return
-        for i, song_ in enumerate(queue['queue']):
-            if song_['title'] == song:
-                print(f"The song is {song_['title']} with index {i}")
-                index = i-1
-                break
+        index = get_index_from_title(song, ctx.guild.id, queue['queue'])-1
         previous_random = queue['random']
         if queue['random']:
             queue['random'] = False
@@ -181,7 +189,7 @@ class Queue(commands.Cog):
         ctx.voice_client.stop()
         queue['random'] = previous_random
         update_queue(ctx.guild.id, queue)
-        embed = discord.Embed(title="Play", description=f"Playing song `{queue['queue'][queue['index']]['title']}`.",
+        embed = discord.Embed(title="Play", description=f"Playing song `{queue['queue'][queue['index']+1]['title']}`.",
                               color=0x00ff00)
         await ctx.respond(embed=embed)
 
@@ -204,7 +212,7 @@ class Queue(commands.Cog):
         ctx.voice_client.stop()
         queue['random'] = previous_random
         update_queue(ctx.guild.id, queue)
-        embed = discord.Embed(title="Play", description=f"Playing song `{queue['queue'][queue['index']]['title']}`.",
+        embed = discord.Embed(title="Play", description=f"Playing song `{queue['queue'][queue['index']+1]['title']}`.",
                               color=0x00ff00)
         await ctx.respond(embed=embed)
 

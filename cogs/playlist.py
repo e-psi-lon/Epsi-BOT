@@ -99,10 +99,7 @@ class Playlist(commands.Cog):
             await ctx.respond(embed=embed)
             return
         queue = get_queue(ctx.guild.id)
-        for index, song in enumerate(queue['playlist'][name]):
-            if song['title'] == song:
-                song = queue['playlist'][name].pop(index)
-                break
+        queue['playlist'][name].pop(get_index_from_title(song, ctx.guild.id, queue['playlist'][name]))
         update_queue(ctx.guild.id, queue)
         embed = discord.Embed(title="Song removed", description=f"Removed song `{song['url']}` from playlist `{name}`",
                             color=0x00ff00)
@@ -135,7 +132,7 @@ class Playlist(commands.Cog):
             if index == queue['index']:
                 pass
             else:
-                while threading.active_count() > 5:
+                while threading.active_count() > 7:
                     await asyncio.sleep(1)
                 threading.Thread(target=download_audio, args=(song['url'],ctx.guild.id)).start()
         # Tant qu'il n'y a pas autant de fichier dans audio/ que de musiques dans la queue, on attend

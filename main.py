@@ -21,23 +21,21 @@ async def help_command(ctx: discord.ApplicationContext):
     command_and_subcommand.extend([f'{command.name} {subcommand.name}' for command in bot.application_commands if
                                    isinstance(command, discord.SlashCommandGroup) for subcommand in
                                    command.subcommands])
-    embed = discord.Embed(title="Help", description=f"The help message (command count: {len(command_and_subcommand)})",
+    embed = discord.Embed(title="Help", description=f"The help message. There are {len(command_and_subcommand)} commands",
                           color=0x00ff00)
-    print(", ".join(command_and_subcommand))
     group = ""
     for command in bot.application_commands:
+        if command.cog.__class__.__name__ != group:
+                group = command.cog.__class__.__name__
+                embed.add_field(name=f"__**{group if group != 'NoneType' else 'Not categorized'}**__", value=" ",
+                                inline=False)
         if isinstance(command, discord.SlashCommandGroup):
-            group = command.name
-            embed.add_field(name=f"__**{group}**__", value=" ", inline=False)
             for subcommand in command.subcommands:
                 embed.add_field(name=f"`/{command.name} {subcommand.name}`",
                                 value=subcommand.description if subcommand.description is not None else "No description",
                                 inline=True)
         elif isinstance(command, discord.SlashCommand):
-            if command.cog.__class__.__name__ != group:
-                group = command.cog.__class__.__name__
-                embed.add_field(name=f"__**{group if group != 'NoneType' else 'Not categorized'}**__", value=" ",
-                                inline=False)
+        
             embed.add_field(name=f"`/{command.name}`",
                             value=command.description if command.description is not None else "No description",
                             inline=True)

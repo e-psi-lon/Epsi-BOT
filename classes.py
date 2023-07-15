@@ -2,12 +2,6 @@ from discord.ui.item import Item
 from enum import Enum
 from utils import *
 
-
-class Loop(Enum):
-    Song = 1
-    Queue = 2
-
-
 class SelectVideo(discord.ui.Select):
     def __init__(self, videos: list[pytube.YouTube], ctx, *args, **kwargs):
         super().__init__(*args, **kwargs)

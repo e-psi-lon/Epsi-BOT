@@ -53,6 +53,15 @@ def update_queue(guild_id, queue):
         json.dump(queue, f, indent=4)
 
 
+def get_index_from_title(title, guild_id, list):
+    queue = get_queue(guild_id)
+    for index, song in enumerate(list):
+        if song['title']:
+            return index
+
+    return -1
+
+
 async def change_song(ctx: discord.ApplicationContext):
     queue = get_queue(ctx.guild.id)
     if queue['loop-song']:
@@ -61,7 +70,7 @@ async def change_song(ctx: discord.ApplicationContext):
         if queue['random']:
             previous_index = queue['index']
             while queue['index'] == previous_index and len(queue['queue']) > 1:
-                queue['index'] = random.randint(0, len(queue['queue']) - 1) if len(queue['queue']) > 1 else 0
+                queue['index'] = get_index_from_title(random.choice(list(set(range(0,len(queue['queue']))) - set([queue['index']]))) , queue['queue'])
         else:
             queue['index'] += 1
         if queue['index'] >= len(queue['queue']):
@@ -72,7 +81,7 @@ async def change_song(ctx: discord.ApplicationContext):
         if queue['random']:
             previous_index = queue['index']
             while queue['index'] == previous_index and len(queue['queue']) > 1:
-                queue['index'] = random.randint(0, len(queue['queue']) - 1) if len(queue['queue']) > 1 else 0
+                queue['index'] = get_index_from_title(random.choice(list(set(range(0,len(queue['queue']))) - set([queue['index']]))) , queue['queue'])
         else:
             queue['index'] += 1
         if queue['index'] >= len(queue['queue']):
