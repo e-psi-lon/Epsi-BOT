@@ -14,7 +14,7 @@ class Others(commands.Cog):
                                                    required=False, default="ogg")):
         print(file_format)
         print(type(file_format))
-        if query.startswith('https://www.youtube.com/watch?v=') or query.startswith('https://youtu.be/'):
+        if query.startswith('https://www.youtube.com/watch?v=') or query.startswith('https://youtu.be/') or query.startswith('https://youtube.com/watch?v='):
             await start_song(ctx, query)
         else:
             research = pytube.Search(query)
@@ -23,6 +23,9 @@ class Others(commands.Cog):
                 await ctx.respond(embed=EMBED_ERROR_NO_RESULTS_FOUND, delete_after=30)
             elif len(results) == 1:
                 file, video = download_audio(results[0].watch_url)
+                if file == -1:
+                    await ctx.respond(embed=EMBED_ERROR_VIDEO_TOO_LONG, delete_after=30)
+                    return
                 if file_format != "ogg":
                     file = convert(file, file_format)
                 embed = discord.Embed(title="Download", description=f"Downloaded song `{video.title}`", color=0x00ff00)

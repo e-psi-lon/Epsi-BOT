@@ -61,7 +61,7 @@ class Playlist(commands.Cog):
             await ctx.respond(embed=embed, delete_after=30)
             return
         # On regarde ce qu'est query (url ou recherche)
-        if query.startswith('https://www.youtube.com/watch?v=') or query.startswith('https://youtu.be/'):
+        if query.startswith('https://www.youtube.com/watch?v=') or query.startswith('https://youtu.be/') or query.startswith('https://youtube.com/watch?v='):
             url = query
         else:
             research = pytube.Search(query)
@@ -76,9 +76,9 @@ class Playlist(commands.Cog):
                 embed = discord.Embed(title="Select an audio to play", description="", color=0x00ff00)
                 await ctx.respond(embed=embed, view=select)
                 return
-        queue['playlist'][name].append({"url": url, "asker": ctx.author.id})
+        queue['playlist'][name].append({"url": url, "asker": ctx.author.id, "title": pytube.YouTube(url).title})
         update_queue(ctx.guild.id, queue)
-        embed = discord.Embed(title="Song added", description=f"Added song `{url}` to playlist `{name}`", color=0x00ff00)
+        embed = discord.Embed(title="Song added", description=f"Added song `{pytube.YouTube(url).title}` to playlist `{name}`", color=0x00ff00)
         await ctx.respond(embed=embed)
 
 
@@ -123,7 +123,11 @@ class Playlist(commands.Cog):
         queue['index'] = 0
         update_queue(ctx.guild.id, queue)
         queue['index'] = random.randint(0, len(queue['queue']) - 1) if queue['random'] else 0
-        queue['queue'][queue['index']]['file'], _ = download_audio(queue['queue'][queue['index']]['url'])
+        video, _ = download_audio(queue['queue'][queue['index']]['url'])
+        if video == -1:
+            await ctx.respond(embed=EMBED_ERROR_VIDEO_TOO_LONG, delete_after=30)
+            return
+        queue['queue'][queue['index']]['file'] = video
         update_queue(ctx.guild.id, queue)
         play_song(ctx, queue['queue'][queue['index']]['file'])
         embed = discord.Embed(title="Playing playlist", description=f"Playing playlist `{name}` (continue downloading songs in the background, please don't execute a command)", color=0x00ff00)

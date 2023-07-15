@@ -17,6 +17,7 @@ EMBED_ERROR_BOT_NOT_PLAYING = discord.Embed(title="Error", description="Bot is n
 EMBED_ERROR_INDEX_TOO_HIGH = discord.Embed(title="Error", description="The index is too high.", color=0xff0000)
 EMBED_ERROR_NAME_TOO_LONG = discord.Embed(title="Error", description="The name is too long.", color=0xff0000)
 EMBED_ERROR_NO_RESULTS_FOUND = discord.Embed(title="Error", description="No results found.", color=0xff0000)
+EMBED_ERROR_VIDEO_TOO_LONG = discord.Embed(title="Error", description="The video is too long.", color=0xff0000)
 
 
 async def get_playlists(ctx: discord.AutocompleteContext):
@@ -99,6 +100,8 @@ async def change_song(ctx: discord.ApplicationContext):
 
 def download_audio(url, guild_id: int | None = None):
     video = pytube.YouTube(url)
+    if video.length > 3600:
+        return -1, None
     if guild_id is not None:
         queue = get_queue(guild_id)
         # On modifie directement la valeur file de le ou les element de la queue qui possède l'url de la vidéo (si il(ss) existe(nt)
@@ -112,7 +115,7 @@ def download_audio(url, guild_id: int | None = None):
     else:
         audio_stream.download(output_path='audio/', filename=f'{format_name(video.title)}.ogg')
         while audio_stream.filesize != os.path.getsize(f'audio/{format_name(video.title)}.ogg'):
-            pass
+            asyncio.sleep(0.1)
         return f'audio/{format_name(video.title)}.ogg', video
 
 
@@ -120,6 +123,9 @@ def play_song(ctx: discord.ApplicationContext, file: str):
     if not os.path.exists(file):
         queue = get_queue(ctx.guild.id)
         file, _ = download_audio(queue['queue'][queue['index']]['url'])
+        if file == -1:
+            ctx.message.reply(embed=EMBED_ERROR_VIDEO_TOO_LONG, delete_after=30)
+            return
     voice_client = ctx.voice_client
     source = discord.FFmpegPCMAudio(file)
     voice_client.play(source, after=lambda e: print('Player error: %s' % e) if e else asyncio.run(change_song(ctx)))
@@ -140,6 +146,9 @@ def get_queue(guild_id):
 async def start_song(ctx: discord.ApplicationContext, url: str, message: discord.Message | None = None):
     # Si il y a déjà une musique en cours de lecture
     file, video = download_audio(url)
+    if file == -1:
+        await ctx.respond(embed=EMBED_ERROR_VIDEO_TOO_LONG, delete_after=30)
+        return
     if ctx.voice_client.is_playing():
         queue = get_queue(ctx.guild.id)
         queue['queue'].append({"file": file, "title": format_name(video.title), "url": url, "asker": ctx.author.id})

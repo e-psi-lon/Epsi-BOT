@@ -14,7 +14,7 @@ class State(commands.Cog):
         if voice_client is None:
             await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
             return
-        if query.startswith('https://www.youtube.com/watch?v=') or query.startswith('https://youtu.be/'):
+        if query.startswith('https://www.youtube.com/watch?v=') or query.startswith('https://youtu.be/') or query.startswith('https://youtube.com/watch?v='):
             await start_song(ctx, query)
         else:
             research = pytube.Search(query)

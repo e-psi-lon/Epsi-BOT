@@ -19,15 +19,17 @@ class SelectVideo(discord.ui.Select):
         await interaction.response.defer()
         if self.view.download:
             file, video = download_audio(self.values[0])
+            if file == -1:
+                await interaction.message.edit(embed=EMBED_ERROR_VIDEO_TOO_LONG, view=None, remove_after=30)
+                return
             if self.view.format != "ogg":
                 file = convert(file, self.view.format)
-            # Modifier le message contenant le select pour afficher "{video.title} downloaded}" + le fichier au lieu de "Select an audio to play" + le select
             await interaction.message.edit(content=f'{video.title} downloaded', view=None, file=discord.File(file))
             return
         if self.view.playlist is not None:
-            await interaction.message.edit(content=f"Add song `{self.values[0]}` to playlist `{self.view.playlist}`",
+            await interaction.message.edit(content=f"Add song `{self.options[0].label}` to the playlist `{self.view.playlist}`",
                                            view=None)
-            queue['playlist'][self.view.playlist].append(self.values[0])
+            queue['playlist'][self.view.playlist].append({'url': self.values[0], 'title': self.options[0].label, 'asker': interaction.user.id})
             update_queue(self.ctx.guild.id, queue)
         else:
             await start_song(self.ctx, self.values[0], message=interaction.message)
