@@ -44,7 +44,14 @@ class Channel(commands.Cog):
         await ctx.respond(embed=embed)
         await channel.connect()
         if len(get_queue(ctx.guild.id)['queue']) > 0:
-            play_song(ctx, get_queue(ctx.guild.id)['queue'][0]['file'])
+            try:
+                play_song(ctx, get_queue(ctx.guild.id)['queue'][0]['file'])
+            except:
+                file, _ = download_audio(get_queue(ctx.guild.id)['queue'][0]['url'])
+                if file == -1:
+                    ctx.message.reply(embed=EMBED_ERROR_VIDEO_TOO_LONG, delete_after=30)
+                    return
+                play_song(ctx, file)
 
 
 def setup(bot):

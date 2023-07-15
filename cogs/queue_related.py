@@ -13,9 +13,8 @@ class Queue(commands.Cog):
             return
         embed = discord.Embed(title="Queue", description="The current queue", color=0x00ff00)
         for i, song in enumerate(queue['queue']):
-            embed.add_field(name=f"**`{i + 1}.`**{song['title']}",
-                            value=f"{song['url']} asked by <@{song['asker']}> "
-                                  f"{'- __**Currently playing**__' if i == queue['index'] else ''} ",
+            embed.add_field(name=f"**`{i + 1}.`**{song['title']} {'- __**Currently playing**__' if i == queue['index'] else ''}",
+                            value=f"{song['url']} asked by <@{song['asker']}> ",
                             inline=False)
         await ctx.respond(embed=embed)
 

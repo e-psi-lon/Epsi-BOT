@@ -129,13 +129,13 @@ class Playlist(commands.Cog):
             return
         queue['queue'][queue['index']]['file'] = video
         update_queue(ctx.guild.id, queue)
-        play_song(ctx, queue['queue'][queue['index']]['file'])
+        if ctx.voice_client.is_playing():
+            ctx.voice_client.stop()
+        play_song(ctx, video)
         embed = discord.Embed(title="Playing playlist", description=f"Playing playlist `{name}` (continue downloading songs in the background, please don't execute a command)", color=0x00ff00)
         response = await ctx.respond(embed=embed)
         for index, song in enumerate(queue['queue']):
-            if index == queue['index']:
-                pass
-            else:
+            if index != queue['index']:
                 while threading.active_count() > 7:
                     await asyncio.sleep(1)
                 threading.Thread(target=download_audio, args=(song['url'],ctx.guild.id)).start()

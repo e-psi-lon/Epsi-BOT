@@ -2,26 +2,71 @@
     "channel": null,
     "loop-song": false,
     "loop-queue": true,
-    "random": false,
-    "index": 1,
+    "random": true,
+    "index": 4,
     "queue": [
         {
-            "file": "audio/EDDY MITCHELL - La M\u00eame Tribu.ogg",
-            "title": "EDDY MITCHELL - La M\u00eame Tribu",
-            "url": "https://youtube.com/watch?v=rf60VglyUZg",
+            "title": "Wellerman (Sea Shanty)",
+            "url": "https://youtube.com/watch?v=qP-7GNoDJ5c",
             "asker": 708006478807695450
         },
         {
-            "file": "audio/Sur la route de Memphis.ogg",
-            "title": "Sur la route de Memphis",
-            "url": "https://www.youtube.com/watch?v=OVYVRct1Agw&pp=ygUlU3VyIGxhIHJvdXRlIGRlIG1lbXBoaXMgbGEgbWVtZSB0cmlidQ%3D%3D",
+            "title": "Wellerman Deutsch - Sinngem\u00e4\u00dfe \u00dcbersetzung des Originaltextes (Walf\u00e4nger Sea Shanty - Seemannslied)",
+            "url": "https://youtube.com/watch?v=l85G_oTou2M",
             "asker": 708006478807695450
         },
         {
-            "file": "audio/Earth Song (Official Video).ogg",
-            "title": "Earth Song (Official Video)",
-            "url": "https://youtube.com/watch?v=XAi3VTSdTxU",
+            "title": "La Strasbourgeoise",
+            "url": "https://youtube.com/watch?v=kHwKdnoMcdE",
             "asker": 708006478807695450
+        },
+        {
+            "title": "La Marseillaise, French National Anthem (Fr/En)",
+            "url": "https://youtube.com/watch?v=4K1q9Ntcr5g",
+            "asker": 708006478807695450
+        },
+        {
+            "title": "Never Gonna Give You Up",
+            "url": "https://youtube.com/watch?v=dQw4w9WgXcQ",
+            "asker": 708006478807695450,
+            "file": "audio/Never Gonna Give You Up.ogg"
+        },
+        {
+            "title": "Les Sardines",
+            "url": "https://youtube.com/watch?v=PA3P1-aSvKQ",
+            "asker": 708006478807695450
+        },
+        {
+            "title": "J.J. LIONEL - La danse des canards",
+            "url": "https://youtube.com/watch?v=17vFHKwq8B8",
+            "asker": 708006478807695450
+        },
+        {
+            "title": "National Anthem of Switzerland \"Swiss Psalm\" \u00ab Cantique suisse \u00bb - French Version - Hajim\u00e9 Sasaki",
+            "url": "https://youtube.com/watch?v=-Cz4_DKWEG0",
+            "asker": 501303816302362635,
+            "file": "audio/National Anthem of Switzerland u0022Swiss Psalmu0022 \u00ab Cantique suisse \u00bb - French Version - Hajim\u00e9 Sasaki.ogg"
+        },
+        {
+            "title": "Hymne National De L'URSS",
+            "url": "https://youtube.com/watch?v=Rm6q_3WGy9M",
+            "asker": 708006478807695450,
+            "file": "audio/Hymne National De Lu0027URSS.ogg"
+        },
+        {
+            "title": "BOOMBAYAH (KR Ver.)",
+            "url": "https://youtube.com/watch?v=bwmSjveL3Lc",
+            "asker": 501303816302362635
+        },
+        {
+            "title": "Je poss\u00e8de des thunes (Clip Int\u00e9gral) - David Castello-Lopes",
+            "url": "https://youtube.com/watch?v=aIVsz5Pj0eE",
+            "asker": 708006478807695450
+        },
+        {
+            "url": "https://youtube.com/watch?v=gdZLi9oWNZg",
+            "asker": 708006478807695450,
+            "title": "Dynamite"
         }
     ],
     "playlist": {
@@ -49,7 +94,8 @@
             {
                 "title": "Never Gonna Give You Up",
                 "url": "https://youtube.com/watch?v=dQw4w9WgXcQ",
-                "asker": 708006478807695450
+                "asker": 708006478807695450,
+                "file": "audio/Never Gonna Give You Up.ogg"
             },
             {
                 "title": "Les Sardines",
@@ -64,12 +110,14 @@
             {
                 "title": "National Anthem of Switzerland \"Swiss Psalm\" \u00ab Cantique suisse \u00bb - French Version - Hajim\u00e9 Sasaki",
                 "url": "https://youtube.com/watch?v=-Cz4_DKWEG0",
-                "asker": 501303816302362635
+                "asker": 501303816302362635,
+                "file": "audio/National Anthem of Switzerland u0022Swiss Psalmu0022 \u00ab Cantique suisse \u00bb - French Version - Hajim\u00e9 Sasaki.ogg"
             },
             {
                 "title": "Hymne National De L'URSS",
                 "url": "https://youtube.com/watch?v=Rm6q_3WGy9M",
-                "asker": 708006478807695450
+                "asker": 708006478807695450,
+                "file": "audio/Hymne National De Lu0027URSS.ogg"
             },
             {
                 "title": "BOOMBAYAH (KR Ver.)",

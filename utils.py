@@ -5,6 +5,7 @@ import pytube
 import random
 import ffmpeg
 import asyncio
+import io
 
 OWNER_ID = 708006478807695450
 EMBED_ERROR_QUEUE_EMPTY = discord.Embed(title="Error", description="The queue is empty.", color=0xff0000)
@@ -55,11 +56,9 @@ def update_queue(guild_id, queue):
 
 
 def get_index_from_title(title, guild_id, list):
-    queue = get_queue(guild_id)
     for index, song in enumerate(list):
-        if song['title']:
+        if song['title'] == title:
             return index
-
     return -1
 
 
