@@ -35,12 +35,10 @@ async def help_command(ctx: discord.ApplicationContext):
                                 value=subcommand.description if subcommand.description is not None else "No description",
                                 inline=True)
         elif isinstance(command, discord.SlashCommand):
-        
             embed.add_field(name=f"`/{command.name}`",
                             value=command.description if command.description is not None else "No description",
                             inline=True)
-        else:
-            pass
+            
     await ctx.respond(embed=embed)
 
 
