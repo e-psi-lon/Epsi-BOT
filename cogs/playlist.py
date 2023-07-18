@@ -15,7 +15,7 @@ class Playlist(commands.Cog):
 
     playlist = SlashCommandGroup(name="playlist", description="Commands related to playlists")
 
-    create = playlist.subgroup(name="create", description="Creates a playlist")
+    create = playlist.create_subgroup(name="create", description="Creates a playlist")
 
     @create.command(name="from-queue", description="Creates a playlist from the queue")
     async def create_from_queue(self, ctx: discord.ApplicationContext, name: discord.Option(str, "The name of the playlist", required=True)):

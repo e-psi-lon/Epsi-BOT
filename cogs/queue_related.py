@@ -64,7 +64,7 @@ class Queue(commands.Cog):
     remove = SlashCommandGroup(name="remove", description="Commands related to removing songs from the queue")
 
     @remove.command(name="from-name", description="Removes a song from the queue ")
-    async def remove(self, ctx: discord.ApplicationContext, song: discord.Option(str, "The name of the song to remove", required=True, autocomplete=discord.utils.basic_autocomplete(get_queue_songs))):
+    async def remove_name(self, ctx: discord.ApplicationContext, song: discord.Option(str, "The name of the song to remove", required=True, autocomplete=discord.utils.basic_autocomplete(get_queue_songs))):
         queue = get_queue(ctx.interaction.guild.id)
         index = get_index_from_title(queue, song)
         if index == -1:
@@ -75,7 +75,7 @@ class Queue(commands.Cog):
 
 
     @remove.command(name="from-index", description="Removes a song from the queue ")
-    async def remove(self, ctx: discord.ApplicationContext, index: discord.Option(int, "The index of the song to remove", required=True)):
+    async def remove_index(self, ctx: discord.ApplicationContext, index: discord.Option(int, "The index of the song to remove", required=True)):
         queue = get_queue(ctx.interaction.guild.id)
         if index < 0 or index >= len(queue['queue']):
             await ctx.respond(discord.Embed(title="Error", description=f"Index {index} out of range.", color=0xff0000))
