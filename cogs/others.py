@@ -34,7 +34,7 @@ class Others(commands.Cog):
             if videos == []:
                 await ctx.respond(embed=discord.Embed(title="Error", description="No results found.", color=0xff0000))
                 return
-            view = Research(videos, ctx, True, "", timeout=60)
+            view = Research(videos, ctx, True, timeout=60)
             await ctx.respond(embed=discord.Embed(title="Select audio", description="Select an audio to download", color=0x00ff00), view=view)
             
 

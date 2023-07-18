@@ -23,7 +23,24 @@ class Queue(commands.Cog):
     @commands.slash_command(name="skip", description="Skips the current song")
     async def skip(self, ctx: discord.ApplicationContext,
                    by: discord.Option(int, "How many songs to skip", required=False)):
-        pass
+        queue = get_queue(ctx.interaction.guild.id)
+        if queue['queue'] == []:
+            await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
+            return
+        if ctx.guild.voice_client is None:
+            await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
+            return
+        if by is None:
+            ctx.guild.voice_client.stop()
+            await ctx.respond(embed=discord.Embed(title="Skip", description="Song skipped.", color=0x00ff00))
+            return
+        if by < 0 or by >= len(queue['queue']) or queue['index'] + by >= len(queue['queue']):
+            await ctx.respond(embed=discord.Embed(title="Error", description=f"Index {by} out of range.", color=0xff0000))
+            return
+        queue['index'] += by
+        ctx.guild.voice_client.stop()
+        await ctx.respond(embed=discord.Embed(title="Skip", description=f"Skipped {by} songs.", color=0x00ff00))
+
 
     loop = SlashCommandGroup(name="loop", description="Commands related to looping songs")
 
@@ -98,7 +115,20 @@ class Queue(commands.Cog):
 
     @commands.slash_command(name="back", description="Goes back to the previous song")
     async def back(self, ctx: discord.ApplicationContext):
-        pass
+        queue = get_queue(ctx.interaction.guild.id)
+        if queue['queue'] == []:
+            await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
+            return
+        if ctx.guild.voice_client is None:
+            await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
+            return
+        if queue['index'] == 0:
+            await ctx.respond(embed=discord.Embed(title="Error", description="There is no previous song.", color=0xff0000))
+            return
+        queue['index'] -= 1
+        update_queue(ctx.interaction.guild.id, queue)
+        ctx.guild.voice_client.stop()
+        await ctx.respond(embed=discord.Embed(title="Back", description="Playing previous song.", color=0x00ff00))
 
     @commands.slash_command(name="shuffle", description="Shuffles the queue")
     async def shuffle(self, ctx: discord.ApplicationContext):
@@ -129,12 +159,33 @@ class Queue(commands.Cog):
     play = SlashCommandGroup(name="play-queue", description="Commands related to playing songs from the queue")
 
     @play.command(name="song", description="Plays a song from the queue")
-    async def play_song(self, ctx: discord.ApplicationContext, song: discord.Option(str, "The index of the song to play", required=True, autocomplete=discord.utils.basic_autocomplete(get_queue_songs))):
-        pass
+    async def play_queue_song(self, ctx: discord.ApplicationContext, song: discord.Option(str, "The index of the song to play", required=True, autocomplete=discord.utils.basic_autocomplete(get_queue_songs))):
+        queue = get_queue(ctx.interaction.guild.id)
+        if queue['queue'] == []:
+            await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
+            return
+        index = get_index_from_title(queue, song)
+        if index == -1:
+            await ctx.respond(discord.Embed(title="Error", description=f"Song {song} not found in the queue.", color=0xff0000))
+            return
+        queue['index'] = index - 1
+        update_queue(ctx.interaction.guild.id, queue)
+        ctx.guild.voice_client.stop()
+        await ctx.respond(embed=discord.Embed(title="Play", description=f"Playing {song}.", color=0x00ff00))
 
     @play.command(name="number", description="Plays a song from the queue")
-    async def play_song(self, ctx: discord.ApplicationContext, index: discord.Option(int, "The index of the song to play", required=True)):
-        pass
+    async def play_queue_index(self, ctx: discord.ApplicationContext, index: discord.Option(int, "The index of the song to play", required=True)):
+        queue = get_queue(ctx.interaction.guild.id)
+        if queue['queue'] == []:
+            await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
+            return
+        if index < 0 or index >= len(queue['queue']):
+            await ctx.respond(discord.Embed(title="Error", description=f"Index {index} out of range.", color=0xff0000))
+            return
+        queue['index'] = index - 2
+        update_queue(ctx.interaction.guild.id, queue)
+        ctx.guild.voice_client.stop()
+        await ctx.respond(embed=discord.Embed(title="Play", description=f"Playing {queue['queue'][index]['title']}.", color=0x00ff00))
 
                           
         

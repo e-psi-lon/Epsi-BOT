@@ -9,7 +9,12 @@ class SelectVideo(discord.ui.Select):
         self.max_values = 1
         self.ctx = ctx
         self.download = download
-        self.options = [discord.SelectOption(label=video.title, value=video.title) for video in videos]
+        options = []
+        for video in videos:
+            if video in options:
+                continue
+            options.append(discord.SelectOption(label=video.title, value=video.watch_url))
+        self.options = options
     
     async def callback(self, interaction: discord.Interaction):
         await interaction.message.edit(embed=discord.Embed(title="Select audio", description=f"You selected : {self.values[0]}", color=0x00ff00), view=None)
@@ -32,11 +37,11 @@ class SelectVideo(discord.ui.Select):
             await interaction.user.voice.channel.connect()
         if not interaction.guild.voice_client.is_playing():
             await interaction.message.edit(embed=discord.Embed(title="Play", description=f"Playing {self.values[0]}", color=0x00ff00))
-            play_song(self.ctx, link_to_audio(queue['queue'][queue['index']]['url']))
+            play_song(self.ctx, queue['queue'][queue['index']]['url'])
         else:
             await interaction.message.edit(embed=discord.Embed(title="Queue", description=f"Song {self.values[0]} added to queue.", color=0x00ff00))
 
 class Research(discord.ui.View):
-    def __init__(self, videos:list[pytube.YouTube], ctx, download, *items: Item, timeout: float | None = 180, disable_on_timeout: bool = False):
+    def __init__(self, videos:list[pytube.YouTube], ctx:discord.ApplicationContext, download: bool, *items: Item, timeout: float | None = 180, disable_on_timeout: bool = False):
         super().__init__(*items, timeout=timeout, disable_on_timeout=disable_on_timeout)
         self.add_item(SelectVideo(videos, ctx, download))

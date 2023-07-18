@@ -1,4 +1,5 @@
 from discord.ext import commands
+from discord.commands import SlashCommandGroup
 from utils import *
 from classes import Research
 
@@ -34,7 +35,7 @@ class State(commands.Cog):
             if videos == []:
                 await ctx.respond(embed=discord.Embed(title="Error", description="No results found.", color=0xff0000))
                 return
-            view = Research(videos, ctx, False, "", timeout=60)
+            view = Research(videos, ctx, False)
             await ctx.respond(embed=discord.Embed(title="Select audio", description="Select an audio to play", color=0x00ff00), view=view)
     
 
@@ -51,10 +52,6 @@ class State(commands.Cog):
             return
         ctx.guild.voice_client.pause()
         await ctx.respond(embed=discord.Embed(title="Pause", description="Song paused.", color=0x00ff00))
-
-        
-        
-        
 
     @commands.slash_command(name="resume", description="Resumes the current song")
     async def resume(self, ctx: discord.ApplicationContext):
@@ -81,6 +78,21 @@ class State(commands.Cog):
         update_queue(ctx.guild.id, queue)
         ctx.guild.voice_client.stop()
         await ctx.respond(embed=discord.Embed(title="Stop", description="Song stopped.", color=0x00ff00))
+
+    volume = SlashCommandGroup(name="volume", description="Commands related to the volume of the bot")
+
+    @volume.command(name="get", description="Gets the current volume")
+    async def get_volume(self, ctx: discord.ApplicationContext):
+        if ctx.guild.voice_client is None:
+            await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
+            return
+        try:
+            await ctx.respond(embed=discord.Embed(title="Volume", description=f"Volume is {ctx.guild.voice_client.source.volume * 100}%", color=0x00ff00))
+        except:
+            await ctx.respond(embed=discord.Embed(title="Error", description="Error while getting volume.", color=0xff0000))
+
+
+    
 
 
 def setup(bot):
