@@ -103,10 +103,6 @@ def get_queue(guild_id):
     return json.load(open(f'queue/{guild_id}.json', 'r'))
 
 
-async def start_song(ctx: discord.ApplicationContext, url: str, message: discord.Message | None = None):
-    pass
-
-
 def convert(audio, file_format):
     stream = ffmpeg.input(audio)
     stream = ffmpeg.output(audio[:4], stream, format=file_format)
