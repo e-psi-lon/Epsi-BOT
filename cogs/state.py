@@ -2,6 +2,7 @@ from discord.ext import commands
 from discord.commands import SlashCommandGroup
 from utils import *
 from classes import Research
+import pytube
 
 
 class State(commands.Cog):
@@ -13,15 +14,12 @@ class State(commands.Cog):
         try:
             url = pytube.YouTube(query).watch_url
             try:
-                buffer = link_to_audio(url)
-                if buffer is None:
-                    await ctx.respond(embed=discord.Embed(title="Error", description="Error while downloading song.", color=0xff0000))
-                    return
+                
                 queue = get_queue(ctx.guild.id)
                 if queue['queue'] == []:
                     queue['queue'].append({'title': pytube.YouTube(query).title, 'url': url})
                     update_queue(ctx.guild.id, queue)
-                    play_song(ctx, buffer)
+                    play_song(ctx, url)
                     await asyncio.sleep(1)
                     return
                 queue['queue'].append({'title': pytube.YouTube(query).title, 'url': url})

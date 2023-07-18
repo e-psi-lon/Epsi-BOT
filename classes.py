@@ -1,5 +1,33 @@
 from discord.ui.item import Item
 from utils import *
+import pytube
+import discord
+
+
+class PyTSource(discord.PCMVolumeTransformer):
+    def __init__(self, source: discord.AudioSource, *, data: dict, volume: float = 0.5):
+        super().__init__(source, volume)
+
+        self.data = data
+
+        self.title = data.get("title")
+        self.url = data.get("url")
+
+    @classmethod
+    async def from_url(cls, url: str, *, loop=None, stream=False):
+        loop = loop or asyncio.get_event_loop()
+
+        # Utilise pytube pour obtenir les informations de la vidéo
+        video = pytube.YouTube(url)
+
+        data = {
+            "title": video.title,
+            "url": url
+        }
+
+        ffmpeg_options = {"options": "-vn"}
+        return cls(discord.FFmpegPCMAudio(url, **ffmpeg_options), data=data)
+
 
 class SelectVideo(discord.ui.Select):
     def __init__(self, videos:list[pytube.YouTube], ctx, download, *args, **kwargs):
@@ -20,11 +48,9 @@ class SelectVideo(discord.ui.Select):
         await interaction.message.edit(embed=discord.Embed(title="Select audio", description=f"You selected : {self.values[0]}", color=0x00ff00), view=None)
         queue = get_queue(interaction.guild.id)
         if self.download:
-            buffer = link_to_audio(self.values[0])
-            if buffer is None:
-                await interaction.message.edit(embed=discord.Embed(title="Error", description="Error while downloading song.", color=0xff0000))
-                return
-            await interaction.message.edit(embed=discord.Embed(title="Download", description="Song downloaded.", color=0x00ff00), file=discord.File(buffer, filename=f"{self.options[0].label}.mp3"), view=None)
+            stream = pytube.YouTube(self.values[0]).streams.filter(only_audio=True).first()
+            stream.download(filename=f"audio/{self.options[0].label}.mp3")
+            await interaction.message.edit(embed=discord.Embed(title="Download", description="Song downloaded.", color=0x00ff00), file=discord.File(f"audio/{self.options[0].label}", filename=f"{self.options[0].label}.mp3"), view=None)
             return
         if queue['queue'] == []:
             queue['index'] = 0

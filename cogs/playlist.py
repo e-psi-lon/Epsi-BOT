@@ -119,7 +119,7 @@ class Playlist(commands.Cog):
             await ctx.interaction.user.voice.channel.connect()
         if not ctx.interaction.guild.voice_client.is_playing():
             await ctx.respond(embed=discord.Embed(title="Play", description=f"Playing {queue['queue'][queue['index']]['title']}", color=0x00ff00))
-            play_song(ctx, link_to_audio(queue['queue'][queue['index']]['url']))
+            play_song(ctx, queue['queue'][queue['index']]['url'])
         else:
             await ctx.respond(embed=discord.Embed(title="Queue", description=f"Playlist {name} added to queue.", color=0x00ff00))
 

@@ -33,7 +33,7 @@ class Channel(commands.Cog):
         await ctx.respond(embed=discord.Embed(title="Success", description="Bot joined the voice channel.",
                                                 color=0x00ff00))
         if queue['queue'] != []:
-            play_song(ctx.guild.id, link_to_audio(queue['queue'][queue['index']]['url']))
+            play_song(ctx.guild.id, queue['queue'][queue['index']]['url'])
             
 
 

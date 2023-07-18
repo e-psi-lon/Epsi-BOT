@@ -1,12 +1,10 @@
 import discord
 import json
 import os
-import pytube
 import random
 import ffmpeg
 import asyncio
-import io
-from typing import BinaryIO
+from classes import PyTSource
 
 OWNER_ID = 708006478807695450
 EMBED_ERROR_QUEUE_EMPTY = discord.Embed(title="Error", description="The queue is empty.", color=0xff0000)
@@ -63,19 +61,6 @@ def get_index_from_title(title, list):
     return -1
 
 
-def link_to_audio(url:str) -> io.BufferedIOBase:
-    stream = pytube.YouTube(url).streams.filter(only_audio=True).first()
-    if stream is None:
-        return None
-    # on limite la taille du fichier à 80 Mo
-    if stream.filesize > 80 * 1024 * 1024:
-        return None
-    buffer = io.BytesIO()
-    stream.stream_to_buffer(buffer)
-    buffer.seek(0)
-    return buffer
-
-
 async def change_song(ctx: discord.ApplicationContext):
     queue = get_queue(ctx.guild.id)
     if queue['queue'] == []:
@@ -88,10 +73,13 @@ async def change_song(ctx: discord.ApplicationContext):
     if queue['index'] >= len(queue['queue']) and queue['loop_queue']:
         queue['index'] = -1
     if not queue['loop_song']:
-        queue['index'] += 1
+        if queue['random']:
+            queue['index'] = random.choice(list(set(range(0,len(queue['queue']))) - set([queue['index']])))
+        else:
+            queue['index'] += 1
     update_queue(ctx.guild.id, queue)
     try:
-        play_song(ctx, link_to_audio(queue['queue'][queue['index']]['url']))
+        play_song(ctx, queue['queue'][queue['index']]['url'])
     except Exception as e:
         ctx.respond(embed=discord.Embed(title="Error", description="Error while playing song. Error: " + str(e), color=0xff0000))
     await asyncio.sleep(1)
@@ -99,12 +87,15 @@ async def change_song(ctx: discord.ApplicationContext):
 
 
 
-def play_song(ctx: discord.ApplicationContext, buffer: io.BufferedIOBase):
+def play_song(ctx: discord.ApplicationContext, url: str):
     if ctx.guild.voice_client is None:
         return
     if ctx.guild.voice_client.is_playing():
         ctx.guild.voice_client.stop()
-    ctx.guild.voice_client.play(discord.FFmpegPCMAudio(buffer), after=lambda e: ctx.respond("Error while playing song.") if e else change_song(ctx))
+    player = PyTSource.from_url(url, loop=ctx.bot.loop)
+    ctx.guild.voice_client.play(player, after=lambda e: # On envoit un embed d'erreur si il y a une erreur dans le salon dans lequel le bot est connecté
+        ctx.send(embed=discord.Embed(title="Error", description="Error while playing song. Error: " + str(e), color=0xff0000)) if e else change_song(ctx))
+
 
 
 def create_queue(guild_id):

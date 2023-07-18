@@ -4,6 +4,12 @@
     "loop-queue": true,
     "random": true,
     "index": 0,
-    "queue": [],
+    "queue": [
+        {
+            "title": "https://youtube.com/watch?v=17vFHKwq8B8",
+            "url": "https://youtube.com/watch?v=17vFHKwq8B8",
+            "asker": "e_psi_lon"
+        }
+    ],
     "playlist": {}
 }
