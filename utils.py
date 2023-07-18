@@ -76,10 +76,26 @@ def link_to_audio(url:str) -> io.BufferedIOBase:
     return buffer
 
 
-
-
 async def change_song(ctx: discord.ApplicationContext):
-    pass
+    queue = get_queue(ctx.guild.id)
+    if queue['queue'] == []:
+        return
+    if queue['index'] >= len(queue['queue']) and not queue['loop_queue']:
+        queue['index'] = 0
+        queue['queue'] = []
+        update_queue(ctx.guild.id, queue)
+        return
+    if queue['index'] >= len(queue['queue']) and queue['loop_queue']:
+        queue['index'] = -1
+    if not queue['loop_song']:
+        queue['index'] += 1
+    update_queue(ctx.guild.id, queue)
+    try:
+        play_song(ctx, link_to_audio(queue['queue'][queue['index']]['url']))
+    except Exception as e:
+        ctx.respond(embed=discord.Embed(title="Error", description="Error while playing song. Error: " + str(e), color=0xff0000))
+    await asyncio.sleep(1)
+    
 
 
 

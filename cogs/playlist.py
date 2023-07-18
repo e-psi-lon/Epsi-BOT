@@ -4,7 +4,6 @@ from discord.commands import SlashCommandGroup
 from utils import *
 from classes import Research
 import pytube
-import threading
 
 
 
@@ -34,8 +33,28 @@ class Playlist(commands.Cog):
         await ctx.respond(embed=discord.Embed(title="Success", description=f"Playlist {name} created.", color=0x00ff00))
 
     @create.command(name="from-youtube", description="Creates a playlist from a youtube playlist")
-    async def create_from_youtube(self, ctx: discord.ApplicationContext, name: discord.Option(str, "The name of the playlist", required=True), query: discord.Option(str, "The url of the playlist", required=True)):
-        pass
+    async def create_from_youtube(self, ctx: discord.ApplicationContext, name: discord.Option(str, "The name of the playlist", required=False), url: discord.Option(str, "The url of the playlist", required=True)):
+        try:
+            playlist = pytube.Playlist(url)
+            if name is None:
+                name = playlist.title
+            if len(name) > 20:
+                await ctx.respond(embed=EMBED_ERROR_NAME_TOO_LONG)
+                return
+            queue = get_queue(ctx.interaction.guild.id)
+            if name in queue['playlist'].keys():
+                await ctx.respond(embed=discord.Embed(title="Error", description="A playlist with this name already exists.", color=0xff0000))
+                return
+            queue['playlist'][name] = []
+            for video in playlist.videos:
+                queue['playlist'][name].append({'title': video.title, 'url': video.watch_url})
+            update_queue(ctx.interaction.guild.id, queue)
+            await ctx.respond(embed=discord.Embed(title="Success", description=f"Playlist {name} created.", color=0x00ff00))
+        except:
+            await ctx.respond(embed=discord.Embed(title="Error", description="You must use an url of a youtube playlist", color=0xff0000))
+
+
+            
 
     @playlist.command(name="delete", description="Deletes a playlist")
     async def delete(self, ctx: discord.ApplicationContext, name: discord.Option(str, "The name of the playlist", required=True, autocomplete=discord.utils.basic_autocomplete(get_playlists))):
@@ -51,9 +70,24 @@ class Playlist(commands.Cog):
 
 
     @playlist.command(name="add", description="Adds a song to a playlist")
-    async def add(self, ctx: discord.ApplicationContext, name: discord.Option(str, "The name of the playlist", required=True, autocomplete=discord.utils.basic_autocomplete(get_playlists)),
-                query: discord.Option(str, "The url of the song", required=True)):
-        pass
+    async def add(self, ctx: discord.ApplicationContext, name: discord.Option(str, "The name of the playlist", required=True, autocomplete=discord.utils.basic_autocomplete(get_playlists)), query: discord.Option(str, "The YouTube video to add to the playlist", required=True)):
+        queue = get_queue(ctx.interaction.guild.id)
+        if name not in queue['playlist'].keys():
+            await ctx.respond(embed=EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
+                                .add_field(name="Existing playlists:", value="\n".join(queue['playlist'].keys())))
+            return
+        try:
+            url = pytube.YouTube(query).watch_url
+            try:
+                queue['playlist'][name].append({'title': pytube.YouTube(query).title, 'url': url})
+                update_queue(ctx.interaction.guild.id, queue)
+                await ctx.respond(embed=discord.Embed(title="Success", description=f"Song added to playlist {name}.", color=0x00ff00))
+            except:
+                await ctx.respond(embed=discord.Embed(title="Error", description="Error while getting song.", color=0xff0000))
+                return
+        except:
+            await ctx.respond(embed=discord.Embed(title="Error", description="You must use an url of a youtube video (the research feature is not available for this command yet)", color=0xff0000))
+            return
 
     @playlist.command(name="remove", description="Removes a song from a playlist")
     async def remove(self, ctx: discord.ApplicationContext, name: discord.Option(str, "The name of the playlist", required=True, autocomplete=discord.utils.basic_autocomplete(get_playlists)),
@@ -73,7 +107,21 @@ class Playlist(commands.Cog):
 
     @playlist.command(name="play", description="Plays a playlist")
     async def play(self, ctx: discord.ApplicationContext, name: discord.Option(str, "The name of the playlist", required=True, autocomplete=discord.utils.basic_autocomplete(get_playlists))):
-        pass
+        queue = get_queue(ctx.interaction.guild.id)
+        if name not in queue['playlist'].keys():
+            await ctx.respond(embed=EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
+                                .add_field(name="Existing playlists:", value="\n".join(queue['playlist'].keys())))
+            return
+        queue['queue'] = queue['playlist'][name]
+        queue['index'] = 0
+        update_queue(ctx.interaction.guild.id, queue)
+        if ctx.interaction.guild.voice_client is None:
+            await ctx.interaction.user.voice.channel.connect()
+        if not ctx.interaction.guild.voice_client.is_playing():
+            await ctx.respond(embed=discord.Embed(title="Play", description=f"Playing {queue['queue'][queue['index']]['title']}", color=0x00ff00))
+            play_song(ctx, link_to_audio(queue['queue'][queue['index']]['url']))
+        else:
+            await ctx.respond(embed=discord.Embed(title="Queue", description=f"Playlist {name} added to queue.", color=0x00ff00))
 
 
     @playlist.command(name="list", description="Lists all the playlists")
