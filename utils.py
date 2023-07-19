@@ -3,9 +3,9 @@ import json
 import os
 import random
 import ffmpeg
-import pytube
+import cogs._fix_pytube
 from discord.ui.item import Item
-import youtube_dl
+import cogs._fix_youtube_dl
 import asyncio
 
 
@@ -205,8 +205,11 @@ def create_queue(guild_id):
 
 
 def get_queue(guild_id):
-    return json.load(open(f'queue/{guild_id}.json', 'r'))
-
+    try:
+        return json.load(open(f'queue/{guild_id}.json', 'r'))
+    except FileNotFoundError:
+        create_queue(guild_id)
+        return json.load(open(f'queue/{guild_id}.json', 'r'))
 
 def convert(audio, file_format):
     stream = ffmpeg.input(audio)

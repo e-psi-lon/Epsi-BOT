@@ -1,13 +1,5 @@
 # Music-BOT
 
-Changer la ligne 287 de [pytube.cipher.py](./.venv/Lib/site-packages/pytube/cipher.py#287) pour
-```py
-r'var {nfunc}\\s*=\\s*(\\[.+?])'.format(
-```
-la ligne 6250 de [youtube_dl.utils.py](./.venv/Lib/site-packages/youtube_dl/utils.py#6250) pour
-```py
-args = inspect.getfullargspec(func)
-```
 
 et installer ffmpeg sont nécessaires pour que le bot fonctionne
 

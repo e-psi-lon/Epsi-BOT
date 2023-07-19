@@ -1,5 +1,6 @@
 from discord.ext import commands
 from utils import *
+import cogs._fix_pytube
 
 
 class Others(commands.Cog):
