@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from discord.commands import SlashCommandGroup
 from utils import *
-import pytube
+import cogs._fix_pytube
 
 
 
