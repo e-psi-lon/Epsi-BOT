@@ -2,7 +2,6 @@ import discord
 from discord.ext import commands
 from discord.commands import SlashCommandGroup
 from utils import *
-from classes import Research
 import pytube
 
 
@@ -30,10 +29,10 @@ class Playlist(commands.Cog):
             return
         queue['playlist'][name] = queue['queue']
         update_queue(ctx.interaction.guild.id, queue)
-        await ctx.respond(embed=discord.Embed(title="Success", description=f"Playlist {name} created.", color=0x00ff00))
+        await ctx.respond(embed=discord.Embed(title="Playlist", description=f"Playlist {name} created.", color=0x00ff00))
 
     @create.command(name="from-youtube", description="Creates a playlist from a youtube playlist")
-    async def create_from_youtube(self, ctx: discord.ApplicationContext, name: discord.Option(str, "The name of the playlist", required=False), url: discord.Option(str, "The url of the playlist", required=True)):
+    async def create_from_youtube(self, ctx: discord.ApplicationContext, url: discord.Option(str, "The url of the playlist", required=True), name: discord.Option(str, "The name of the playlist", required=False)):
         try:
             playlist = pytube.Playlist(url)
             if name is None:
@@ -49,7 +48,7 @@ class Playlist(commands.Cog):
             for video in playlist.videos:
                 queue['playlist'][name].append({'title': video.title, 'url': video.watch_url})
             update_queue(ctx.interaction.guild.id, queue)
-            await ctx.respond(embed=discord.Embed(title="Success", description=f"Playlist {name} created.", color=0x00ff00))
+            await ctx.respond(embed=discord.Embed(title="Playlist", description=f"Playlist {name} created.", color=0x00ff00))
         except:
             await ctx.respond(embed=discord.Embed(title="Error", description="You must use an url of a youtube playlist", color=0xff0000))
 
@@ -65,7 +64,7 @@ class Playlist(commands.Cog):
             return
         del queue['playlist'][name]
         update_queue(ctx.interaction.guild.id, queue)
-        await ctx.respond(embed=discord.Embed(title="Success", description=f"Playlist {name} deleted.", color=0x00ff00))
+        await ctx.respond(embed=discord.Embed(title="Playlist", description=f"Playlist {name} deleted.", color=0x00ff00))
 
 
 
@@ -81,7 +80,7 @@ class Playlist(commands.Cog):
             try:
                 queue['playlist'][name].append({'title': pytube.YouTube(query).title, 'url': url})
                 update_queue(ctx.interaction.guild.id, queue)
-                await ctx.respond(embed=discord.Embed(title="Success", description=f"Song added to playlist {name}.", color=0x00ff00))
+                await ctx.respond(embed=discord.Embed(title="Playlist", description=f"Song added to playlist {name}.", color=0x00ff00))
             except:
                 await ctx.respond(embed=discord.Embed(title="Error", description="Error while getting song.", color=0xff0000))
                 return
@@ -102,7 +101,7 @@ class Playlist(commands.Cog):
             return
         queue['playlist'][name].pop(get_index_from_title(song, queue['playlist'][name]))
         update_queue(ctx.interaction.guild.id, queue)
-        await ctx.respond(embed=discord.Embed(title="Success", description=f"Song {song} removed from playlist {name}.", color=0x00ff00))
+        await ctx.respond(embed=discord.Embed(title="Playlist", description=f"Song {song} removed from playlist {name}.", color=0x00ff00))
 
 
     @playlist.command(name="play", description="Plays a playlist")
@@ -119,7 +118,7 @@ class Playlist(commands.Cog):
             await ctx.interaction.user.voice.channel.connect()
         if not ctx.interaction.guild.voice_client.is_playing():
             await ctx.respond(embed=discord.Embed(title="Play", description=f"Playing {queue['queue'][queue['index']]['title']}", color=0x00ff00))
-            play_song(ctx, queue['queue'][queue['index']]['url'])
+            asyncio.run(play_song(ctx, queue['queue'][queue['index']]['url']))
         else:
             await ctx.respond(embed=discord.Embed(title="Queue", description=f"Playlist {name} added to queue.", color=0x00ff00))
 
@@ -169,7 +168,7 @@ class Playlist(commands.Cog):
         queue['playlist'][new_name] = queue['playlist'][name]
         del queue['playlist'][name]
         update_queue(ctx.interaction.guild.id, queue)
-        await ctx.respond(embed=discord.Embed(title="Success", description=f"Playlist {name} renamed to {new_name}.", color=0x00ff00))
+        await ctx.respond(embed=discord.Embed(title="Playlist", description=f"Playlist {name} renamed to {new_name}.", color=0x00ff00))
 
 
 def setup(bot):

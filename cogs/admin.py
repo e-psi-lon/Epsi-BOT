@@ -18,8 +18,8 @@ class Admin(commands.Cog):
                 embed = discord.Embed(title="Error", description="The bot is playing a song.", color=0xff0000)
                 await ctx.respond(embed=embed, delete_after=30)
                 return
-        for file in os.listdir('audio/'):
-            os.remove(f'audio/{file}')
+        for file in os.listdir('cache/'):
+            os.remove(f'cache/{file}')
         embed = discord.Embed(title="Cache removed", description="Removed the audio cache.", color=0x00ff00)
         await ctx.respond(embed=embed, delete_after=30)
 

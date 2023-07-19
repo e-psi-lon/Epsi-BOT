@@ -1,6 +1,5 @@
 from discord.ext import commands
 from utils import *
-from classes import Research
 
 
 class Others(commands.Cog):
@@ -13,16 +12,14 @@ class Others(commands.Cog):
         try:
             video = pytube.YouTube(query)
             try:
-                buffer = link_to_audio(video.watch_url)
-                if buffer is None:
-                    await ctx.respond(embed=discord.Embed(title="Error", description="Error while downloading song.", color=0xff0000))
-                    return
+                stream = video.streams.filter(only_audio=True).first()
+                buffer = stream.stream_to_buffer()
                 # On exporte le fichier dans un dossier cache
                 with open(f"cache/{video.title}.{file_format}", "wb") as f:
                     f.write(buffer.read())
                 # On convertit l'audio dans le format demandé
                 buffer = open(convert("cache/" + video.title, file_format))
-                await ctx.respond(embed=discord.Embed(title="Download", description="Song downloaded.", color=0x00ff00), file=discord.File(buffer, filename=f"{video.title}.{file_format}"))
+                await ctx.respond(embed=discord.Embed(title="Download", description="Song downloaded.", color=0x00ff00), file=discord.File(f"cache/{video.title}.{file_format}", filename=f"{video.title}.{file_format}"))
                 buffer.close()
                 os.remove(f"cache/{video.title}.{file_format}")
                 os.remove(f"cache/{video.title}.mp3")

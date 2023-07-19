@@ -1,6 +1,5 @@
 from discord.ext import commands
 from discord.commands import SlashCommandGroup
-from classes import *
 from utils import *
 
 
@@ -14,9 +13,9 @@ class Queue(commands.Cog):
         embed = discord.Embed(title="Queue", color=0x00ff00)
         for i, song in enumerate(queue['queue']):
             if i == queue['index']:
-                embed.add_field(name=f"{i+1}. {song['title']} - **Now Playing**", value=f"song['url'] asked by {song['asker']}", inline=False)
+                embed.add_field(name=f"{i+1}. {song['title']} - **Now Playing**", value=f"song['url'] asked by <@{song['asker']}>", inline=False)
             else:
-                embed.add_field(name=f"{i+1}. {song['title']}", value=f"song['url'] asked by {song['asker']}", inline=False)
+                embed.add_field(name=f"{i+1}. {song['title']}", value=f"song['url'] asked by <@{song['asker']}>", inline=False)
         await ctx.respond(embed=embed)
 
 
@@ -48,10 +47,10 @@ class Queue(commands.Cog):
     async def loop_song(self, ctx: discord.ApplicationContext, state: discord.Option(bool, "The loop state", required=False)):
         queue = get_queue(ctx.interaction.guild.id)
         if state is None:
-            state = not queue['loop_song']
-        queue['loop_song'] = state
-        if queue['loop_queue'] and state:
-            queue['loop_queue'] = False
+            state = not queue['loop-song']
+        queue['loop-song'] = state
+        if queue['loop-queue'] and state:
+            queue['loop-queue'] = False
         update_queue(ctx.interaction.guild.id, queue)
         await ctx.respond(embed=discord.Embed(title="Loop", description=f"Loop song set to {'on' if state else 'off'}.", color=0x00ff00))
         
@@ -61,10 +60,10 @@ class Queue(commands.Cog):
     async def loop_queue(self, ctx: discord.ApplicationContext, state: discord.Option(bool, "The loop state", required=False)):
         queue = get_queue(ctx.interaction.guild.id)
         if state is None:
-            state = not queue['loop_queue']
-        queue['loop_queue'] = state
-        if queue['loop_song'] and state:
-            queue['loop_song'] = False
+            state = not queue['loop-queue']
+        queue['loop-queue'] = state
+        if queue['loop-song'] and state:
+            queue['loop-song'] = False
         update_queue(ctx.interaction.guild.id, queue)
         await ctx.respond(embed=discord.Embed(title="Loop", description=f"Loop queue set to {'on' if state else 'off'}.", color=0x00ff00))
 
@@ -75,7 +74,7 @@ class Queue(commands.Cog):
             await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
             return
         song = queue['queue'][queue['index']]
-        embed = discord.Embed(title="Now Playing", description=f"[{song['title']}]({song['url']}) asked by {song['asker']}", color=0x00ff00)
+        embed = discord.Embed(title="Now Playing", description=f"[{song['title']}]({song['url']}) asked by <@{song['asker']}>", color=0x00ff00)
         await ctx.respond(embed=embed)
 
     remove = SlashCommandGroup(name="remove", description="Commands related to removing songs from the queue")

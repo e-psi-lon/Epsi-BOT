@@ -1,9 +1,14 @@
 # Music-BOT
 
-Changer la ligne 287 de [cipher.py](./.venv/Lib/site-packages/pytube/cipher.py#287) pour
+Changer la ligne 287 de [pytube.cipher.py](./.venv/Lib/site-packages/pytube/cipher.py#287) pour
 ```py
 r'var {nfunc}\\s*=\\s*(\\[.+?])'.format(
 ```
+la ligne 6250 de [youtube_dl.utils.py](./.venv/Lib/site-packages/youtube_dl/utils.py#6250) pour
+```py
+args = inspect.getfullargspec(func)
+```
+
 et installer ffmpeg sont nécessaires pour que le bot fonctionne
 
 
@@ -24,7 +29,7 @@ Les fichiers se présentent sous la forme
             "title": "", // titre de la chanson, type str
             "url": "https://www.youtube.com/watch?v=...", // url de la chanson, type str
             "asker": 95884548745, // id de l'utilisateur qui a demandé la chanson, type int
-            "file": "audio/nom de la video" // chemin vers le fichier audio de la chanson, type str. 
+            "file": "cache/nom de la video" // chemin vers le fichier audio de la chanson, type str. 
             //Devrait bientot etre supprime car remplace par directement le flux audio
         }
     ],

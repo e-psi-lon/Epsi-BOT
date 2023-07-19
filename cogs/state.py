@@ -1,9 +1,8 @@
 from discord.ext import commands
 from discord.commands import SlashCommandGroup
 from utils import *
-from classes import Research
 import pytube
-
+import asyncio
 
 class State(commands.Cog):
     def __init__(self, bot):
@@ -11,20 +10,23 @@ class State(commands.Cog):
 
     @commands.slash_command(name="play", description="Plays the audio of a YouTube video")
     async def play(self, ctx: discord.ApplicationContext, query: discord.Option(str, "The YouTube audio to play", required=True)):
+        if ctx.guild.voice_client is None:
+            await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
+            return
         try:
             url = pytube.YouTube(query).watch_url
             try:
-                
                 queue = get_queue(ctx.guild.id)
                 if queue['queue'] == []:
                     queue['queue'].append({'title': pytube.YouTube(query).title, 'url': url})
                     update_queue(ctx.guild.id, queue)
-                    play_song(ctx, url)
+                    await ctx.respond(embed=discord.Embed(title="Play", description=f"Playing song [{pytube.YouTube(query).title}]({url})", color=0x00ff00))
+                    await play_song(ctx, url)
                     await asyncio.sleep(1)
                     return
                 queue['queue'].append({'title': pytube.YouTube(query).title, 'url': url})
                 update_queue(ctx.guild.id, queue)
-                await ctx.respond(embed=discord.Embed(title="Success", description="Song added to queue.", color=0x00ff00))
+                await ctx.respond(embed=discord.Embed(title="Queue", description="Song added to queue.", color=0x00ff00))
             except:
                 await ctx.respond(embed=discord.Embed(title="Error", description="Error while getting song.", color=0xff0000))
                 return
@@ -34,6 +36,9 @@ class State(commands.Cog):
                 await ctx.respond(embed=discord.Embed(title="Error", description="No results found.", color=0xff0000))
                 return
             view = Research(videos, ctx, False)
+            print(view.children)
+            print(discord.Embed(title="Select audio", description="Select an audio to play", color=0x00ff00).to_dict())
+            print(ctx)
             await ctx.respond(embed=discord.Embed(title="Select audio", description="Select an audio to play", color=0x00ff00), view=view)
     
 

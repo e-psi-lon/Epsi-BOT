@@ -1,4 +1,3 @@
-from classes import *
 from utils import *
 from discord.ext import commands
 import discord
@@ -48,8 +47,8 @@ def start(instance: Bot):
     # Charger les cogs
     if not os.path.exists('queue/'):
         os.mkdir('queue/')
-    if not os.path.exists('audio/'):
-        os.mkdir('audio/')
+    if not os.path.exists('cache/'):
+        os.mkdir('cache/')
     cogs = [
         "cogs.channel",
         "cogs.others",
@@ -62,6 +61,7 @@ def start(instance: Bot):
     ]
     for cog in cogs:
         instance.load_extension(cog)
+    os.system("cls" if os.name == "nt" else "clear")
     # Lancer le bot
     instance.run("MTEyODA3NDQ0Njk4NTQ5ODYyNA.G-kQRY.fuaCtflpY1SrNMJAS2fqixVMmwRUF7m2HRW6tw")
 
