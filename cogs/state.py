@@ -1,7 +1,8 @@
+import threading
 from discord.ext import commands
 from discord.commands import SlashCommandGroup
 from utils import *
-import cogs._fix_pytube
+import pytube
 import asyncio
 
 class State(commands.Cog):
@@ -26,6 +27,7 @@ class State(commands.Cog):
                     return
                 queue['queue'].append({'title': pytube.YouTube(query).title, 'url': url})
                 update_queue(ctx.guild.id, queue)
+                threading.Thread(target=download, args=(url,)).start()
                 await ctx.respond(embed=discord.Embed(title="Queue", description="Song added to queue.", color=0x00ff00))
             except:
                 await ctx.respond(embed=discord.Embed(title="Error", description="Error while getting song.", color=0xff0000))
@@ -36,9 +38,7 @@ class State(commands.Cog):
                 await ctx.respond(embed=discord.Embed(title="Error", description="No results found.", color=0xff0000))
                 return
             view = Research(videos, ctx, False)
-            print(view.children)
             print(discord.Embed(title="Select audio", description="Select an audio to play", color=0x00ff00).to_dict())
-            print(ctx)
             await ctx.respond(embed=discord.Embed(title="Select audio", description="Select an audio to play", color=0x00ff00), view=view)
     
 

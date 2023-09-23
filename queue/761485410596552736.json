@@ -3,7 +3,25 @@
     "loop-song": false,
     "loop-queue": true,
     "random": true,
-    "index": 1,
-    "queue": [],
-    "playlist": {}
+    "index": 2,
+    "queue": [
+        {
+            "title": "Nathan Evans - Wellerman (Sea Shanty)",
+            "url": "https://youtube.com/watch?v=qP-7GNoDJ5c",
+            "asker": 501303816302362635
+        },
+        {
+            "title": "Wellerman Deutsch - Sinngem\u00e4\u00dfe \u00dcbersetzung des Originaltextes (Walf\u00e4nger Sea Shanty - Seemannslied)",
+            "url": "https://youtube.com/watch?v=l85G_oTou2M",
+            "asker": 501303816302362635
+        },
+        {
+            "title": "La danse des canards - J.J. Lionel / Live dans Les Ann\u00e9es Bonheur",
+            "url": "https://youtube.com/watch?v=B_VJe5iHrJw",
+            "asker": 708006478807695450
+        }
+    ],
+    "playlist": {
+        "Playlist de test": []
+    }
 }

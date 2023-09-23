@@ -1,7 +1,6 @@
 from discord.ext import commands
 from utils import *
-import cogs._fix_pytube
-
+import pytube
 
 class Others(commands.Cog):
     def __init__(self, bot):

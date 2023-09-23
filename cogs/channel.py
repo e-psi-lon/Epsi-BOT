@@ -1,3 +1,4 @@
+import threading
 from discord.ext import commands
 from utils import *
 
@@ -33,13 +34,18 @@ class Channel(commands.Cog):
                                                     color=0xff0000))
             return
         await ctx.author.voice.channel.connect()
-        print(discord.Embed(title="Join", description="Bot joined the voice channel.", color=0x00ff00).to_dict())
-        print(ctx)
         await ctx.respond(embed=discord.Embed(title="Join", description="Bot joined the voice channel.", color=0x00ff00))
         if queue['queue'] != []:
             if queue['index'] > len(queue['queue']) - 1:
                 queue['index'] = 0
                 update_queue(ctx.guild.id, queue)
+            # Si il y a plus d'un élément dans la queue on les télécharge tous sur un thread séparé
+            if len(queue['queue']) > 1:
+                for song in queue['queue']:
+                    # On limite le nombre de threads à 5
+                    while threading.active_count() > 5:
+                        asyncio.sleep(0.1)
+                    threading.Thread(target=download, args=(song['url'],)).start()
             await play_song(ctx, queue['queue'][queue['index']]['url'])
             
 

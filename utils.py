@@ -3,55 +3,21 @@ import json
 import os
 import random
 import ffmpeg
-import cogs._fix_pytube
+import pytube
 from discord.ui.item import Item
-import cogs._fix_youtube_dl
 import asyncio
+import discord.ext.pages
 
 
 
-ffmpeg_options = {"options": "-vn"}
-ytdl_format_options = {
-    "format": "bestaudio/best",
-    "outtmpl": "%(extractor)s-%(id)s-%(title)s.%(ext)s",
-    "restrictfilenames": True,
-    "noplaylist": True,
-    "nocheckcertificate": True,
-    "ignoreerrors": False,
-    "logtostderr": False,
-    "quiet": True,
-    "no_warnings": True,
-    "default_search": "auto",
-    "source_address": (
-        "0.0.0.0"
-    ),  # Bind to ipv4 since ipv6 addresses cause issues at certain times
-}
+def download(url: str, file_format: str = "mp3"):
+    """Download a video from a YouTube URL"""
+    stream = pytube.YouTube(url).streams.filter(only_audio=True).first()
+    if os.path.exists(f"cache/{format_name(stream.title)}.{file_format}"):
+        return f"cache/{format_name(stream.title)}.{file_format}"
+    stream.download(filename=f"cache/{format_name(stream.title)}.{file_format}")
+    return f"cache/{format_name(stream.title)}.{file_format}"
 
-
-ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
-
-class YTDLSource(discord.PCMVolumeTransformer):
-    def __init__(self, source: discord.AudioSource, *, data: dict, volume: float = 0.5):
-        super().__init__(source, volume)
-
-        self.data = data
-
-        self.title = data.get("title")
-        self.url = data.get("url")
-
-    @classmethod
-    async def from_url(cls, url, *, loop=None, stream=False):
-        loop = loop or asyncio.get_event_loop()
-        data = await loop.run_in_executor(
-            None, lambda: ytdl.extract_info(url, download=not stream)
-        )
-
-        if "entries" in data:
-            # Takes the first item from a playlist
-            data = data["entries"][0]
-
-        filename = data["url"] if stream else ytdl.prepare_filename(data)
-        return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
 
 
 class SelectVideo(discord.ui.Select):
@@ -152,7 +118,7 @@ def get_index_from_title(title, list):
     return -1
 
 
-def change_song(ctx: discord.ApplicationContext):
+async def change_song(ctx: discord.ApplicationContext):
     queue = get_queue(ctx.guild.id)
     if queue['queue'] == []:
         return
@@ -172,9 +138,9 @@ def change_song(ctx: discord.ApplicationContext):
             queue['index'] += 1
     update_queue(ctx.guild.id, queue)
     try:
-        asyncio.run(play_song(ctx, queue['queue'][queue['index']]['url']))
+         await play_song(ctx, queue['queue'][queue['index']]['url'])
     except Exception as e:
-        print(e)
+        print(f"Erreur : {e}")
     
 
 
@@ -184,8 +150,13 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
         return
     if ctx.guild.voice_client.is_playing():
         ctx.guild.voice_client.stop()
-    player = await YTDLSource.from_url(url, loop=ctx.bot.loop, stream=True)
-    ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)))
+    player = discord.FFmpegPCMAudio(download(url))
+    try:
+        ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)), wait_finish=True)
+    except Exception as e:
+        while ctx.guild.voice_client.is_playing():
+            asyncio.sleep(0.1)
+        ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)), wait_finish=True)
 
 async def on_play_song_finished(ctx: discord.ApplicationContext, error = None):
     print("Playback finished!")
@@ -194,7 +165,7 @@ async def on_play_song_finished(ctx: discord.ApplicationContext, error = None):
         await ctx.respond(embed=discord.Embed(title="Error", description="An error occured while playing the song.", color=0xff0000))
     else:
         print("No error. Playback successful.")
-    change_song(ctx)
+    await change_song(ctx)
 
 def create_queue(guild_id):
     if not os.path.exists(f'queue/{guild_id}.json'):

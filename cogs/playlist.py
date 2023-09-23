@@ -2,9 +2,9 @@ import discord
 from discord.ext import commands
 from discord.commands import SlashCommandGroup
 from utils import *
-import cogs._fix_pytube
-
-
+import pytube
+import threading
+import asyncio
 
 
 class Playlist(commands.Cog):
@@ -114,11 +114,16 @@ class Playlist(commands.Cog):
         queue['queue'] = queue['playlist'][name]
         queue['index'] = 0
         update_queue(ctx.interaction.guild.id, queue)
+        for song in queue['queue']:
+            # On limite le nombre de threads à 5
+            while threading.active_count() > 5:
+                asyncio.sleep(0.1)
+            threading.Thread(target=download, args=(song['url'],)).start()
         if ctx.interaction.guild.voice_client is None:
             await ctx.interaction.user.voice.channel.connect()
         if not ctx.interaction.guild.voice_client.is_playing():
             await ctx.respond(embed=discord.Embed(title="Play", description=f"Playing {queue['queue'][queue['index']]['title']}", color=0x00ff00))
-            asyncio.run(play_song(ctx, queue['queue'][queue['index']]['url']))
+            await play_song(ctx, queue['queue'][queue['index']]['url'])
         else:
             await ctx.respond(embed=discord.Embed(title="Queue", description=f"Playlist {name} added to queue.", color=0x00ff00))
 

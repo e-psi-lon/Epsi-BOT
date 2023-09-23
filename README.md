@@ -1,12 +1,10 @@
 # Music-BOT
 
+Installer [ffmpeg](https://ffmpeg.org/download.html) est nécessaire pour que le bot fonctionne (Si j'y penses, je le mettrais dans la repo github)
 
-et installer ffmpeg sont nécessaires pour que le bot fonctionne
+## Format de sauvegarde des infos
 
-
-# Format de sauvegarde des infos
-
-Les infos sont sauvegardées dans un fichier dans le dossier [queue](./queue/) dont le nom est <guild_id>.json
+Les infos sont sauvegardées dans un fichier dans le dossier [queue](./queue/) dont le nom est `<guild_id>.json`
 Les fichiers se présentent sous la forme
 
 ```json
@@ -22,7 +20,6 @@ Les fichiers se présentent sous la forme
             "url": "https://www.youtube.com/watch?v=...", // url de la chanson, type str
             "asker": 95884548745, // id de l'utilisateur qui a demandé la chanson, type int
             "file": "cache/nom de la video" // chemin vers le fichier audio de la chanson, type str. 
-            //Devrait bientot etre supprime car remplace par directement le flux audio
         }
     ],
     "playlist": { // Playlists enregistrées dans le serveur, type dict
