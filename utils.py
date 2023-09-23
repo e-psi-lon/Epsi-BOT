@@ -1,11 +1,67 @@
 import discord
 import json
 import os
-import pytube
 import random
 import ffmpeg
+import pytube
+from discord.ui.item import Item
 import asyncio
-import io
+import discord.ext.pages
+
+
+
+def download(url: str, file_format: str = "mp3"):
+    """Download a video from a YouTube URL"""
+    stream = pytube.YouTube(url).streams.filter(only_audio=True).first()
+    if os.path.exists(f"cache/{format_name(stream.title)}.{file_format}"):
+        return f"cache/{format_name(stream.title)}.{file_format}"
+    stream.download(filename=f"cache/{format_name(stream.title)}.{file_format}")
+    return f"cache/{format_name(stream.title)}.{file_format}"
+
+
+
+class SelectVideo(discord.ui.Select):
+    def __init__(self, videos:list[pytube.YouTube], ctx, download, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.placeholder = "Select an audio to play"
+        self.min_values = 1
+        self.max_values = 1
+        self.ctx = ctx
+        self.download = download
+        options = []
+        for video in videos:
+            if video in options:
+                continue
+            options.append(discord.SelectOption(label=video.title, value=video.watch_url))
+        self.options = options
+    
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.message.edit(embed=discord.Embed(title="Select audio", description=f"You selected : {self.options[0].label}", color=0x00ff00), view=None)
+        queue = get_queue(interaction.guild.id)
+        if self.download:
+            stream = pytube.YouTube(self.values[0]).streams.filter(only_audio=True).first()
+            stream.download(filename=f"cache/{self.options[0].label}.mp3")
+            await interaction.message.edit(embed=discord.Embed(title="Download", description="Song downloaded.", color=0x00ff00), file=discord.File(f"cache{self.options[0].label}", filename=f"{self.options[0].label}.mp3"), view=None)
+            return
+        if queue['queue'] == []:
+            queue['index'] = 0
+            queue['queue'].append({'title': self.options[0].label, 'url': self.values[0], 'asker': interaction.user.id})
+            update_queue(interaction.guild.id, queue)
+        else:
+            queue['queue'].append({'title': self.options[0].label, 'url': self.values[0], 'asker': interaction.user.id})
+            update_queue(interaction.guild.id, queue)
+        if interaction.guild.voice_client is None:
+            await interaction.user.voice.channel.connect()
+        if not interaction.guild.voice_client.is_playing():
+            await interaction.message.edit(embed=discord.Embed(title="Play", description=f"Playing song [{self.options[0].label}]({self.values[0]})", color=0x00ff00))
+            await play_song(self.ctx, queue['queue'][queue['index']]['url'])
+        else:
+            await interaction.message.edit(embed=discord.Embed(title="Queue", description=f"Song {self.values[0]} added to queue.", color=0x00ff00))
+
+class Research(discord.ui.View):
+    def __init__(self, videos:list[pytube.YouTube], ctx:discord.ApplicationContext, download: bool, *items: Item, timeout: float | None = 180, disable_on_timeout: bool = False):
+        super().__init__(*items, timeout=timeout, disable_on_timeout=disable_on_timeout)
+        self.add_item(SelectVideo(videos, ctx, download))
 
 OWNER_ID = 708006478807695450
 EMBED_ERROR_QUEUE_EMPTY = discord.Embed(title="Error", description="The queue is empty.", color=0xff0000)
@@ -55,7 +111,7 @@ def update_queue(guild_id, queue):
         json.dump(queue, f, indent=4)
 
 
-def get_index_from_title(title, guild_id, list):
+def get_index_from_title(title, list):
     for index, song in enumerate(list):
         if song['title'] == title:
             return index
@@ -64,71 +120,52 @@ def get_index_from_title(title, guild_id, list):
 
 async def change_song(ctx: discord.ApplicationContext):
     queue = get_queue(ctx.guild.id)
-    if queue['loop-song']:
-        play_song(ctx, queue['queue'][queue['index']]['file'])
-    elif queue['loop-queue']:
-        if queue['random']:
-            previous_index = queue['index']
-            while queue['index'] == previous_index and len(queue['queue']) > 1:
-                queue['index'] = get_index_from_title(random.choice(list(set(range(0,len(queue['queue']))) - set([queue['index']]))) , queue['queue'])
+    if queue['queue'] == []:
+        return
+    if queue['index'] >= len(queue['queue']) and not queue['loop-queue']:
+        queue['index'] = 0
+        queue['queue'] = []
+        update_queue(ctx.guild.id, queue)
+        return
+    if queue['index'] >= len(queue['queue']) and queue['loop-queue']:
+        queue['index'] = -1
+    if not queue['loop-song']:
+        if queue['random'] and len(queue['queue']) > 1:
+            queue['index'] = random.choice(list(set(range(0,len(queue['queue']))) - set([queue['index']])))
+        elif len(queue['queue']) < 1:
+            queue['index'] = 0
         else:
             queue['index'] += 1
-        if queue['index'] >= len(queue['queue']):
-            queue['index'] = 0
-        update_queue(ctx.guild.id, queue)
-        play_song(ctx, queue['queue'][queue['index']]['file'])
-    else:
-        if queue['random']:
-            previous_index = queue['index']
-            while queue['index'] == previous_index and len(queue['queue']) > 1:
-                queue['index'] = get_index_from_title(random.choice(list(set(range(0,len(queue['queue']))) - set([queue['index']]))) , queue['queue'])
-        else:
-            queue['index'] += 1
-        if queue['index'] >= len(queue['queue']):
-            queue['index'] = 0
-            update_queue(ctx.guild.id, queue)
-            return
-        update_queue(ctx.guild.id, queue)
-        if len(queue['queue']) > 0:
-            play_song(ctx, queue['queue'][queue['index']]['file'])
-        else:
-            ctx.voice_client.stop()
-            for file in os.listdir('audio/'):
-                os.remove(f'audio/{file}')
+    update_queue(ctx.guild.id, queue)
+    try:
+         await play_song(ctx, queue['queue'][queue['index']]['url'])
+    except Exception as e:
+        print(f"Erreur : {e}")
+    
 
 
-def download_audio(url, guild_id: int | None = None):
-    video = pytube.YouTube(url)
-    if video.length > 3600:
-        return -1, None
-    if guild_id is not None:
-        queue = get_queue(guild_id)
-        # On modifie directement la valeur file de le ou les element de la queue qui possède l'url de la vidéo (si il(ss) existe(nt)
-        for element in queue['queue']:
-            if element['url'] == url:
-                element['file'] = f'audio/{format_name(video.title)}.ogg'
-        update_queue(guild_id, queue)
-    audio_stream = video.streams.filter(only_audio=True).first()
-    if os.path.exists(f'{format_name(video.title)}.ogg'):
-        return f'{format_name(video.title)}.ogg', video
-    else:
-        audio_stream.download(output_path='audio/', filename=f'{format_name(video.title)}.ogg')
-        while audio_stream.filesize != os.path.getsize(f'audio/{format_name(video.title)}.ogg'):
+
+async def play_song(ctx: discord.ApplicationContext, url: str):
+    if ctx.guild.voice_client is None:
+        return
+    if ctx.guild.voice_client.is_playing():
+        ctx.guild.voice_client.stop()
+    player = discord.FFmpegPCMAudio(download(url))
+    try:
+        ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)), wait_finish=True)
+    except Exception as e:
+        while ctx.guild.voice_client.is_playing():
             asyncio.sleep(0.1)
-        return f'audio/{format_name(video.title)}.ogg', video
+        ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)), wait_finish=True)
 
-
-def play_song(ctx: discord.ApplicationContext, file: str):
-    if not os.path.exists(file):
-        queue = get_queue(ctx.guild.id)
-        file, _ = download_audio(queue['queue'][queue['index']]['url'])
-        if file == -1:
-            ctx.message.reply(embed=EMBED_ERROR_VIDEO_TOO_LONG, delete_after=30)
-            return
-    voice_client = ctx.voice_client
-    source = discord.FFmpegPCMAudio(file)
-    voice_client.play(source, after=lambda e: print('Player error: %s' % e) if e else asyncio.run(change_song(ctx)))
-
+async def on_play_song_finished(ctx: discord.ApplicationContext, error = None):
+    print("Playback finished!")
+    if error is not None and error:
+        print("Error:", error)
+        await ctx.respond(embed=discord.Embed(title="Error", description="An error occured while playing the song.", color=0xff0000))
+    else:
+        print("No error. Playback successful.")
+    await change_song(ctx)
 
 def create_queue(guild_id):
     if not os.path.exists(f'queue/{guild_id}.json'):
@@ -139,36 +176,11 @@ def create_queue(guild_id):
 
 
 def get_queue(guild_id):
-    return json.load(open(f'queue/{guild_id}.json', 'r'))
-
-
-async def start_song(ctx: discord.ApplicationContext, url: str, message: discord.Message | None = None):
-    # Si il y a déjà une musique en cours de lecture
-    file, video = download_audio(url)
-    if file == -1:
-        await ctx.respond(embed=EMBED_ERROR_VIDEO_TOO_LONG, delete_after=30)
-        return
-    if ctx.voice_client.is_playing():
-        queue = get_queue(ctx.guild.id)
-        queue['queue'].append({"file": file, "title": format_name(video.title), "url": url, "asker": ctx.author.id})
-        update_queue(ctx.guild.id, queue)
-        embed = discord.Embed(title="Added to queue", description=f"Added song `{video.title}` to the queue",
-                              color=0x00ff00)
-        if message is not None:
-            await message.edit(embed=embed, view=None)
-        else:
-            await ctx.respond(embed=embed)
-        return
-    queue = get_queue(ctx.guild.id)
-    queue['queue'].append({"file": file, "title": format_name(video.title), "url": url, "asker": ctx.author.id})
-    play_song(ctx, file)
-    update_queue(ctx.guild.id, queue)
-    embed = discord.Embed(title="Playing", description=f"Playing song `{video.title}`", color=0x00ff00)
-    if message is not None:
-        await message.edit(embed=embed, view=None)
-    else:
-        await ctx.respond(embed=embed)
-
+    try:
+        return json.load(open(f'queue/{guild_id}.json', 'r'))
+    except FileNotFoundError:
+        create_queue(guild_id)
+        return json.load(open(f'queue/{guild_id}.json', 'r'))
 
 def convert(audio, file_format):
     stream = ffmpeg.input(audio)

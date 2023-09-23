@@ -97,12 +97,14 @@ class Todo(commands.Cog):
         message = await ctx.channel.fetch_message(1128641774789861488)
         lines: list[discord.EmbedField] = message.embeds[0].fields
         line: discord.EmbedField = lines[index - 1]
-        regex = r" - Assigned to(?:.*?<@(\d+)>)+"
-        assigned_user = re.findall(regex, line.value).copy()
-        print("Nouveau lancement")
-        print(assigned_user)
-        print(str(user.id))
-        print(str(user.id) in assigned_user)
+        regex1 = r' - Assigned to (.+)$'
+        regex2 = r'<@(\d+)>'
+        matchResult = re.findall(regex1, input)
+        if len(matchResult) == 0:
+            assigned_user = []
+        else:
+            matchResult = matchResult[0]
+            assigned_user = re.findall(regex2, matchResult).copy()
         if str(user.id) in assigned_user:
             embed = discord.Embed(title="Assignation d'une ligne",
                                   description=f"{user.mention} n'est plus assigné à la ligne {line.name} dans le message"
@@ -116,8 +118,6 @@ class Todo(commands.Cog):
             await ctx.respond(embed=embed, delete_after=30)
             assigned_user.append(str(user.id))
         line.value = line.value[:line.value.find(" - Assigned to <@")] if " - Assigned to <@" in line.value else line.value
-        print(assigned_user)
-        print(line.value)
         new_line = " - Assigned to "
         if len(assigned_user) == 0:
             new_line = ""
@@ -133,9 +133,7 @@ class Todo(commands.Cog):
                     new_line += f"<@{int(user_id)}> "
                 else:
                     new_line += f"<@{int(user_id)}>, "
-        print(new_line)
         line.value += new_line
-        print(line.value)
         lines[index - 1] = line
         await message.edit(embed=discord.Embed(title="To-Do List", description="Les points suivant sont les différentes tâches à effectuer pour améliorer le bot", fields=lines))
         line = message.embeds[0].fields[index - 1]
