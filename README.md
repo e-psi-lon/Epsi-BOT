@@ -19,7 +19,6 @@ Les fichiers se présentent sous la forme
             "title": "", // titre de la chanson, type str
             "url": "https://www.youtube.com/watch?v=...", // url de la chanson, type str
             "asker": 95884548745, // id de l'utilisateur qui a demandé la chanson, type int
-            "file": "cache/nom de la video" // chemin vers le fichier audio de la chanson, type str. 
         }
     ],
     "playlist": { // Playlists enregistrées dans le serveur, type dict
