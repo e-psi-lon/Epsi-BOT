@@ -9,7 +9,8 @@ import datetime
 
 class Bot(commands.Bot):
     async def on_ready(self):
-        print(f'Logged in as {self.user.name} at {datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")}')
+        global start_time
+        print(f'Logged in as {self.user.name} at {datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")} (time elapsed {datetime.datetime.now() - start_time})')
         await self.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=f"/help | {len(self.guilds)} servers"))
 
 
@@ -93,6 +94,7 @@ async def help_command(ctx: discord.ApplicationContext):
     await paginator.respond(ctx.interaction)
 
 def start(instance: Bot):
+    global start_time
     # Charger les cogs
     if not os.path.exists('queue/'):
         os.mkdir('queue/')
@@ -109,6 +111,12 @@ def start(instance: Bot):
 
     ]
     os.system("cls" if os.name == "nt" else "clear")
+    start_time = datetime.datetime.now()
+    print(f"Script started at {datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+    try:
+        os.system("pip install -r requirements.txt")
+    except:
+        print("Couldn't try to update libs")
     for cog in cogs:
         try:
             instance.load_extension(cog)
@@ -116,7 +124,6 @@ def start(instance: Bot):
             print(f"Failed to load extension {cog}")
             print(e)
     # Lancer le bot
-    print(f"Script started at {datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
     instance.run("MTEyODA3NDQ0Njk4NTQ5ODYyNA.G-kQRY.fuaCtflpY1SrNMJAS2fqixVMmwRUF7m2HRW6tw")
 
 

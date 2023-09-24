@@ -2,8 +2,8 @@
     "channel": null,
     "loop-song": false,
     "loop-queue": true,
-    "random": true,
-    "index": 2,
+    "random": false,
+    "index": 0,
     "queue": [
         {
             "title": "Nathan Evans - Wellerman (Sea Shanty)",

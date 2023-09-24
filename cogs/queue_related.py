@@ -13,9 +13,9 @@ class Queue(commands.Cog):
         embed = discord.Embed(title="Queue", color=0x00ff00)
         for i, song in enumerate(queue['queue']):
             if i == queue['index']:
-                embed.add_field(name=f"{i+1}. {song['title']} - **Now Playing**", value=f"song['url'] asked by <@{song['asker']}>", inline=False)
+                embed.add_field(name=f"{i+1}. {song['title']} - **Now Playing**", value=f"{song['url']} asked by <@{song['asker']}>", inline=False)
             else:
-                embed.add_field(name=f"{i+1}. {song['title']}", value=f"song['url'] asked by <@{song['asker']}>", inline=False)
+                embed.add_field(name=f"{i+1}. {song['title']}", value=f"{song['url']} asked by <@{song['asker']}>", inline=False)
         await ctx.respond(embed=embed)
 
 
@@ -24,15 +24,12 @@ class Queue(commands.Cog):
                    by: discord.Option(int, "How many songs to skip", required=False)):
         queue = get_queue(ctx.interaction.guild.id)
         if queue['queue'] == []:
-            await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
-            return
+            return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
         if ctx.guild.voice_client is None:
-            await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
-            return
+            return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
         if by is None:
             ctx.guild.voice_client.stop()
-            await ctx.respond(embed=discord.Embed(title="Skip", description="Song skipped.", color=0x00ff00))
-            return
+            return await ctx.respond(embed=discord.Embed(title="Skip", description="Song skipped.", color=0x00ff00))
         if by < 0 or by >= len(queue['queue']) or queue['index'] + by >= len(queue['queue']):
             await ctx.respond(embed=discord.Embed(title="Error", description=f"Index {by} out of range.", color=0xff0000))
             return
@@ -71,8 +68,7 @@ class Queue(commands.Cog):
     async def now(self, ctx: discord.ApplicationContext):
         queue = get_queue(ctx)
         if queue['queue'] == []:
-            await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
-            return
+            return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
         song = queue['queue'][queue['index']]
         embed = discord.Embed(title="Now Playing", description=f"[{song['title']}]({song['url']}) asked by <@{song['asker']}>", color=0x00ff00)
         await ctx.respond(embed=embed)
@@ -84,8 +80,7 @@ class Queue(commands.Cog):
         queue = get_queue(ctx.interaction.guild.id)
         index = get_index_from_title(queue, song)
         if index == -1:
-            await ctx.respond(discord.Embed(title="Error", description=f"Song {song} not found in the queue.", color=0xff0000))
-            return
+            return await ctx.respond(discord.Embed(title="Error", description=f"Song {song} not found in the queue.", color=0xff0000))
         update_queue(ctx.interaction.guild.id, queue)
         await ctx.respond(embed=discord.Embed(title="Remove", description=f"Removed {song} from the queue.", color=0x00ff00))
 
@@ -94,8 +89,7 @@ class Queue(commands.Cog):
     async def remove_index(self, ctx: discord.ApplicationContext, index: discord.Option(int, "The index of the song to remove", required=True)):
         queue = get_queue(ctx.interaction.guild.id)
         if index < 0 or index >= len(queue['queue']):
-            await ctx.respond(discord.Embed(title="Error", description=f"Index {index} out of range.", color=0xff0000))
-            return
+            return await ctx.respond(discord.Embed(title="Error", description=f"Index {index} out of range.", color=0xff0000))
         song = queue['queue'].pop(index)
         update_queue(ctx.interaction.guild.id, queue)
         await ctx.respond(embed=discord.Embed(title="Remove", description=f"Removed {song['title']} from the queue.", color=0x00ff00))

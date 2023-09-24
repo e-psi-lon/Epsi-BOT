@@ -44,7 +44,7 @@ class Channel(commands.Cog):
                 for song in queue['queue']:
                     # On limite le nombre de threads à 5
                     while threading.active_count() > 5:
-                        asyncio.sleep(0.1)
+                        await asyncio.sleep(0.1)
                     threading.Thread(target=download, args=(song['url'],)).start()
             await play_song(ctx, queue['queue'][queue['index']]['url'])
             
