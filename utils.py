@@ -41,8 +41,7 @@ class SelectVideo(discord.ui.Select):
         if self.download:
             stream = pytube.YouTube(self.values[0]).streams.filter(only_audio=True).first()
             stream.download(filename=f"cache/{self.options[0].label}.mp3")
-            await interaction.message.edit(embed=discord.Embed(title="Download", description="Song downloaded.", color=0x00ff00), file=discord.File(f"cache{self.options[0].label}", filename=f"{self.options[0].label}.mp3"), view=None)
-            return
+            return await interaction.message.edit(embed=discord.Embed(title="Download", description="Song downloaded.", color=0x00ff00), file=discord.File(f"cache{self.options[0].label}", filename=f"{self.options[0].label}.mp3"), view=None)
         if queue['queue'] == []:
             queue['index'] = 0
             queue['queue'].append({'title': self.options[0].label, 'url': self.values[0], 'asker': interaction.user.id})
@@ -56,7 +55,7 @@ class SelectVideo(discord.ui.Select):
             await interaction.message.edit(embed=discord.Embed(title="Play", description=f"Playing song [{self.options[0].label}]({self.values[0]})", color=0x00ff00))
             await play_song(self.ctx, queue['queue'][queue['index']]['url'])
         else:
-            await interaction.message.edit(embed=discord.Embed(title="Queue", description=f"Song {self.values[0]} added to queue.", color=0x00ff00))
+            await interaction.message.edit(embed=discord.Embed(title="Queue", description=f"Song [{pytube.YouTube(self.values[0]).title}]({self.values[0]}) added to queue.", color=0x00ff00))
 
 class Research(discord.ui.View):
     def __init__(self, videos:list[pytube.YouTube], ctx:discord.ApplicationContext, download: bool, *items: Item, timeout: float | None = 180, disable_on_timeout: bool = False):
@@ -122,12 +121,11 @@ async def change_song(ctx: discord.ApplicationContext):
     queue = get_queue(ctx.guild.id)
     if queue['queue'] == []:
         return
-    if queue['index'] >= len(queue['queue']) and not queue['loop-queue']:
+    if queue['index'] >= len(queue['queue'])-1 and not queue['loop-queue']:
         queue['index'] = 0
         queue['queue'] = []
-        update_queue(ctx.guild.id, queue)
-        return
-    if queue['index'] >= len(queue['queue']) and queue['loop-queue']:
+        return update_queue(ctx.guild.id, queue)
+    if queue['index'] >= len(queue['queue'])-1 and queue['loop-queue']:
         queue['index'] = -1
     if not queue['loop-song']:
         if queue['random'] and len(queue['queue']) > 1:
@@ -175,7 +173,7 @@ def create_queue(guild_id):
                 indent=4)
 
 
-def get_queue(guild_id):
+def get_queue(guild_id) -> dict:
     try:
         return json.load(open(f'queue/{guild_id}.json', 'r'))
     except FileNotFoundError:

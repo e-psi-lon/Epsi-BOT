@@ -8,8 +8,7 @@ class Queue(commands.Cog):
     async def queue(self, ctx: discord.ApplicationContext):
         queue = get_queue(ctx.interaction.guild.id)
         if queue['queue'] == []:
-            await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
-            return
+            return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
         embed = discord.Embed(title="Queue", color=0x00ff00)
         for i, song in enumerate(queue['queue']):
             if i == queue['index']:
@@ -31,8 +30,7 @@ class Queue(commands.Cog):
             ctx.guild.voice_client.stop()
             return await ctx.respond(embed=discord.Embed(title="Skip", description="Song skipped.", color=0x00ff00))
         if by < 0 or by >= len(queue['queue']) or queue['index'] + by >= len(queue['queue']):
-            await ctx.respond(embed=discord.Embed(title="Error", description=f"Index {by} out of range.", color=0xff0000))
-            return
+            return await ctx.respond(embed=discord.Embed(title="Error", description=f"Index {by} out of range.", color=0xff0000))
         queue['index'] += by
         ctx.guild.voice_client.stop()
         await ctx.respond(embed=discord.Embed(title="Skip", description=f"Skipped {by} songs.", color=0x00ff00))
@@ -78,7 +76,7 @@ class Queue(commands.Cog):
     @remove.command(name="from-name", description="Removes a song from the queue ")
     async def remove_name(self, ctx: discord.ApplicationContext, song: discord.Option(str, "The name of the song to remove", required=True, autocomplete=discord.utils.basic_autocomplete(get_queue_songs))):
         queue = get_queue(ctx.interaction.guild.id)
-        index = get_index_from_title(queue, song)
+        index = get_index_from_title(song, queue["queue"])
         if index == -1:
             return await ctx.respond(discord.Embed(title="Error", description=f"Song {song} not found in the queue.", color=0xff0000))
         update_queue(ctx.interaction.guild.id, queue)
@@ -100,9 +98,10 @@ class Queue(commands.Cog):
     async def clear(self, ctx: discord.ApplicationContext):
         queue = get_queue(ctx.interaction.guild.id)
         if queue['queue'] == []:
-            await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
-            return
+            return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
         queue['queue'] = []
+        for file in os.listdir('cache/'):
+            os.remove(f'cache/{file}')
         update_queue(ctx.interaction.guild.id, queue)
         await ctx.respond(embed=discord.Embed(title="Clear", description="Queue cleared.", color=0x00ff00))
 
@@ -110,14 +109,11 @@ class Queue(commands.Cog):
     async def back(self, ctx: discord.ApplicationContext):
         queue = get_queue(ctx.interaction.guild.id)
         if queue['queue'] == []:
-            await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
-            return
+            return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
         if ctx.guild.voice_client is None:
-            await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
-            return
+            return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
         if queue['index'] == 0:
-            await ctx.respond(embed=discord.Embed(title="Error", description="There is no previous song.", color=0xff0000))
-            return
+            return await ctx.respond(embed=discord.Embed(title="Error", description="There is no previous song.", color=0xff0000))
         queue['index'] -= 1
         update_queue(ctx.interaction.guild.id, queue)
         ctx.guild.voice_client.stop()
@@ -127,8 +123,7 @@ class Queue(commands.Cog):
     async def shuffle(self, ctx: discord.ApplicationContext):
         queue = get_queue(ctx.interaction.guild.id)
         if queue['queue'] == []:
-            await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
-            return
+            return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
         random.shuffle(queue['queue'])
         update_queue(ctx.interaction.guild.id, queue)
         await ctx.respond(embed=discord.Embed(title="Shuffle", description="Queue shuffled.", color=0x00ff00))
@@ -155,12 +150,10 @@ class Queue(commands.Cog):
     async def play_queue_song(self, ctx: discord.ApplicationContext, song: discord.Option(str, "The index of the song to play", required=True, autocomplete=discord.utils.basic_autocomplete(get_queue_songs))):
         queue = get_queue(ctx.interaction.guild.id)
         if queue['queue'] == []:
-            await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
-            return
-        index = get_index_from_title(queue, song)
+            return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
+        index = get_index_from_title(song, queue['queue'])
         if index == -1:
-            await ctx.respond(discord.Embed(title="Error", description=f"Song {song} not found in the queue.", color=0xff0000))
-            return
+            return await ctx.respond(discord.Embed(title="Error", description=f"Song {song} not found in the queue.", color=0xff0000))
         queue['index'] = index - 1
         update_queue(ctx.interaction.guild.id, queue)
         ctx.guild.voice_client.stop()
@@ -170,11 +163,9 @@ class Queue(commands.Cog):
     async def play_queue_index(self, ctx: discord.ApplicationContext, index: discord.Option(int, "The index of the song to play", required=True)):
         queue = get_queue(ctx.interaction.guild.id)
         if queue['queue'] == []:
-            await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
-            return
+            return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
         if index < 0 or index >= len(queue['queue']):
-            await ctx.respond(discord.Embed(title="Error", description=f"Index {index} out of range.", color=0xff0000))
-            return
+            return await ctx.respond(discord.Embed(title="Error", description=f"Index {index} out of range.", color=0xff0000))
         queue['index'] = index - 2
         update_queue(ctx.interaction.guild.id, queue)
         ctx.guild.voice_client.stop()

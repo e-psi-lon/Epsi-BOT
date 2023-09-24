@@ -24,13 +24,11 @@ class Others(commands.Cog):
                 os.remove(f"cache/{video.title}.{file_format}")
                 os.remove(f"cache/{video.title}.mp3")
             except:
-                await ctx.respond(embed=discord.Embed(title="Error", description="Error while downloading song.", color=0xff0000))
-                return
+                return await ctx.respond(embed=discord.Embed(title="Error", description="Error while downloading song.", color=0xff0000))
         except:
             videos = pytube.Search(query).results
             if videos == []:
-                await ctx.respond(embed=discord.Embed(title="Error", description="No results found.", color=0xff0000))
-                return
+                return await ctx.respond(embed=discord.Embed(title="Error", description="No results found.", color=0xff0000))
             view = Research(videos, ctx, True, timeout=60)
             await ctx.respond(embed=discord.Embed(title="Select audio", description="Select an audio to download", color=0x00ff00), view=view)
             

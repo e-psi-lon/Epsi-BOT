@@ -17,8 +17,7 @@ class Todo(commands.Cog):
         if ctx.channel.id != 1128286383161745479:
             embed = discord.Embed(title="Ajout d'une ligne", description="Cette commande ne peut être utilisée que dans"
                                                                          " le channel <#1128286383161745479>", color=0xff0000)
-            await ctx.respond(embed=embed, delete_after=30)
-            return
+            return await ctx.respond(embed=embed, delete_after=30)
         message = await ctx.channel.fetch_message(1128641774789861488)
         if index is None:
             index = len(message.embeds[0].fields) + 1
@@ -41,8 +40,7 @@ class Todo(commands.Cog):
             embed = discord.Embed(title="Suppression d'une ligne", description="Cette commande ne peut être utilisée que"
                                                                                " dans le channel <#1128286383161745479>",
                                   color=0xff0000)
-            await ctx.respond(embed=embed, delete_after=30)
-            return
+            return await ctx.respond(embed=embed, delete_after=30)
         message = await ctx.channel.fetch_message(1128641774789861488)
         lines = message.embeds[0].fields
         old_line = lines.pop(index - 1)
@@ -65,8 +63,7 @@ class Todo(commands.Cog):
                                                                                 "que dans le channel "
                                                                                 "<#1128286383161745479>",
                                   color=0xff0000)
-            await ctx.respond(embed=embed, delete_after=30)
-            return
+            return await ctx.respond(embed=embed, delete_after=30)
         message = await ctx.channel.fetch_message(1128641774789861488)
         lines = message.embeds[0].fields
         if " - Assigned to <@" in lines[index - 1].value:
@@ -92,14 +89,13 @@ class Todo(commands.Cog):
                                                                                 "que dans le channel "
                                                                                 "<#1128286383161745479>",
                                   color=0xff0000)
-            await ctx.respond(embed=embed, delete_after=30)
-            return
+            return await ctx.respond(embed=embed, delete_after=30)
         message = await ctx.channel.fetch_message(1128641774789861488)
         lines: list[discord.EmbedField] = message.embeds[0].fields
         line: discord.EmbedField = lines[index - 1]
         regex1 = r' - Assigned to (.+)$'
         regex2 = r'<@(\d+)>'
-        matchResult = re.findall(regex1, input)
+        matchResult = re.findall(regex1, line.value)
         if len(matchResult) == 0:
             assigned_user = []
         else:

@@ -5,12 +5,23 @@ from utils import *
 
 
 class Listeners(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot:  commands.Bot):
         self.bot = bot
 
     @commands.Cog.listener("on_voice_state_update")
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
         print(before, after)
+        if len(after.channel.members) == 0:
+            ok = False
+            for client in self.bot.voice_clients:
+                for guild in client.client.guilds:
+                    if guild.id == after.channel.guild.id:
+                        client.disconnect()
+                        ok = True
+                    if ok:
+                        break
+                if ok:
+                    break
         
 
 

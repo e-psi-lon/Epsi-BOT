@@ -3,8 +3,11 @@ from discord.ext import commands
 import discord
 import discord.utils
 from discord.ext.pages import Page, Paginator, PaginatorButton
+import nacl
+import pytube
 import os
 import datetime
+import importlib.metadata
 
 
 class Bot(commands.Bot):
@@ -113,10 +116,14 @@ def start(instance: Bot):
     os.system("cls" if os.name == "nt" else "clear")
     start_time = datetime.datetime.now()
     print(f"Script started at {datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
-    try:
-        os.system("pip install -r requirements.txt")
-    except:
-        print("Couldn't try to update libs")
+    if pytube.__version__ != "15.0.0":
+        os.system("pip install pytube==15.0.0")
+    if discord.__version__ != "2.4.1.dev174+gb09fc463":
+        os.system("pip install git+https://github.com/Pycord-Development/pycord")
+    if nacl.__version__ != "1.5.0":
+        os.system("pip install pynacl==1.5.0")
+    if importlib.metadata.version("ffmpeg-python") != "0.2.0":
+        os.system("pip install ffmpeg-python==0.2.0")
     for cog in cogs:
         try:
             instance.load_extension(cog)

@@ -11,13 +11,11 @@ class Admin(commands.Cog):
     async def remove_cache(self, ctx: discord.ApplicationContext):
         if ctx.author.id != OWNER_ID:
             embed = discord.Embed(title="Error", description="You are not the owner of the bot.", color=0xff0000)
-            await ctx.respond(embed=embed, delete_after=30)
-            return
+            return await ctx.respond(embed=embed, delete_after=30)
         if ctx.voice_client is not None:
             if ctx.voice_client.is_playing():
                 embed = discord.Embed(title="Error", description="The bot is playing a song.", color=0xff0000)
-                await ctx.respond(embed=embed, delete_after=30)
-                return
+                return await ctx.respond(embed=embed, delete_after=30)
         for file in os.listdir('cache/'):
             os.remove(f'cache/{file}')
         embed = discord.Embed(title="Cache removed", description="Removed the audio cache.", color=0x00ff00)
@@ -27,12 +25,10 @@ class Admin(commands.Cog):
     async def clean(self, ctx: discord.ApplicationContext, count: discord.Option(int, description="The number of messages to delete", required=False, default=1)):
         if ctx.author.id != OWNER_ID:
             embed = discord.Embed(title="Error", description="You are not the owner of the bot.", color=0xff0000)
-            await ctx.respond(embed=embed, delete_after=30)
-            return
+            return await ctx.respond(embed=embed, delete_after=30)
         if ctx.channel.id != 761485410596552736:
             embed = discord.Embed(title="Error", description="You must be in <#761485410596552736> to use this command.", color=0xff0000)
-            await ctx.respond(embed=embed, delete_after=30)
-            return
+            return await ctx.respond(embed=embed, delete_after=30)
         await ctx.channel.purge(limit=count, check=lambda message: message.author.id == self.bot.user.id and message.id !=1128641774789861488)
         embed = discord.Embed(title="Clean", description=f"Cleaned {count} messages.", color=0x00ff00)
         await ctx.respond(embed=embed, delete_after=30)
