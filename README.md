@@ -1,7 +1,5 @@
 # Music-BOT
 
-Installer [ffmpeg](https://ffmpeg.org/download.html) est nécessaire pour que le bot fonctionne (Si j'y penses, je le mettrais dans la repo github)
-
 ## Format de sauvegarde des infos
 
 Les infos sont sauvegardées dans un fichier dans le dossier [queue](./queue/) dont le nom est `<guild_id>.json`

@@ -148,6 +148,9 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
         return
     if ctx.guild.voice_client.is_playing():
         ctx.guild.voice_client.stop()
+    video = pytube.YouTube(url)
+    if video.length > 12000:
+        return await ctx.respond(embed=discord.Embed(title="Error", description="The video is too long", color=0xff0000))
     player = discord.FFmpegPCMAudio(download(url), executable="./bin/ffmpeg.exe")
     try:
         ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)), wait_finish=True)

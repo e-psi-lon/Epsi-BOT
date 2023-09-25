@@ -106,7 +106,7 @@ class Playlist(commands.Cog):
             # On limite le nombre de threads à 5
             while threading.active_count() > 5:
                 asyncio.sleep(0.1)
-            threading.Thread(target=download, args=(song['url'],)).start()
+            threading.Thread(target=download, args=(song['url'],), name=f"Download-{threading.active_count()}").start()
         if ctx.interaction.guild.voice_client is None:
             await ctx.interaction.user.voice.channel.connect()
         if not ctx.interaction.guild.voice_client.is_playing():
@@ -123,7 +123,7 @@ class Playlist(commands.Cog):
             return await ctx.respond(embed=discord.Embed(title="Playlists", description="No playlists.", color=0x00ff00))   
         embed = discord.Embed(title="Playlists", color=0x00ff00)
         for name in queue['playlist'].keys():
-            embed.add_field(name=name, value=f"{len(queue['playlist'][name])} songs")
+            embed.add_field(name=f"__{name}__ :", value=f"{len(queue['playlist'][name])} song{'s' if len(queue['playlist'][name]) > 1 else ''}")
         await ctx.respond(embed=embed)
 
 
@@ -137,7 +137,7 @@ class Playlist(commands.Cog):
                                 .add_field(name="Existing playlists:", value="\n".join(get_queue(ctx.interaction.guild.id)['playlist'].keys())))
         embed = discord.Embed(title=name, color=0x00ff00)
         for index, song in enumerate(queue['playlist'][name]):
-            embed.add_field(name=index, value=song['title'])
+            embed.add_field(name=f"{index}.", value=song['title'])
         await ctx.respond(embed=embed)
 
 

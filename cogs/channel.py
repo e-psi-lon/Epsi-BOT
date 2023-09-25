@@ -43,7 +43,7 @@ class Channel(commands.Cog):
                     # On limite le nombre de threads à 5
                     while threading.active_count() > 5:
                         await asyncio.sleep(0.1)
-                    threading.Thread(target=download, args=(song['url'],)).start()
+                    threading.Thread(target=download, args=(song['url'],), name=f"Download-{threading.active_count()}").start()
             
 
 

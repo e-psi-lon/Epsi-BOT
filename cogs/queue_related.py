@@ -79,6 +79,7 @@ class Queue(commands.Cog):
         index = get_index_from_title(song, queue["queue"])
         if index == -1:
             return await ctx.respond(discord.Embed(title="Error", description=f"Song {song} not found in the queue.", color=0xff0000))
+        queue["queue"].pop(index)
         update_queue(ctx.interaction.guild.id, queue)
         await ctx.respond(embed=discord.Embed(title="Remove", description=f"Removed {song} from the queue.", color=0x00ff00))
 
