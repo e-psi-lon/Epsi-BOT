@@ -43,7 +43,11 @@ class Channel(commands.Cog):
                     # On limite le nombre de threads à 5
                     while threading.active_count() > 5:
                         await asyncio.sleep(0.1)
-                    threading.Thread(target=download, args=(song['url'],), name=f"Download-{threading.active_count()}").start()
+                    video = pytube.YouTube(song['url'])
+                    if video.length > 12000:
+                        await ctx.respond(embed=discord.Embed(title="Error", description=f"The video [{video.title}]({song['url']}) is too long", color=0xff0000))
+                    else:
+                        threading.Thread(target=download, args=(song['url'],), name=f"Download-{video.video_id}").start()
             
 
 

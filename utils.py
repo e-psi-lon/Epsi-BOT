@@ -40,6 +40,8 @@ class SelectVideo(discord.ui.Select):
         queue = get_queue(interaction.guild.id)
         if self.download:
             stream = pytube.YouTube(self.values[0]).streams.filter(only_audio=True).first()
+            if pytube.YouTube(self.values[0]).length > 12000:
+                return await interaction.message.edit(embed=discord.Embed(title="Error", description=f"The video [{pytube.YouTube(self.values[0]).title}]({self.values[0]}) is too long", color=0xff0000))
             stream.download(filename=f"cache/{self.options[0].label}.mp3")
             return await interaction.message.edit(embed=discord.Embed(title="Download", description="Song downloaded.", color=0x00ff00), file=discord.File(f"cache{self.options[0].label}", filename=f"{self.options[0].label}.mp3"), view=None)
         if queue['queue'] == []:
@@ -150,8 +152,8 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
         ctx.guild.voice_client.stop()
     video = pytube.YouTube(url)
     if video.length > 12000:
-        return await ctx.respond(embed=discord.Embed(title="Error", description="The video is too long", color=0xff0000))
-    player = discord.FFmpegPCMAudio(download(url), executable="./bin/ffmpeg.exe")
+        return await ctx.respond(embed=discord.Embed(title="Error", description=f"The video [{video.title}]({url}) is too long", color=0xff0000))
+    player = discord.FFmpegPCMAudio(download(url), executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg")
     try:
         ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)), wait_finish=True)
     except Exception as e:
@@ -164,7 +166,7 @@ async def on_play_song_finished(ctx: discord.ApplicationContext, error = None):
     if error is not None and error:
         print("Error:", error)
         await ctx.respond(embed=discord.Embed(title="Error", description="An error occured while playing the song.", color=0xff0000))
-    else:
+    else: 
         print("No error. Playback successful.")
     await change_song(ctx)
 
@@ -185,6 +187,6 @@ def get_queue(guild_id) -> dict:
 
 def convert(audio, file_format):
     stream = ffmpeg.input(audio)
-    stream = ffmpeg.output(audio[:4], stream, format=file_format)
+    stream = ffmpeg.output(stream, f"{audio.split('/')[1][:-4]}.{file_format}", format=file_format)
     ffmpeg.run(stream)
-    return f'{audio}.{file_format}'
+    return f"{audio.split('/')[1][:-4]}.{file_format}"

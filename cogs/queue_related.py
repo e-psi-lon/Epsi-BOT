@@ -1,9 +1,12 @@
 from discord.ext import commands
 from discord.commands import SlashCommandGroup
 from utils import *
+import random
 
 
 class Queue(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
     @commands.slash_command(name="queue", description="Shows the current queue")
     async def queue(self, ctx: discord.ApplicationContext):
         queue = get_queue(ctx.interaction.guild.id)
@@ -129,9 +132,9 @@ class Queue(commands.Cog):
         update_queue(ctx.interaction.guild.id, queue)
         await ctx.respond(embed=discord.Embed(title="Shuffle", description="Queue shuffled.", color=0x00ff00))
 
-    random = SlashCommandGroup(name="random", description="Commands related to random mode")
+    random_command = SlashCommandGroup(name="random", description="Commands related to random mode")
 
-    @random.command(name="toggle", description="Toggles the random mode")
+    @random_command.command(name="toggle", description="Toggles the random mode")
     async def random_toggle(self, ctx: discord.ApplicationContext, state: discord.Option(bool, "The random state", required=False)):
         queue = get_queue(ctx.interaction.guild.id)
         if state is None:
@@ -140,7 +143,7 @@ class Queue(commands.Cog):
         update_queue(ctx.interaction.guild.id, queue)
         await ctx.respond(embed=discord.Embed(title="Random", description=f"Random mode set to {'on' if state else 'off'}.", color=0x00ff00))
 
-    @random.command(name="query", description="Shows the current random state")
+    @random_command.command(name="query", description="Shows the current random state")
     async def random(self, ctx: discord.ApplicationContext):
         queue = get_queue(ctx.interaction.guild.id)
         await ctx.respond(embed=discord.Embed(title="Random", description=f"Random mode is {'on' if queue['random'] else 'off'}.", color=0x00ff00))

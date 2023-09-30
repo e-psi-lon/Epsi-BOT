@@ -25,7 +25,10 @@ class State(commands.Cog):
                     return await asyncio.sleep(1)
                 queue['queue'].append({'title': pytube.YouTube(query).title, 'url': url})
                 update_queue(ctx.guild.id, queue)
-                threading.Thread(target=download, args=(url,), name=f"Download-{threading.active_count()}").start()
+                video = pytube.YouTube(url)
+                if video.length > 12000:
+                    return await ctx.respond(discord.Embed(title="Error", description=f"The video [{video.title}]({url}) is too long", color=0xff0000))
+                threading.Thread(target=download, args=(url,), name=f"Download-{video.video_id}").start()
                 await ctx.respond(embed=discord.Embed(title="Queue", description=f"Song [{pytube.YouTube(url).title}]({url}) added to queue.", color=0x00ff00))
             except:
                 return await ctx.respond(embed=discord.Embed(title="Error", description="Error while getting song.", color=0xff0000))

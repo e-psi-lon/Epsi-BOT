@@ -106,7 +106,10 @@ class Playlist(commands.Cog):
             # On limite le nombre de threads à 5
             while threading.active_count() > 5:
                 asyncio.sleep(0.1)
-            threading.Thread(target=download, args=(song['url'],), name=f"Download-{threading.active_count()}").start()
+            if pytube.YouTube(song['url']).length > 12000:
+                await ctx.respond(embed=discord.Embed(title="Error", description=f"The video [{pytube.YouTube(song['url']).title}]({song['url']}) is too long", color=0xff0000))
+            else:
+                threading.Thread(target=download, args=(song['url'],), name=f"Download-{pytube.YouTube(song['url']).video_id}").start()
         if ctx.interaction.guild.voice_client is None:
             await ctx.interaction.user.voice.channel.connect()
         if not ctx.interaction.guild.voice_client.is_playing():
