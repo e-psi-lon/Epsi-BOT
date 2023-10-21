@@ -9,7 +9,6 @@ import asyncio
 import discord.ext.pages
 
 
-
 def download(url: str, file_format: str = "mp3"):
     """Download a video from a YouTube URL"""
     stream = pytube.YouTube(url).streams.filter(only_audio=True).first()
@@ -19,32 +18,37 @@ def download(url: str, file_format: str = "mp3"):
     return f"cache/{format_name(stream.title)}.{file_format}"
 
 
-
 class SelectVideo(discord.ui.Select):
-    def __init__(self, videos:list[pytube.YouTube], ctx, download, *args, **kwargs):
+    def __init__(self, videos: list[pytube.YouTube], ctx, download_file, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.placeholder = "Select an audio to play"
         self.min_values = 1
         self.max_values = 1
         self.ctx = ctx
-        self.download = download
+        self.download = download_file
         options = []
         for video in videos:
             if video in options:
                 continue
             options.append(discord.SelectOption(label=video.title, value=video.watch_url))
         self.options = options
-    
+
     async def callback(self, interaction: discord.Interaction):
-        await interaction.message.edit(embed=discord.Embed(title="Select audio", description=f"You selected : {self.options[0].label}", color=0x00ff00), view=None)
+        await interaction.message.edit(
+            embed=discord.Embed(title="Select audio", description=f"You selected : {self.options[0].label}",
+                                color=0x00ff00), view=None)
         queue = get_queue(interaction.guild.id)
         if self.download:
             stream = pytube.YouTube(self.values[0]).streams.filter(only_audio=True).first()
             if pytube.YouTube(self.values[0]).length > 12000:
-                return await interaction.message.edit(embed=discord.Embed(title="Error", description=f"The video [{pytube.YouTube(self.values[0]).title}]({self.values[0]}) is too long", color=0xff0000))
+                return await interaction.message.edit(embed=discord.Embed(title="Error",
+                                                                          description=f"The video [{pytube.YouTube(self.values[0]).title}]({self.values[0]}) is too long",
+                                                                          color=0xff0000))
             stream.download(filename=f"cache/{self.options[0].label}.mp3")
-            return await interaction.message.edit(embed=discord.Embed(title="Download", description="Song downloaded.", color=0x00ff00), file=discord.File(f"cache{self.options[0].label}", filename=f"{self.options[0].label}.mp3"), view=None)
-        if queue['queue'] == []:
+            return await interaction.message.edit(
+                embed=discord.Embed(title="Download", description="Song downloaded.", color=0x00ff00),
+                file=discord.File(f"cache{self.options[0].label}", filename=f"{self.options[0].label}.mp3"), view=None)
+        if not queue['queue']:
             queue['index'] = 0
             queue['queue'].append({'title': self.options[0].label, 'url': self.values[0], 'asker': interaction.user.id})
             update_queue(interaction.guild.id, queue)
@@ -54,15 +58,22 @@ class SelectVideo(discord.ui.Select):
         if interaction.guild.voice_client is None:
             await interaction.user.voice.channel.connect()
         if not interaction.guild.voice_client.is_playing():
-            await interaction.message.edit(embed=discord.Embed(title="Play", description=f"Playing song [{self.options[0].label}]({self.values[0]})", color=0x00ff00))
+            await interaction.message.edit(embed=discord.Embed(title="Play",
+                                                               description=f"Playing song [{self.options[0].label}]({self.values[0]})",
+                                                               color=0x00ff00))
             await play_song(self.ctx, queue['queue'][queue['index']]['url'])
         else:
-            await interaction.message.edit(embed=discord.Embed(title="Queue", description=f"Song [{pytube.YouTube(self.values[0]).title}]({self.values[0]}) added to queue.", color=0x00ff00))
+            await interaction.message.edit(embed=discord.Embed(title="Queue",
+                                                               description=f"Song [{pytube.YouTube(self.values[0]).title}]({self.values[0]}) added to queue.",
+                                                               color=0x00ff00))
+
 
 class Research(discord.ui.View):
-    def __init__(self, videos:list[pytube.YouTube], ctx:discord.ApplicationContext, download: bool, *items: Item, timeout: float | None = 180, disable_on_timeout: bool = False):
+    def __init__(self, videos: list[pytube.YouTube], ctx: discord.ApplicationContext, download_file: bool, *items: Item,
+                 timeout: float | None = 180, disable_on_timeout: bool = False):
         super().__init__(*items, timeout=timeout, disable_on_timeout=disable_on_timeout)
-        self.add_item(SelectVideo(videos, ctx, download))
+        self.add_item(SelectVideo(videos, ctx, download_file))
+
 
 OWNER_ID = 708006478807695450
 EMBED_ERROR_QUEUE_EMPTY = discord.Embed(title="Error", description="The queue is empty.", color=0xff0000)
@@ -81,8 +92,10 @@ EMBED_ERROR_VIDEO_TOO_LONG = discord.Embed(title="Error", description="The video
 async def get_playlists(ctx: discord.AutocompleteContext):
     return [name for name in get_queue(ctx.interaction.guild.id)['playlist'].keys()]
 
+
 async def get_playlists_songs(ctx: discord.AutocompleteContext):
     return [song['title'] for song in get_queue(ctx.interaction.guild.id)['playlist'][ctx.options['name']]]
+
 
 async def get_queue_songs(ctx: discord.AutocompleteContext):
     queue = get_queue(ctx.interaction.guild.id)
@@ -92,9 +105,8 @@ async def get_queue_songs(ctx: discord.AutocompleteContext):
     return [song['title'] for song in queue['queue']]
 
 
-
 def format_name(name: str):
-    """Replace |, /, \, <, >, :, *, ?, ", and ' with a caracter with their unicode"""
+    """Replace |, /, backslash, <, >, :, *, ?, ", and ' with a character with their unicode"""
     return name.replace("|", "u01C0") \
         .replace("/", "u2215") \
         .replace("\\", "u2216") \
@@ -112,8 +124,8 @@ def update_queue(guild_id, queue):
         json.dump(queue, f, indent=4)
 
 
-def get_index_from_title(title, list):
-    for index, song in enumerate(list):
+def get_index_from_title(title, list_to_check):
+    for index, song in enumerate(list_to_check):
         if song['title'] == title:
             return index
     return -1
@@ -121,28 +133,26 @@ def get_index_from_title(title, list):
 
 async def change_song(ctx: discord.ApplicationContext):
     queue = get_queue(ctx.guild.id)
-    if queue['queue'] == []:
+    if not queue['queue']:
         return
-    if queue['index'] >= len(queue['queue'])-1 and not queue['loop-queue']:
+    if queue['index'] >= len(queue['queue']) - 1 and not queue['loop-queue']:
         queue['index'] = 0
         queue['queue'] = []
         return update_queue(ctx.guild.id, queue)
-    if queue['index'] >= len(queue['queue'])-1 and queue['loop-queue']:
+    if queue['index'] >= len(queue['queue']) - 1 and queue['loop-queue']:
         queue['index'] = -1
     if not queue['loop-song']:
         if queue['random'] and len(queue['queue']) > 1:
-            queue['index'] = random.choice(list(set(range(0,len(queue['queue']))) - set([queue['index']])))
+            queue['index'] = random.choice(list(set(range(0, len(queue['queue']))) - {queue['index']}))
         elif len(queue['queue']) < 1:
             queue['index'] = 0
         else:
             queue['index'] += 1
     update_queue(ctx.guild.id, queue)
     try:
-         await play_song(ctx, queue['queue'][queue['index']]['url'])
+        await play_song(ctx, queue['queue'][queue['index']]['url'])
     except Exception as e:
         print(f"Erreur : {e}")
-    
-
 
 
 async def play_song(ctx: discord.ApplicationContext, url: str):
@@ -152,23 +162,30 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
         ctx.guild.voice_client.stop()
     video = pytube.YouTube(url)
     if video.length > 12000:
-        return await ctx.respond(embed=discord.Embed(title="Error", description=f"The video [{video.title}]({url}) is too long", color=0xff0000))
+        return await ctx.respond(
+            embed=discord.Embed(title="Error", description=f"The video [{video.title}]({url}) is too long",
+                                color=0xff0000))
     player = discord.FFmpegPCMAudio(download(url), executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg")
     try:
-        ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)), wait_finish=True)
-    except Exception as e:
+        ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
+                                    wait_finish=True)
+    except:
         while ctx.guild.voice_client.is_playing():
-            asyncio.sleep(0.1)
-        ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)), wait_finish=True)
+            await asyncio.sleep(0.1)
+        ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
+                                    wait_finish=True)
 
-async def on_play_song_finished(ctx: discord.ApplicationContext, error = None):
+
+async def on_play_song_finished(ctx: discord.ApplicationContext, error=None):
     print("Playback finished!")
     if error is not None and error:
         print("Error:", error)
-        await ctx.respond(embed=discord.Embed(title="Error", description="An error occured while playing the song.", color=0xff0000))
-    else: 
+        await ctx.respond(
+            embed=discord.Embed(title="Error", description="An error occured while playing the song.", color=0xff0000))
+    else:
         print("No error. Playback successful.")
     await change_song(ctx)
+
 
 def create_queue(guild_id):
     if not os.path.exists(f'queue/{guild_id}.json'):
@@ -184,6 +201,7 @@ def get_queue(guild_id) -> dict:
     except FileNotFoundError:
         create_queue(guild_id)
         return json.load(open(f'queue/{guild_id}.json', 'r'))
+
 
 def convert(audio, file_format):
     stream = ffmpeg.input(audio)

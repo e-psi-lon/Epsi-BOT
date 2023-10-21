@@ -6,7 +6,7 @@ class Others(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.slash_command(name="download", description="Download the audio of a youtube video")
+    @commands.slash_command(name="download_file", description="Download the audio of a youtube video")
     # choices est une liste de formats audio uniquement (pas vidéo)
     async def download(self, ctx, query, file_format: discord.Option(str, description="The file_format of the file", choices=["mp3", "ogg"], required=False, default="ogg")):
         try:
@@ -27,10 +27,10 @@ class Others(commands.Cog):
                 return await ctx.respond(embed=discord.Embed(title="Error", description="Error while downloading song.", color=0xff0000))
         except:
             videos = pytube.Search(query).results
-            if videos == []:
+            if not videos:
                 return await ctx.respond(embed=discord.Embed(title="Error", description="No results found.", color=0xff0000))
             view = Research(videos, ctx, True, timeout=60)
-            await ctx.respond(embed=discord.Embed(title="Select audio", description="Select an audio to download", color=0x00ff00), view=view)
+            await ctx.respond(embed=discord.Embed(title="Select audio", description="Select an audio to download_file", color=0x00ff00), view=view)
             
 
 

@@ -3,12 +3,14 @@ from discord.ext import commands
 from discord.commands import SlashCommandGroup
 import re
 
-# On créé une expression régulière qui récupère 
+
+# On créé une expression régulière qui récupère
 class Todo(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-    
-    todo = SlashCommandGroup(name="todo", description="Commands related to the to-do list", guild_ids=[761485410596552736])
+
+    todo = SlashCommandGroup(name="todo", description="Commands related to the to-do list",
+                             guild_ids=[761485410596552736])
 
     @todo.command(name="add_line", description="Adds a line to the message")
     async def add_line(self, ctx: discord.ApplicationContext, line: discord.Option(str,
@@ -16,7 +18,8 @@ class Todo(commands.Cog):
                        index: discord.Option(int, "The index of the line to add", required=False, default=None)):
         if ctx.channel.id != 1128286383161745479:
             embed = discord.Embed(title="Ajout d'une ligne", description="Cette commande ne peut être utilisée que dans"
-                                                                         " le channel <#1128286383161745479>", color=0xff0000)
+                                                                         " le channel <#1128286383161745479>",
+                                  color=0xff0000)
             return await ctx.respond(embed=embed, delete_after=30)
         message = await ctx.channel.fetch_message(1128641774789861488)
         if index is None:
@@ -37,8 +40,9 @@ class Todo(commands.Cog):
     async def remove_line(self, ctx: discord.ApplicationContext, index: discord.Option(int, "The index of the line to "
                                                                                             "remove", required=True)):
         if ctx.channel.id != 1128286383161745479:
-            embed = discord.Embed(title="Suppression d'une ligne", description="Cette commande ne peut être utilisée que"
-                                                                               " dans le channel <#1128286383161745479>",
+            embed = discord.Embed(title="Suppression d'une ligne",
+                                  description="Cette commande ne peut être utilisée que"
+                                              " dans le channel <#1128286383161745479>",
                                   color=0xff0000)
             return await ctx.respond(embed=embed, delete_after=30)
         message = await ctx.channel.fetch_message(1128641774789861488)
@@ -80,14 +84,15 @@ class Todo(commands.Cog):
         await ctx.respond(embed=embed, delete_after=30)
 
     @todo.command(name="assign", description="Assigns a task to a user")
-    async def assign(self, ctx: discord.ApplicationContext, index: discord.Option(int, "The index of"
-                                                                                       " the line to assign",
-                                                                                  required=True), user: discord.Option(
-                                            discord.User, "The user to assign the task to", required=True)):
+    async def assign(self, ctx: discord.ApplicationContext,
+                     index: discord.Option(int, "The index of the line to assign", required=True),
+                     user: discord.Option(
+            discord.User, "The user to assign the task to", required=True)
+            ):
         if ctx.channel.id != 1128286383161745479:
             embed = discord.Embed(title="Assignation d'une ligne", description="Cette commande ne peut être utilisée "
-                                                                                "que dans le channel "
-                                                                                "<#1128286383161745479>",
+                                                                               "que dans le channel "
+                                                                               "<#1128286383161745479>",
                                   color=0xff0000)
             return await ctx.respond(embed=embed, delete_after=30)
         message = await ctx.channel.fetch_message(1128641774789861488)
@@ -104,7 +109,7 @@ class Todo(commands.Cog):
         if str(user.id) in assigned_user:
             embed = discord.Embed(title="Assignation d'une ligne",
                                   description=f"{user.mention} n'est plus assigné à la ligne {line.name} dans le message"
-                                                f" {message.jump_url}")
+                                              f" {message.jump_url}")
             await ctx.respond(embed=embed, delete_after=30)
             assigned_user.remove(str(user.id))
         else:
@@ -113,7 +118,8 @@ class Todo(commands.Cog):
                                               f" message {message.jump_url}")
             await ctx.respond(embed=embed, delete_after=30)
             assigned_user.append(str(user.id))
-        line.value = line.value[:line.value.find(" - Assigned to <@")] if " - Assigned to <@" in line.value else line.value
+        line.value = line.value[
+                     :line.value.find(" - Assigned to <@")] if " - Assigned to <@" in line.value else line.value
         new_line = " - Assigned to "
         if len(assigned_user) == 0:
             new_line = ""
@@ -131,17 +137,30 @@ class Todo(commands.Cog):
                     new_line += f"<@{int(user_id)}>, "
         line.value += new_line
         lines[index - 1] = line
-        await message.edit(embed=discord.Embed(title="To-Do List", description="Les points suivant sont les différentes tâches à effectuer pour améliorer le bot", fields=lines))
+        await message.edit(embed=discord.Embed(title="To-Do List",
+                                               description="Les points suivant sont les différentes tâches à effectuer pour améliorer le bot",
+                                               fields=lines))
         line = message.embeds[0].fields[index - 1]
 
     @todo.command(name="tuto", description="Sends a tutorial on how to use the to-do list")
     async def tuto(self, ctx: discord.ApplicationContext):
-        embed = discord.Embed(title="Tutoriel", description="Voici un tutoriel sur comment utiliser la to-do list, \"[...]\" signifie que le paramètre est optionnel et \"<...>\" signifie que le paramètre est obligatoire", color=0x00ff00)
-        embed.add_field(name="Ajouter une ligne", value="Pour ajouter une ligne, utilisez la commande `/todo add_line <line:texte à écrire> [index:index de l'élément]`", inline=False)
-        embed.add_field(name="Supprimer une ligne", value="Pour supprimer une ligne, utilisez la commande `/todo remove_line <index:index de l'élément>`", inline=False)
-        embed.add_field(name="Modifier une ligne", value="Pour modifier une ligne, utilisez la commande `/todo edit_line <index:index de l'élément> <line: nouveau texte>`", inline=False)
-        embed.add_field(name="Assigner une ligne", value="Pour assigner une ligne, utilisez la commande `/todo assign <index:index de l'élément> <user:utilisateur à assigné`", inline=False)
-        embed.add_field(name="Tutoriel", value="Pour afficher ce tutoriel, utilisez la commande `/todo tuto`", inline=False)
+        embed = discord.Embed(title="Tutoriel",
+                              description="Voici un tutoriel sur comment utiliser la to-do list, \"[...]\" signifie que le paramètre est optionnel et \"<...>\" signifie que le paramètre est obligatoire",
+                              color=0x00ff00)
+        embed.add_field(name="Ajouter une ligne",
+                        value="Pour ajouter une ligne, utilisez la commande `/todo add_line <line:texte à écrire> [index:index de l'élément]`",
+                        inline=False)
+        embed.add_field(name="Supprimer une ligne",
+                        value="Pour supprimer une ligne, utilisez la commande `/todo remove_line <index:index de l'élément>`",
+                        inline=False)
+        embed.add_field(name="Modifier une ligne",
+                        value="Pour modifier une ligne, utilisez la commande `/todo edit_line <index:index de l'élément> <line: nouveau texte>`",
+                        inline=False)
+        embed.add_field(name="Assigner une ligne",
+                        value="Pour assigner une ligne, utilisez la commande `/todo assign <index:index de l'élément> <user:utilisateur à assigné`",
+                        inline=False)
+        embed.add_field(name="Tutoriel", value="Pour afficher ce tutoriel, utilisez la commande `/todo tuto`",
+                        inline=False)
         await ctx.respond(embed=embed)
 
 

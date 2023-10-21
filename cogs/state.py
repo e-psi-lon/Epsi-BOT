@@ -17,7 +17,7 @@ class State(commands.Cog):
             url = pytube.YouTube(query).watch_url
             try:
                 queue = get_queue(ctx.guild.id)
-                if queue['queue'] == []:
+                if not queue['queue']:
                     queue['queue'].append({'title': pytube.YouTube(query).title, 'url': url})
                     update_queue(ctx.guild.id, queue)
                     await ctx.respond(embed=discord.Embed(title="Play", description=f"Playing song [{pytube.YouTube(url).title}]({url})", color=0x00ff00))
@@ -34,7 +34,7 @@ class State(commands.Cog):
                 return await ctx.respond(embed=discord.Embed(title="Error", description="Error while getting song.", color=0xff0000))
         except:
             videos = pytube.Search(query).results
-            if videos == []:
+            if not videos:
                 return await ctx.respond(embed=discord.Embed(title="Error", description="No results found.", color=0xff0000))
             view = Research(videos, ctx, False)
             await ctx.respond(embed=discord.Embed(title="Select audio", description="Select an audio to play", color=0x00ff00), view=view)

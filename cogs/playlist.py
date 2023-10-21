@@ -1,10 +1,11 @@
-import discord
-from discord.ext import commands
-from discord.commands import SlashCommandGroup
-from utils import *
-import pytube
-import threading
 import asyncio
+import threading
+
+import pytube
+from discord.commands import SlashCommandGroup
+from discord.ext import commands
+
+from utils import *
 
 
 class Playlist(commands.Cog):
@@ -20,7 +21,7 @@ class Playlist(commands.Cog):
         if len(name) > 20:
             return await ctx.respond(embed=EMBED_ERROR_NAME_TOO_LONG)
         queue = get_queue(ctx.interaction.guild.id)
-        if queue['queue'] == []:
+        if not queue['queue']:
             return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
         if name in queue['playlist'].keys():
             return await ctx.respond(embed=discord.Embed(title="Error", description="A playlist with this name already exists.", color=0xff0000))
@@ -105,7 +106,7 @@ class Playlist(commands.Cog):
         for song in queue['queue']:
             # On limite le nombre de threads à 5
             while threading.active_count() > 5:
-                asyncio.sleep(0.1)
+                await asyncio.sleep(0.1)
             if pytube.YouTube(song['url']).length > 12000:
                 await ctx.respond(embed=discord.Embed(title="Error", description=f"The video [{pytube.YouTube(song['url']).title}]({song['url']}) is too long", color=0xff0000))
             else:
