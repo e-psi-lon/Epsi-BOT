@@ -1,8 +1,12 @@
+import io
+from enum import Enum
+
 import discord
 import json
 import os
 import random
 import ffmpeg
+import pydub
 import pytube
 from discord.ui.item import Item
 import asyncio
@@ -16,6 +20,46 @@ def download(url: str, file_format: str = "mp3"):
         return f"cache/{format_name(stream.title)}.{file_format}"
     stream.download(filename=f"cache/{format_name(stream.title)}.{file_format}")
     return f"cache/{format_name(stream.title)}.{file_format}"
+
+
+class Sinks(Enum):
+    mp3 = discord.sinks.MP3Sink()
+    wav = discord.sinks.WaveSink()
+    ogg = discord.sinks.OGGSink()
+    mp4 = discord.sinks.MP4Sink()
+
+
+async def finished_record_callback(sink, channel: discord.TextChannel, *args):
+    mention_strs = []
+    audio_segs: list[pydub.AudioSegment] = []
+    files: list[discord.File] = []
+
+    longest = pydub.AudioSegment.empty()
+
+    for user_id, audio in sink.audio_data.items():
+        mention_strs.append(f"<@{user_id}>")
+
+        seg = pydub.AudioSegment.from_file(audio.file, format=sink.encoding)
+
+        # Determine the longest audio segment
+        if len(seg) > len(longest):
+            audio_segs.append(longest)
+            longest = seg
+        else:
+            audio_segs.append(seg)
+
+        audio.file.seek(0)
+        files.append(discord.File(audio.file, filename=f"{channel.guild.get_member(user_id).name}.{sink.encoding}"))
+
+    for seg in audio_segs:
+        longest = longest.overlay(seg)
+    with io.BytesIO() as f:
+        longest.export(f, format=sink.encoding)
+        await channel.send(
+            f"# Recorded {', '.join(mention_strs)}" if len(mention_strs) > 1 else f"Recorded {mention_strs[0]}" if len(
+                mention_strs) == 1 else "Recorded no one",
+            files=files + [discord.File(f, filename=f"record.{sink.encoding}")] if sink.encoding != "wav" else files
+            )
 
 
 class SelectVideo(discord.ui.Select):
@@ -177,13 +221,10 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
 
 
 async def on_play_song_finished(ctx: discord.ApplicationContext, error=None):
-    print("Playback finished!")
     if error is not None and error:
         print("Error:", error)
         await ctx.respond(
             embed=discord.Embed(title="Error", description="An error occured while playing the song.", color=0xff0000))
-    else:
-        print("No error. Playback successful.")
     await change_song(ctx)
 
 

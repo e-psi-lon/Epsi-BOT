@@ -2,7 +2,7 @@
 
 ## Format de sauvegarde des infos
 
-Les infos sont sauvegardées dans un fichier dans le dossier [queue](./queue/) dont le nom est `<guild_id>.json`
+Les infos sont sauvegardées dans un fichier dans le dossier [queue](./queue) dont le nom est `<guild_id>.json`
 Les fichiers se présentent sous la forme
 
 ```json
@@ -16,7 +16,7 @@ Les fichiers se présentent sous la forme
         {
             "title": "", // titre de la chanson, type str
             "url": "https://www.youtube.com/watch?v=...", // url de la chanson, type str
-            "asker": 95884548745, // id de l'utilisateur qui a demandé la chanson, type int
+            "asker": 95884548745 // id de l'utilisateur qui a demandé la chanson, type int
         }
     ],
     "playlist": { // Playlists enregistrées dans le serveur, type dict
@@ -24,7 +24,7 @@ Les fichiers se présentent sous la forme
             {
                 "title": "", // titre de la chanson, type str
                 "url": "https://www.youtube.com/watch?v=...", // url de la chanson, type str
-                "asker": 95884548745, // id de l'utilisateur qui a demandé la chanson, type int
+                "asker": 95884548745 // id de l'utilisateur qui a demandé la chanson, type int
             }
         ]
     }

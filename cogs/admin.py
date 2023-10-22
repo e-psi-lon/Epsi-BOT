@@ -12,10 +12,16 @@ class Admin(commands.Cog):
         if ctx.author.id != OWNER_ID:
             embed = discord.Embed(title="Error", description="You are not the owner of the bot.", color=0xff0000)
             return await ctx.respond(embed=embed, delete_after=30)
+        temp_queue = get_queue(ctx.guild.id)
+        temp_queue2 = get_queue(ctx.guild.id)
+        temp_queue['queue'] = []
+        temp_queue['index'] = 0
+        update_queue(ctx.guild.id, temp_queue)
         if ctx.voice_client is not None:
             if ctx.voice_client.is_playing():
-                embed = discord.Embed(title="Error", description="The bot is playing a song.", color=0xff0000)
-                return await ctx.respond(embed=embed, delete_after=30)
+                ctx.voice_client.stop()
+        await asyncio.sleep(1)
+        update_queue(ctx.guild.id, temp_queue2)
         for file in os.listdir('cache/'):
             os.remove(f'cache/{file}')
         embed = discord.Embed(title="Cache removed", description="Removed the audio cache.", color=0x00ff00)
