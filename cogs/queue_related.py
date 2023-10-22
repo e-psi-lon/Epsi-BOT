@@ -16,7 +16,7 @@ class Queue(commands.Cog):
         embed = discord.Embed(title="Queue", color=0x00ff00)
         for i, song in enumerate(queue['queue']):
             if i == queue['index']:
-                embed.add_field(name=f"{i + 1}. {song['title']} - **Now Playing**",
+                embed.add_field(name=f"{i + 1}. {song['title']} - __**Now Playing**__",
                                 value=f"{song['url']} asked by <@{song['asker']}>", inline=False)
             else:
                 embed.add_field(name=f"{i + 1}. {song['title']}", value=f"{song['url']} asked by <@{song['asker']}>",
@@ -72,7 +72,7 @@ class Queue(commands.Cog):
 
     @commands.slash_command(name="now", description="Shows the current song")
     async def now(self, ctx: discord.ApplicationContext):
-        queue = get_queue(ctx)
+        queue = get_queue(ctx.guild.id)
         if not queue['queue']:
             return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
         song = queue['queue'][queue['index']]
@@ -115,9 +115,13 @@ class Queue(commands.Cog):
         if not queue['queue']:
             return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
         queue['queue'] = []
-        for file in os.listdir('cache/'):
-            os.remove(f'cache/{file}')
+        queue['index'] = 0
         update_queue(ctx.interaction.guild.id, queue)
+        if ctx.guild.voice_client is not None:
+            try:
+                ctx.guild.voice_client.stop()
+            except discord.errors.ClientException:
+                pass
         await ctx.respond(embed=discord.Embed(title="Clear", description="Queue cleared.", color=0x00ff00))
 
     @commands.slash_command(name="back", description="Goes back to the previous song")
@@ -177,11 +181,12 @@ class Queue(commands.Cog):
         index = get_index_from_title(song, queue['queue'])
         if index == -1:
             return await ctx.respond(
-                discord.Embed(title="Error", description=f"Song {song} not found in the queue.", color=0xff0000))
+                embed=discord.Embed(title="Error", description=f"Song {song} not found in the queue.", color=0xff0000))
         queue['index'] = index - 1
         update_queue(ctx.interaction.guild.id, queue)
         ctx.guild.voice_client.stop()
-        await ctx.respond(embed=discord.Embed(title="Play", description=f"Playing {song}.", color=0x00ff00))
+        await ctx.respond(embed=discord.Embed(title="Play", description=f"Playing [{song}]({queue['queue'][index]['url']}).",
+                                              color=0x00ff00))
 
     @play.command(name="number", description="Plays a song from the queue")
     async def play_queue_index(self, ctx: discord.ApplicationContext,
@@ -191,12 +196,15 @@ class Queue(commands.Cog):
             return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
         if index < 0 or index >= len(queue['queue']):
             return await ctx.respond(
-                discord.Embed(title="Error", description=f"Index {index} out of range.", color=0xff0000))
-        queue['index'] = index - 2
+                embed=discord.Embed(title="Error", description=f"Index {index} out of range.", color=0xff0000))
+        queue['index'] = index - 1
         update_queue(ctx.interaction.guild.id, queue)
         ctx.guild.voice_client.stop()
         await ctx.respond(
-            embed=discord.Embed(title="Play", description=f"Playing {queue['queue'][index]['title']}.", color=0x00ff00))
+            embed=discord.Embed(title="Play",
+                                description=f"Playing [<{queue['queue'][index]['title']}]"
+                                            f"({queue['queue'][index]['url']}).",
+                                color=0x00ff00))
 
 
 def setup(bot):
