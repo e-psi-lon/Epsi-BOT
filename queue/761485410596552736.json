@@ -2,9 +2,15 @@
     "channel": null,
     "loop-song": false,
     "loop-queue": true,
-    "random": true,
+    "random": false,
     "index": 0,
-    "queue": [],
+    "queue": [
+        {
+            "title": "Je poss\u00e8de des thunes (Clip Int\u00e9gral) - David Castello-Lopes",
+            "url": "https://youtube.com/watch?v=aIVsz5Pj0eE",
+            "asker": 708006478807695450
+        }
+    ],
     "playlist": {
         "Playlist de test": [
             {
