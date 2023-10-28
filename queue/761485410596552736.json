@@ -2,7 +2,7 @@
     "channel": null,
     "loop-song": false,
     "loop-queue": true,
-    "random": true,
+    "random": false,
     "index": 0,
     "queue": [],
     "playlist": {

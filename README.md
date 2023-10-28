@@ -5,7 +5,7 @@
 Les infos sont sauvegardées dans un fichier dans le dossier [queue](./queue) dont le nom est `<guild_id>.json`
 Les fichiers se présentent sous la forme
 
-```json
+```jsonc
 {
     "channel": 551515454515, // salon dans lequel le bot est connecte, type int ou null
     "loop-song": false, // true si la chanson en cours de lecture doit être répétée, type bool

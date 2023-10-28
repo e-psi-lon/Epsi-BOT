@@ -1,13 +1,11 @@
-from utils import *
-from discord.ext import commands
-import discord
+import datetime
+import threading
+
 import discord.utils
 from discord.ext.pages import Page, Paginator, PaginatorButton
-import nacl
-import pytube
-import os
-import datetime
-import importlib.metadata
+
+from panel.panel import app, Panel
+from utils import *
 
 
 class Bot(commands.Bot):
@@ -17,6 +15,10 @@ class Bot(commands.Bot):
             f'Logged in as {self.user.name} at {datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")} (time elapsed {datetime.datetime.now() - start_time})')
         await self.change_presence(
             activity=discord.Activity(type=discord.ActivityType.watching, name=f"/help | {len(self.guilds)} servers"))
+        app.set_bot(self)
+        # On deplace le processus du bot (le processus principal) dans un thread
+        # pour pouvoir lancer le serveur web
+        threading.Thread(target=app.run, name="Panel").start()
 
 
 bot = Bot(intents=discord.Intents.all())
@@ -123,7 +125,7 @@ async def help_command(ctx: discord.ApplicationContext):
                                            value=command['description'] if command[
                                                                                'description'] != "" else "No description",
                                            inline=True)
-                        temp[-1].set_footer(text=f"Showing {len(sorted_command[i] - j * 25)} commands")
+                        temp[-1].set_footer(text=f"Showing {len(sorted_command[i]) - j * 25} commands")
             pages.extend(temp)
 
     buttons = [
@@ -151,26 +153,18 @@ def start(instance: Bot):
         "cogs.state",
         "cogs.todo",
         "cogs.admin",
-
+        "cogs.listeners"
     ]
     os.system("cls" if os.name == "nt" else "clear")
     start_time = datetime.datetime.now()
     print(f"Script started at {datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
-    if pytube.__version__ != "15.0.0":
-        os.system("pip install pytube==15.0.0")
-    if discord.__version__ != "2.4.1.dev178+g927f8cef":
-        os.system("pip install git+https://github.com/Pycord-Development/pycord")
-    if nacl.__version__ != "1.5.0":
-        os.system("pip install pynacl==1.5.0")
-    if importlib.metadata.version("ffmpeg-python") != "0.2.0":
-        os.system("pip install ffmpeg-python==0.2.0")
     for cog in cogs:
         try:
             instance.load_extension(cog)
         except Exception as e:
             print(f"Failed to load extension {cog}")
             print(e)
-    # Lancer le bot
+    # Lancer l
     instance.run("MTEyODA3NDQ0Njk4NTQ5ODYyNA.G-kQRY.fuaCtflpY1SrNMJAS2fqixVMmwRUF7m2HRW6tw")
 
 

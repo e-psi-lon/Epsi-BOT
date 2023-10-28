@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+        <title>{{ server['name'] }}</title>
+    </head>
+    <body>
+        <h1>Configuration du Serveur - {{ server['name'] }}</h1>
+        <div id="add-song" class="dialog" hidden>
+            <form method="POST" action="/server/{{ server['id'] }}/add">
+                <label for="url">URL: </label>
+                <input id="url" type="text" name="url" placeholder="URL de la chanson">
+                <br>
+                <input type="submit" value="Ajouter">
+                <button type="button" onclick="document.getElementById('add-song').hidden = true">Annuler</button>
+            </form>
+        </div>
+        <form method="POST">
+            <label for="loop-song">Loop Song: </label>
+            <input id="loop-song" type="checkbox" name="loop-song" {% if server["loop-song"] %} checked {% endif %}>
+            <br>
+            <label for="loop-queue">Loop Queue: </label>
+            <input id="loop-queue" type="checkbox" name="loop-queue" {% if server["loop-queue"] %} checked {% endif %}>
+            <br>
+            <label for="random">Random: </label>
+            <input id="random" type="checkbox" name="random" {% if server["random"] %} checked {% endif %}>
+            <br>
+            <label for="index">Index: </label>
+            <input id="index" type="number" name="index" value="{{ server["index"] }}">
+            <br>
+            <div class="queue">
+                {% for song in server["queue"] %}
+                <!-- On affiche une chanson avec son titre, son url et le nom de l'utilisateur qui l'a ajouté -->
+                <div class="song{% if song == server['queue'][server['index']] %} current {% endif %}">
+                    {% if song["url"].startswith("https://youtube.com/watch?v=") %}
+                        <div class="thumbnail_div">
+                            <iframe class="thumbnail" src="https://www.youtube.com/embed/{{ pytube.YouTube(song['url']).video_id}}" title={{ pytube.YouTube(song['url']).title}} frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                        </div>
+                    {% endif %}
+                    <div class="song_info">
+                        <div class="title">{{ song["title"] }}</div>
+                        <div class="url"><a target="_blank" href={{ song["url"] }}>{{ song["url"] }}</a></div>
+                        <div class="asker">Asked by {{ app.bot.get_user(song["asker"]).global_name }}</div>
+                        <button class="remove" type="button" onclick="window.location.href='/server/{{ server['id'] }}/remove/{{ loop.index0 }}'">Supprimer</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <br>
+            <div class="queue_buttons">
+                <button class="add" type="button" onclick="document.getElementById('add-song').hidden = false">Ajouter une chanson</button>
+                <button class="clear" type="button" onclick="window.location.href='/server/{{ server['id'] }}/clear'">Vider la file d'attente</button>
+            </div>
+            <input type="submit" value="Enregistrer">
+        </form>
+    </body>
+</html>

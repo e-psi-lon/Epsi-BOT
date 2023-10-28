@@ -194,15 +194,15 @@ class Queue(commands.Cog):
         queue = get_queue(ctx.interaction.guild.id)
         if not queue['queue']:
             return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
-        if index < 0 or index >= len(queue['queue']):
+        if index < 0 or index > len(queue['queue']):
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description=f"Index {index} out of range.", color=0xff0000))
-        queue['index'] = index - 1
+        queue['index'] = index - 2
         update_queue(ctx.interaction.guild.id, queue)
         ctx.guild.voice_client.stop()
         await ctx.respond(
             embed=discord.Embed(title="Play",
-                                description=f"Playing [<{queue['queue'][index]['title']}]"
+                                description=f"Playing [{queue['queue'][index]['title']}]"
                                             f"({queue['queue'][index]['url']}).",
                                 color=0x00ff00))
 

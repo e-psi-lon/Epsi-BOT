@@ -97,6 +97,7 @@ class Playlist(commands.Cog):
     @playlist.command(name="play", description="Plays a playlist")
     async def play(self, ctx: discord.ApplicationContext, name: discord.Option(str, "The name of the playlist", required=True, autocomplete=discord.utils.basic_autocomplete(get_playlists))):
         queue = get_queue(ctx.interaction.guild.id)
+        await ctx.response.defer()
         if name not in queue['playlist'].keys():
             return await ctx.respond(embed=EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
                                 .add_field(name="Existing playlists:", value="\n".join(queue['playlist'].keys())))
@@ -104,8 +105,8 @@ class Playlist(commands.Cog):
         queue['index'] = 0
         update_queue(ctx.interaction.guild.id, queue)
         for song in queue['queue']:
-            # On limite le nombre de threads à 5
-            while threading.active_count() > 5:
+            # On limite le nombre de threads à 3
+            while len([thread for thread in threading.enumerate() if thread.name.startswith("Download-")]) > 3:
                 await asyncio.sleep(0.1)
             if pytube.YouTube(song['url']).length > 12000:
                 await ctx.respond(embed=discord.Embed(title="Error", description=f"The video [{pytube.YouTube(song['url']).title}]({song['url']}) is too long", color=0xff0000))

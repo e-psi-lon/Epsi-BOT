@@ -8,13 +8,21 @@ import random
 import ffmpeg
 import pydub
 import pytube
-from discord.ui.item import Item
 import asyncio
 import discord.ext.pages
+from discord.ext import commands
+import requests
 
 
 def download(url: str, file_format: str = "mp3"):
     """Download a video from a YouTube URL"""
+    if not url.startswith("https://youtube.com/watch?v="):
+        if os.path.exists(f"cache/{format_name(url.split('/')[-1])}"):
+            return f"cache/{format_name(url.split('/')[-1])}"
+        r = requests.get(url)
+        with open(f"cache/{format_name(url.split('/')[-1])}", "wb") as f:
+            f.write(r.content)
+        return f"cache/{format_name(url.split('/')[-1])}"
     stream = pytube.YouTube(url).streams.filter(only_audio=True).first()
     if os.path.exists(f"cache/{format_name(stream.title)}.{file_format}"):
         return f"cache/{format_name(stream.title)}.{file_format}"
@@ -35,10 +43,14 @@ async def finished_record_callback(sink, channel: discord.TextChannel, *args):
     files: list[discord.File] = []
 
     longest = pydub.AudioSegment.empty()
+    for user_id in sink.audio_data.keys():
+        mention_strs.append(f"<@{user_id}>")
+    message = await channel.send(
+        f"## Recorded {', '.join(mention_strs)}\nProcessing audio" if len(
+            mention_strs) > 1 else f"Recorded {mention_strs[0]}\nProcessing audio" if len(
+            mention_strs) == 1 else "Recorded no one")
 
     for user_id, audio in sink.audio_data.items():
-        mention_strs.append(f"<@{user_id}>")
-
         seg = pydub.AudioSegment.from_file(audio.file, format=sink.encoding)
 
         # Determine the longest audio segment
@@ -55,11 +67,29 @@ async def finished_record_callback(sink, channel: discord.TextChannel, *args):
         longest = longest.overlay(seg)
     with io.BytesIO() as f:
         longest.export(f, format=sink.encoding)
-        await channel.send(
-            f"# Recorded {', '.join(mention_strs)}" if len(mention_strs) > 1 else f"Recorded {mention_strs[0]}" if len(
-                mention_strs) == 1 else "Recorded no one",
-            files=files + [discord.File(f, filename=f"record.{sink.encoding}")] if sink.encoding != "wav" else files
-            )
+        await message.edit(content=f"## Recorded {', '.join(mention_strs)}" if len(
+                               mention_strs) > 1 else f"Recorded {mention_strs[0]}" if len(
+                               mention_strs) == 1 else "Recorded no one",
+                           files=files + [
+                               discord.File(f, filename=f"record.{sink.encoding}")] if sink.encoding != "wav" else files
+                           )
+
+
+async def disconnect_from_channel(state: discord.VoiceState, bot: commands.Bot):
+    ok = False
+    for client in bot.voice_clients:
+        for guild in client.client.guilds:
+            if guild.id == state.channel.guild.id:
+                await client.disconnect(force=True)
+                queue = get_queue(guild.id)
+                queue['queue'] = []
+                queue['index'] = 0
+                update_queue(guild.id, queue)
+                ok = True
+            if ok:
+                break
+        if ok:
+            break
 
 
 class SelectVideo(discord.ui.Select):
@@ -113,7 +143,7 @@ class SelectVideo(discord.ui.Select):
 
 
 class Research(discord.ui.View):
-    def __init__(self, videos: list[pytube.YouTube], ctx: discord.ApplicationContext, download_file: bool, *items: Item,
+    def __init__(self, videos: list[pytube.YouTube], ctx: discord.ApplicationContext, download_file: bool, *items,
                  timeout: float | None = 180, disable_on_timeout: bool = False):
         super().__init__(*items, timeout=timeout, disable_on_timeout=disable_on_timeout)
         self.add_item(SelectVideo(videos, ctx, download_file))
@@ -204,18 +234,23 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
         return
     if ctx.guild.voice_client.is_playing():
         ctx.guild.voice_client.stop()
-    video = pytube.YouTube(url)
-    if video.length > 12000:
-        return await ctx.respond(
-            embed=discord.Embed(title="Error", description=f"The video [{video.title}]({url}) is too long",
-                                color=0xff0000))
-    player = discord.FFmpegPCMAudio(download(url), executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg")
     try:
-        ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
-                                    wait_finish=True)
+        video = pytube.YouTube(url)
+        if video.length > 12000:
+            return await ctx.respond(
+                embed=discord.Embed(title="Error", description=f"The video [{video.title}]({url}) is too long",
+                                    color=0xff0000))
+        player = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(download(url), executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"))
+        try:
+            ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
+                                        wait_finish=True)
+        except:
+            while ctx.guild.voice_client.is_playing():
+                await asyncio.sleep(0.1)
+            ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
+                                        wait_finish=True)
     except:
-        while ctx.guild.voice_client.is_playing():
-            await asyncio.sleep(0.1)
+        player = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(download(url), executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"))
         ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
                                     wait_finish=True)
 

@@ -40,8 +40,8 @@ class Channel(commands.Cog):
             await play_song(ctx, queue['queue'][queue['index']]['url'])
             if len(queue['queue']) > 1:
                 for song in queue['queue'][1:]:
-                    # On limite le nombre de threads à 5
-                    while threading.active_count() > 5:
+                    # On limite le nombre de threads à 3
+                    while len([thread for thread in threading.enumerate() if thread.name.startswith("Download-")]) > 3:
                         await asyncio.sleep(0.1)
                     video = pytube.YouTube(song['url'])
                     if video.length > 12000:

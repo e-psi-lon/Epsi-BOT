@@ -1,0 +1,164 @@
+/* Ajoutez vos styles CSS ici */
+
+body {
+    font-family: Arial, sans-serif;
+}
+
+h1 {
+    background-color: #333;
+    color: #fff;
+    padding: 1vw;
+    text-align: center;
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+}
+
+
+label {
+    font-weight: bold;
+}
+
+input[type="checkbox"] {
+    margin-right: 10vw;
+}
+
+.server {
+    display: flex;
+    align-items: center;
+    border-radius: 5%;
+    flex-direction: column;
+    padding: 1vw;
+    margin: 1vw;
+}
+
+.server:hover {
+    background-color: #eee;
+}
+
+.icon {
+    width: 5vw;
+    height: 5vw;
+    margin-bottom: 1vw;
+    border-radius: 50%;
+}
+
+.name {
+    font-weight: bold;
+    text-align: center;
+}
+
+.serverList {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.ulServerList {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    flex-direction: row;
+}
+
+.user {
+    display: flex;
+    align-items: center;
+    padding: 1vw;
+    margin: 1vw;
+    flex-direction: column;
+}
+
+.queue {
+    align-items: flex-start;
+    padding: 1vw;
+    margin: 1vw;
+    flex-direction: column;
+    border: 1px solid #333;
+    border-radius: 5%;
+    background-color: #eee;
+}
+
+.song {
+    display: flex;
+    align-items: center;
+    padding: 1vw;
+    margin: 1vw;
+    flex-direction: row;
+    border-radius: 5%;
+}
+
+.song:hover {
+    background-color: #ddd;
+}
+
+.current {
+    background-color: #eee;
+}
+
+.song_info {
+    display: flex;
+    align-items: flex-start;
+    padding: 1vw;
+    margin: 1vw;
+    flex-direction: column;
+}
+
+.title {
+    font-weight: bold;
+    text-align: center;
+}
+
+.url {
+    text-align: left;
+}
+
+.asker {
+    text-align: left;
+}
+
+.remove {
+    text-align: right;
+
+}
+
+.thumbnail_div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+.thumbnail {
+    border-radius: 5%;
+    max-width: 20vw;
+    height: auto;
+}
+
+a {
+    color: #0000EE;
+}
+
+a:visited {
+    color: #0000EE;
+}
+
+a:hover {
+    color: #0000EE;
+}
+
+/* .dialog apparait au milieu de l'écran, comme une popup */
+.dialog {
+    display: none;
+    position: fixed;
+    z-index: 100;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #fff;
+    padding: 1vw;
+    border-radius: 5%;
+    border: 1px solid #333;
+}
