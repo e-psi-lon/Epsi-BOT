@@ -38,12 +38,19 @@ input[type="checkbox"] {
     background-color: #eee;
 }
 
+/* Quand on passe la souris sur un serveur, les angles de l'icone deviennent moins ronds mais avec un effet de transition */
+.server:hover .icon {
+    border-radius: 35%;
+    transition: border-radius 0.5s;
+}
+
 .icon {
     width: 5vw;
     height: 5vw;
     margin-bottom: 1vw;
     border-radius: 50%;
 }
+
 
 .name {
     font-weight: bold;
@@ -88,6 +95,7 @@ input[type="checkbox"] {
     margin: 1vw;
     flex-direction: row;
     border-radius: 5%;
+    cursor: pointer;
 }
 
 .song:hover {
@@ -124,14 +132,14 @@ input[type="checkbox"] {
 
 }
 
-.thumbnail_div {
+.preview_div {
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 
-.thumbnail {
+.preview {
     border-radius: 5%;
     max-width: 20vw;
     height: auto;
@@ -161,4 +169,41 @@ a:hover {
     padding: 1vw;
     border-radius: 5%;
     border: 1px solid #333;
+}
+
+/* connect est un bouton, il doit être au milieu de l'écran */
+
+.main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.connect {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1vw;
+    margin: 1vw;
+    border-radius: 5%;
+    border: 1px solid #333;
+    background-color: #eee;
+}
+
+.connect:hover {
+    background-color: #ddd;
+}
+
+.connect:active {
+    background-color: #ccc;
+}
+
+.preview_line {
+    border: 1px solid #333;
+    border-radius: 5%;
+    background-color: #eee;
+    margin: 1vw;
+    padding: 1vw;
+    text-align: center;
 }

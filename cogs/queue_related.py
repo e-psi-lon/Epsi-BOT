@@ -134,7 +134,7 @@ class Queue(commands.Cog):
         if queue['index'] == 0:
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description="There is no previous song.", color=0xff0000))
-        queue['index'] -= 1
+        queue['index'] -= 2
         update_queue(ctx.interaction.guild.id, queue)
         ctx.guild.voice_client.stop()
         await ctx.respond(embed=discord.Embed(title="Back", description="Playing previous song.", color=0x00ff00))

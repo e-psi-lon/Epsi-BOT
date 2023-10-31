@@ -240,7 +240,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description=f"The video [{video.title}]({url}) is too long",
                                     color=0xff0000))
-        player = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(download(url), executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"))
+        player = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(download(url), executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"), get_queue(ctx.guild.id)['volume'] / 100)
         try:
             ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
                                         wait_finish=True)
@@ -250,7 +250,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
             ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
                                         wait_finish=True)
     except:
-        player = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(download(url), executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"))
+        player = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(download(url), executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"), get_queue(ctx.guild.id)['volume'] / 100)
         ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
                                     wait_finish=True)
 
@@ -267,7 +267,7 @@ def create_queue(guild_id):
     if not os.path.exists(f'queue/{guild_id}.json'):
         with open(f'queue/{guild_id}.json', 'w') as f:
             json.dump(
-                {"channel": None, "loop-song": False, "loop-queue": False, "index": 0, "queue": [], "playlist": {}}, f,
+                {"channel": None, "loop-song": False, "loop-queue": False, "random": False, "volume": 100, "index": 0, "queue": [], "playlist": {}}, f,
                 indent=4)
 
 

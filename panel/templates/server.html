@@ -30,20 +30,21 @@
             <br>
             <div class="queue">
                 {% for song in server["queue"] %}
-                <!-- On affiche une chanson avec son titre, son url et le nom de l'utilisateur qui l'a ajouté -->
-                <div class="song{% if song == server['queue'][server['index']] %} current {% endif %}">
-                    {% if song["url"].startswith("https://youtube.com/watch?v=") %}
-                        <div class="thumbnail_div">
-                            <iframe class="thumbnail" src="https://www.youtube.com/embed/{{ pytube.YouTube(song['url']).video_id}}" title={{ pytube.YouTube(song['url']).title}} frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                    <div class="song{% if song == server['queue'][server['index']] %} current {% endif %}" draggable="true" id="song{{ loop.index0 }}">
+                        <div class="preview_div">
+                            {% if song["url"].startswith("https://youtube.com/watch?v=") %}
+                                <iframe class="preview" src="https://www.youtube.com/embed/{{ pytube.YouTube(song['url']).video_id}}" title={{ pytube.YouTube(song['url']).title}} frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                            {% else %}
+                                <img class="preview" src="{{ url_for('static', filename='default_thumbnail.png') }}">
+                            {% endif %}
                         </div>
-                    {% endif %}
-                    <div class="song_info">
-                        <div class="title">{{ song["title"] }}</div>
-                        <div class="url"><a target="_blank" href={{ song["url"] }}>{{ song["url"] }}</a></div>
-                        <div class="asker">Asked by {{ app.bot.get_user(song["asker"]).global_name }}</div>
-                        <button class="remove" type="button" onclick="window.location.href='/server/{{ server['id'] }}/remove/{{ loop.index0 }}'">Supprimer</button>
+                        <div class="song_info">
+                            <div class="title">{{ song["title"] }}</div>
+                            <div class="url" draggable="false"><a draggable="false" target="_blank" href={{ song["url"] }}>{{ song["url"] }}</a></div>
+                            <div class="asker">Asked by {{ app.bot.get_user(song["asker"]).global_name }}</div>
+                            <button class="remove" type="button" onclick="window.location.href='/server/{{ server['id'] }}/remove/{{ loop.index0 }}'">Supprimer</button>
+                        </div>
                     </div>
-                </div>
                 {% endfor %}
             </div>
             <br>
@@ -53,5 +54,62 @@
             </div>
             <input type="submit" value="Enregistrer">
         </form>
+        <script>
+            const songs = document.querySelectorAll('.song');
+            const queue = document.querySelector('.queue');
+
+        
+            let draggedSong = null;
+            let dropTarget = null;
+            let previewLine = null;
+        
+            songs.forEach(song => {
+                song.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', e.target.id);
+                    draggedSong = e.target;
+                    previewLine = document.createElement('div');
+                    previewLine.classList.add('preview_line');
+                    previewLine.textContent = 'Drop here';
+                    previewLine.addEventListener('dragend', (e) => {
+                        e.preventDefault();
+                        if (draggedSong) {
+                            const rect = previewLine.getBoundingClientRect();
+                            const isBefore = e.clientY - rect.top < rect.height / 2;
+                            if (isBefore) {
+                                queue.insertBefore(draggedSong, previewLine.nextElementSibling);
+                            } else {
+                                queue.insertBefore(draggedSong, previewLine);
+                            }
+                        }
+                    });
+                });
+        
+                song.addEventListener('dragend', () => {
+                    draggedSong = null;
+                    previewLine.remove();
+                    dropTarget = null;
+                });
+        
+                song.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropTarget = e.target;
+                    if (previewLine) {
+                        if (dropTarget.classList.contains('song')) {
+                            queue.insertBefore(previewLine, dropTarget);
+                        } else {
+                            queue.appendChild(previewLine);
+                        }
+                    }
+                });
+        
+                song.addEventListener('dragleave', () => {
+                    dropTarget = null;
+                });
+            });
+        
+            queue.addEventListener('dragover', (e) => {
+                e.preventDefault();
+            });
+        </script>                      
     </body>
 </html>

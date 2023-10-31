@@ -163,6 +163,9 @@ class State(commands.Cog):
                 return await ctx.respond(
                     embed=discord.Embed(title="Error", description="Volume is too low.", color=0xff0000))
             ctx.guild.voice_client.source.volume = volume / 100
+            queue = get_queue(ctx.guild.id)
+            queue['volume'] = ctx.guild.voice_client.source.volume * 100
+            update_queue(ctx.guild.id, queue) 
             return await ctx.respond(embed=discord.Embed(title="Volume", description=f"Volume set to {volume}%",
                                                   color=0x00ff00))
             

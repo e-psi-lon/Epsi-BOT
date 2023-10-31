@@ -10,12 +10,12 @@
         <button class="logout" onclick="window.location.href='/logout'">Se déconnecter</button>
         <ul class="ulServerList">
             {% for server in servers %}
-            <li class="serverList">
-                <div class="server" onclick="window.location.href='/server/{{ server.id }}'">
-                    <img src='{{ server.icon }}' class="icon">
-                    <div class="name">{{ server.name }}</div>
-                </div>
-            </li>
+                <li class="serverList">
+                    <div class="server" onclick="window.location.href='/server/{{ server.id }}'">
+                        <img src='{{ server.icon }}' class="icon">
+                        <div class="name">{{ server.name }}</div>
+                    </div>
+                </li>
             {% endfor %}
         </ul>
     </body>

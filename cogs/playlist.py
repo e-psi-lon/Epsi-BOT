@@ -106,7 +106,7 @@ class Playlist(commands.Cog):
         update_queue(ctx.interaction.guild.id, queue)
         for song in queue['queue']:
             # On limite le nombre de threads à 3
-            while len([thread for thread in threading.enumerate() if thread.name.startswith("Download-")]) > 3:
+            while len([thread for thread in threading.enumerate() if thread.name.startswith("Download-")]) >= 3:
                 await asyncio.sleep(0.1)
             if pytube.YouTube(song['url']).length > 12000:
                 await ctx.respond(embed=discord.Embed(title="Error", description=f"The video [{pytube.YouTube(song['url']).title}]({song['url']}) is too long", color=0xff0000))
@@ -142,7 +142,7 @@ class Playlist(commands.Cog):
                                 .add_field(name="Existing playlists:", value="\n".join(get_queue(ctx.interaction.guild.id)['playlist'].keys())))
         embed = discord.Embed(title=name, color=0x00ff00)
         for index, song in enumerate(queue['playlist'][name]):
-            embed.add_field(name=f"{index}.", value=song['title'])
+            embed.add_field(name=f"{index+1}.", value=f"[{song['title']}]({song['url']})")
         await ctx.respond(embed=embed)
 
 

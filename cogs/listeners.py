@@ -22,15 +22,27 @@ class Listeners(commands.Cog):
         create_queue(guild.id)
         channel = guild.system_channel
         if channel is not None:
-            await channel.send(
-                'Hey, je suis un bot de musique en cours de développement fait par <@!708006478807695450>, il permet de '
-                'jouer de la musique depuis YouTube dans un channel vocal. Pour l\'instant, il est encore bugué donc en '
-                'test')
+            try:
+                await channel.send(
+                    'Hey, je suis un bot de musique en cours de développement fait par <@!708006478807695450>, il permet de '
+                    'jouer de la musique depuis YouTube dans un channel vocal. Pour l\'instant, il est encore bugué donc en '
+                    'test')
+            except discord.Forbidden:
+                try:
+                    await guild.text_channels[0].send(
+                        'Hey, je suis un bot de musique en cours de développement fait par <@!708006478807695450>, il permet de '
+                        'jouer de la musique depuis YouTube dans un channel vocal. Pour l\'instant, il est encore bugué donc en '
+                        'test')
+                except discord.Forbidden:
+                    pass
         else:
-            await guild.text_channels[0].send(
-                'Hey, je suis un bot de musique en cours de développement fait par <@!708006478807695450>, il permet de '
-                'jouer de la musique depuis YouTube dans un channel vocal. Pour l\'instant, il est encore bugué donc en '
-                'test')
+            try:
+                await guild.text_channels[0].send(
+                    'Hey, je suis un bot de musique en cours de développement fait par <@!708006478807695450>, il permet de '
+                    'jouer de la musique depuis YouTube dans un channel vocal. Pour l\'instant, il est encore bugué donc en '
+                    'test')
+            except discord.Forbidden:
+                pass
 
 
 def setup(bot):

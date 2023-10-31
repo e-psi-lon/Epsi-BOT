@@ -4,7 +4,7 @@ import threading
 import discord.utils
 from discord.ext.pages import Page, Paginator, PaginatorButton
 
-from panel.panel import app, Panel
+from panel.panel import app
 from utils import *
 
 
@@ -18,7 +18,7 @@ class Bot(commands.Bot):
         app.set_bot(self)
         # On deplace le processus du bot (le processus principal) dans un thread
         # pour pouvoir lancer le serveur web
-        threading.Thread(target=app.run, name="Panel").start()
+        threading.Thread(target=app.run, name="Panel", kwargs={"host":"0.0.0.0"}).start()
 
 
 bot = Bot(intents=discord.Intents.all())
