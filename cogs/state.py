@@ -208,7 +208,8 @@ class State(commands.Cog):
         vc.start_recording(
             format.value,
             finished_record_callback,
-            ctx.channel
+            ctx.channel,
+            sync_start=True
         )
         connections[ctx.guild.id] = vc
         users = []

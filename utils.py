@@ -1,6 +1,5 @@
 import io
 from enum import Enum
-
 import discord
 import json
 import os
@@ -12,6 +11,7 @@ import asyncio
 import discord.ext.pages
 from discord.ext import commands
 import requests
+import aiosqlite
 
 
 def download(url: str, file_format: str = "mp3"):
@@ -284,3 +284,232 @@ def convert(audio, file_format):
     stream = ffmpeg.output(stream, f"{audio.split('/')[1][:-4]}.{file_format}", format=file_format)
     ffmpeg.run(stream)
     return f"{audio.split('/')[1][:-4]}.{file_format}"
+
+def sql_to_song(sql):
+    """Convert a song from the database to a dict"""
+    return {"id": sql[0], "title": sql[1], "url": sql[2], "asker": sql[3]}
+
+def song_to_sql(song):
+    """Convert a song to a tuple to insert it in the database"""
+    return (song["id"], song["title"], song["url"], song["asker"])
+
+
+class Playlist:
+    def __init__(self, name, songs, server_id):
+        self.name = name
+        self.songs = songs
+        # On verifie que toutes les songs de la playlist existent dans la db
+        self.server_id = server_id
+
+    @classmethod
+    async def create(cls, name, songs, server_id):
+        self = cls(name, songs, server_id)
+        await self.init()
+        return self
+
+
+    async def init(self):
+        self.__connexion = await aiosqlite.connect("db.db")
+        self.__cursor = await self.__connexion.cursor()
+        for song in self.songs:
+            await self.__cursor.execute("SELECT * FROM SONG WHERE title = ? AND url = ? AND asker = ?", (song["title"], song["url"], song["asker"]))
+            if await self.__cursor.fetchone() is None:
+                await self.__cursor.execute("SELECT COUNT(*) FROM SONG")
+                song["id"] = await self.__cursor.fetchone()[0] + 1
+                await self.__cursor.execute("INSERT INTO SONG VALUES (?, ?, ?, ?)", song_to_sql(song))
+
+    async def add_song(self, song):
+        self.songs.append(song)
+        await self.__cursor.execute("SELECT * FROM SONG WHERE title = ? AND url = ? AND asker = ?", (song["title"], song["url"], song["asker"]))
+        if await self.__cursor.fetchone() is None:
+            # Si elle n'existe pas on l'ajoute, en ajoutant un id
+            await self.__cursor.execute("SELECT COUNT(*) FROM SONG")
+            song["id"] = await self.__cursor.fetchone()[0] + 1
+            await self.__cursor.execute("INSERT INTO SONG VALUES (?, ?, ?, ?)", song_to_sql(song))
+        await self.__cursor.execute("INSERT INTO PLAYLIST VALUES (?, ?, ?, ?)", (self.name, self.id, song["id"], len(self.songs) - 1))
+        await self.__connexion.commit()
+
+    async def remove_song(self, song):
+        self.songs.remove(song)
+        await self.__cursor.execute("DELETE FROM PLAYLIST WHERE server_id = ? AND name = ? AND song_id = ?", (self.id, self.name, song["id"]))
+        await self.__connexion.commit()
+    
+    async def edit_name(self, name):
+        self.name = name
+        await self.__cursor.execute("UPDATE PLAYLIST SET name = ? WHERE server_id = ? AND name = ?", (name, self.id, self.name))
+        await self.__connexion.commit()
+    
+    async def edit_songs(self, songs):
+        self.songs = songs
+        await self.__cursor.execute("DELETE FROM PLAYLIST WHERE server_id = ? AND name = ?", (self.id, self.name))
+        for index, song in enumerate(songs):
+            await self.__cursor.execute("INSERT INTO PLAYLIST VALUES (?, ?, ?, ?)", (self.name, self.id, song["id"], index))
+        await self.__connexion.commit()
+    
+    async def delete(self):
+        await self.__cursor.execute("DELETE FROM PLAYLIST WHERE server_id = ? AND name = ?", (self.id, self.name))
+        await self.__connexion.commit()
+        await self.__connexion.close()
+        del self
+
+    def __del__(self):
+        del self.songs
+        del self.name
+        del self.server_id
+        del self.__cursor
+        del self.__connexion
+
+
+
+class Config:
+    def __init__(self, id):
+        self.id = id
+    
+    @classmethod
+    async def create(cls, id):
+        self = cls(id)
+        await self.init()
+        return self
+        
+    async def init(self):
+        self.__connexion = await aiosqlite.connect("db.db")
+        self.__cursor = await self.__connexion.cursor()
+        await self.__cursor.execute("SELECT * FROM SERVER WHERE id = ?", (self.id,))
+        config = await self.__cursor.fetchone()
+        if config is None:
+            await self.__cursor.execute("INSERT INTO SERVER VALUES (?, ?, ?, ?, ?, ?, ?)", (self.id, None, False, False, False, 100, 0))
+            await self.__connexion.commit()
+            await self.__cursor.execute("SELECT * FROM SERVER WHERE id = ?", (self.id,))
+            config = await self.__cursor.fetchone()
+        self._channel = config[1]
+        self._loop_song = config[2]
+        self._loop_queue = config[3]
+        self._random = config[4]
+        self._volume = config[5]
+        self._position = config[6]
+        # Ensuite on récupère la queue et les playlists
+        self._queue = await self.__cursor.execute("SELECT id, title, url, asker FROM SONG JOIN QUEUE ON SONG.id = QUEUE.song_id WHERE QUEUE.server_id = ? ORDER BY QUEUE.position", (self.id,))
+        self._queue = await self._queue.fetchall()
+        if self._queue is None:
+            self._queue = []
+        self._queue = [sql_to_song(song) for song in self._queue]
+        self.__cursor.execute("SELECT name FROM PLAYLIST WHERE server_id = ?", (self.id,))
+        playlists_name = self.__cursor.fetchall()
+        if playlists_name is None:
+            playlists_name = []
+        playlists_songs = []
+        for playlist in playlists_name:
+            self.__cursor.execute("SELECT id, title, url, asker FROM SONG JOIN PLAYLIST ON SONG.id = PLAYLIST.song_id WHERE PLAYLIST.name = ? ORDER BY PLAYLIST.position", playlist)
+            playlists_songs.append([sql_to_song(song) for song in self.__cursor.fetchall() if self.__cursor.fetchall() is not None])
+        self._playlists = [await Playlist.create(playlists_name[i][0], playlists_songs[i], self.id) for i in range(len(playlists_name))] if playlists_name is not None else []
+
+    @property
+    def channel(self):
+        return self._channel
+    
+    async def set_channel(self, value):
+        self._channel = value
+        await self.__cursor.execute("UPDATE SERVER SET channel = ? WHERE id = ?", (value, self.id))
+        await self.__connexion.commit()
+    
+    @property
+    def loop_song(self):
+        return self._loop_song
+    
+    async def set_loop_song(self, value):
+        self._loop_song = value
+        await self.__cursor.execute("UPDATE SERVER SET loop_song = ? WHERE id = ?", (value, self.id))
+        await self.__connexion.commit()
+    
+    @property
+    def loop_queue(self):
+        return self._loop_queue
+    
+    
+    async def set_loop_queue(self, value):
+        self._loop_queue = value
+        await self.__cursor.execute("UPDATE SERVER SET loop_queue = ? WHERE id = ?", (value, self.id))
+        await self.__connexion.commit()
+    
+    @property
+    def random(self):
+        return self._random
+    
+    
+    async def set_random(self, value):
+        self._random = value
+        await self.__cursor.execute("UPDATE SERVER SET random = ? WHERE id = ?", (value, self.id))
+        await self.__connexion.commit()
+    
+    @property
+    def volume(self):
+        return self._volume
+    
+    
+    async def set_volume(self, value):
+        self._volume = value
+        await self.__cursor.execute("UPDATE SERVER SET volume = ? WHERE id = ?", (value, self.id))
+        await self.__connexion.commit()
+    
+    @property
+    def position(self):
+        return self._position
+    
+    
+    async def set_position(self, value):
+        self._position = value
+        await self.__cursor.execute("UPDATE SERVER SET position = ? WHERE id = ?", (value, self.id))
+        await self.__connexion.commit()
+
+    @property
+    def queue(self):
+        return self._queue
+    
+    async def add_song_to_queue(self, song):
+        self._queue.append(song)
+        await self.__cursor.execute("SELECT * FROM SONG WHERE title = ? AND url = ? AND asker = ?", (song["title"], song["url"], song["asker"]))
+        if await self.__cursor.fetchone() is None:
+            # Si elle n'existe pas on l'ajoute, en ajoutant un id
+            await self.__cursor.execute("SELECT COUNT(*) FROM SONG")
+            song["id"] = await self.__cursor.fetchone()[0] + 1
+            await self.__cursor.execute("INSERT INTO SONG VALUES (?, ?, ?, ?)", song_to_sql(song))
+        await self.__cursor.execute("INSERT INTO QUEUE VALUES (?, ?, ?)", (self.id, song["id"], len(self._queue) - 1))
+        await self.__connexion.commit()
+
+    async def remove_song_from_queue(self, song):
+        self._queue.remove(song)
+        await self.__cursor.execute("DELETE FROM QUEUE WHERE server_id = ? AND song_id = ?", (self.id, song["id"]))
+        await self.__connexion.commit()
+    
+    async def edit_queue(self, queue):
+        self._queue = queue
+        await self.__cursor.execute("DELETE FROM QUEUE WHERE server_id = ?", (self.id,))
+        for index, song in enumerate(queue):
+            await self.__cursor.execute("INSERT INTO QUEUE VALUES (?, ?, ?)", (self.id, song["id"], index))
+        await self.__connexion.commit()
+
+    async def close(self):
+        await self.__connexion.close()
+    
+
+    @property
+    def playlists(self):
+        return self._playlists
+    
+    async def add_playlist(self, playlist):
+        self._playlists.append(playlist)
+        await self.__cursor.execute("INSERT INTO PLAYLIST VALUES (?, ?, ?, ?)", (playlist.name, self.id, playlist.songs["id"], len(self._playlists) - 1))
+        await self.__connexion.commit()
+    
+    async def remove_playlist(self, playlist):
+        self._playlists.remove(playlist)
+        await self.__cursor.execute("DELETE FROM PLAYLIST WHERE server_id = ? AND name = ?", (self.id, playlist.name))
+        await self.__connexion.commit()
+    
+    async def edit_playlists(self, playlists: list[Playlist]):
+        self._playlists = playlists
+        await self.__cursor.execute("DELETE FROM PLAYLIST WHERE server_id = ?", (self.id,))
+        for playlist in playlists:
+            for song_index, song in enumerate(playlist.songs):
+                await self.__cursor.execute("INSERT INTO PLAYLIST VALUES (?, ?, ?, ?)", (playlist.name, self.id, song["id"], song_index))
+        await self.__connexion.commit()

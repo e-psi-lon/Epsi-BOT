@@ -5,3 +5,4 @@ git+https://github.com/Pycord-Development/pycord
 pydub==0.25.1
 requests==2.31.0
 flask[async]~=3.0.0
+aiosqlite~=0.17.0
