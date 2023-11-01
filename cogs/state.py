@@ -31,17 +31,17 @@ class State(commands.Cog):
         print(url.split('/')[-1].split('.')[-1].split("?")[0])
         if url.split('/')[-1].split('.')[-1].split("?")[0] not in ['mp3', 'wav', 'ogg', 'mp4']:
             return await ctx.respond(embed=discord.Embed(title="Error", description="Invalid URL.", color=0xff0000))
-        queue = get_queue(ctx.guild.id)
+        queue = get_config(ctx.guild.id)
         if not queue['queue']:
             queue['queue'].append({'title': url.split('/')[-1].split('?')[0], 'url': url})
-            update_queue(ctx.guild.id, queue)
+            update_config(ctx.guild.id, queue)
             await ctx.respond(embed=discord.Embed(title="Play",
                                                   description=f"Playing song [{url.split('/')[-1].split('?')[0]}]({url})",
                                                   color=0x00ff00))
             await play_song(ctx, url)
             return await asyncio.sleep(1)
         queue['queue'].append({'title': url.split('/')[-1].split('?')[0], 'url': url})
-        update_queue(ctx.guild.id, queue)
+        update_config(ctx.guild.id, queue)
         await ctx.respond(embed=discord.Embed(title="Queue",
                                               description=f"Song [{url.split('/')[-1].split('?')[0]}]({url}) added to queue.",
                                               color=0x00ff00))
@@ -57,17 +57,17 @@ class State(commands.Cog):
         if file.size > 10000000:
             return await ctx.respond(embed=discord.Embed(title="Error", description="File is too big.", color=0xff0000))
         url = file.url
-        queue = get_queue(ctx.guild.id)
+        queue = get_config(ctx.guild.id)
         if not queue['queue']:
             queue['queue'].append({'title': file.filename, 'url': url, 'asker': ctx.author.id})
-            update_queue(ctx.guild.id, queue)
+            update_config(ctx.guild.id, queue)
             await ctx.respond(embed=discord.Embed(title="Play",
                                                   description=f"Playing song [{file.filename}]({url})",
                                                   color=0x00ff00))
             await play_song(ctx, url)
             return await asyncio.sleep(1)
         queue['queue'].append({'title': file.filename, 'url': url, 'asker': ctx.author.id})
-        update_queue(ctx.guild.id, queue)
+        update_config(ctx.guild.id, queue)
         await ctx.respond(embed=discord.Embed(title="Queue",
                                               description=f"Song [{file.filename}]({url}) added to queue.",
                                               color=0x00ff00))
@@ -80,17 +80,17 @@ class State(commands.Cog):
         try:
             url = pytube.YouTube(query).watch_url
             try:
-                queue = get_queue(ctx.guild.id)
+                queue = get_config(ctx.guild.id)
                 if not queue['queue']:
                     queue['queue'].append({'title': pytube.YouTube(query).title, 'url': url, 'asker': ctx.author.id})
-                    update_queue(ctx.guild.id, queue)
+                    update_config(ctx.guild.id, queue)
                     await ctx.respond(embed=discord.Embed(title="Play",
                                                           description=f"Playing song [{pytube.YouTube(url).title}]({url})",
                                                           color=0x00ff00))
                     await play_song(ctx, url)
                     return await asyncio.sleep(1)
                 queue['queue'].append({'title': pytube.YouTube(query).title, 'url': url, 'asker': ctx.author.id})
-                update_queue(ctx.guild.id, queue)
+                update_config(ctx.guild.id, queue)
                 video = pytube.YouTube(url)
                 if video.length > 12000:
                     return await ctx.respond(
@@ -143,10 +143,10 @@ class State(commands.Cog):
         if not ctx.guild.voice_client.is_playing():
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description="There is no song playing.", color=0xff0000))
-        queue = get_queue(ctx.guild.id)
+        queue = get_config(ctx.guild.id)
         queue['index'] = 0
         queue['queue'] = []
-        update_queue(ctx.guild.id, queue)
+        update_config(ctx.guild.id, queue)
         ctx.guild.voice_client.stop()
         await ctx.respond(embed=discord.Embed(title="Stop", description="Song stopped.", color=0x00ff00))
 
@@ -163,9 +163,9 @@ class State(commands.Cog):
                 return await ctx.respond(
                     embed=discord.Embed(title="Error", description="Volume is too low.", color=0xff0000))
             ctx.guild.voice_client.source.volume = volume / 100
-            queue = get_queue(ctx.guild.id)
+            queue = get_config(ctx.guild.id)
             queue['volume'] = ctx.guild.voice_client.source.volume * 100
-            update_queue(ctx.guild.id, queue) 
+            update_config(ctx.guild.id, queue) 
             return await ctx.respond(embed=discord.Embed(title="Volume", description=f"Volume set to {volume}%",
                                                   color=0x00ff00))
             
