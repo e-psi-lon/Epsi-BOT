@@ -23,9 +23,10 @@ def download(url: str, file_format: str = "mp3"):
         with open(f"cache/{format_name(url.split('/')[-1])}", "wb") as f:
             f.write(r.content)
         return f"cache/{format_name(url.split('/')[-1])}"
-    stream = pytube.YouTube(url).streams.filter(only_audio=True).first()
+    stream = pytube.YouTube(url)
     if os.path.exists(f"cache/{format_name(stream.title)}.{file_format}"):
         return f"cache/{format_name(stream.title)}.{file_format}"
+    stream = stream.streams.filter(only_audio=True).first()
     stream.download(filename=f"cache/{format_name(stream.title)}.{file_format}")
     return f"cache/{format_name(stream.title)}.{file_format}"
 
