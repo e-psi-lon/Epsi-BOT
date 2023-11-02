@@ -19,7 +19,6 @@ class Listeners(commands.Cog):
 
     @commands.Cog.listener("on_guild_join")
     async def on_guild_join(self, guild: discord.Guild):
-        create_queue(guild.id)
         channel = guild.system_channel
         if channel is not None:
             try:
