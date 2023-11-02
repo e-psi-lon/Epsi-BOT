@@ -1,7 +1,7 @@
 import io
 from enum import Enum
+import logging
 import discord
-import json
 import os
 import random
 import ffmpeg
@@ -115,25 +115,27 @@ class SelectVideo(discord.ui.Select):
         if self.download:
             stream = pytube.YouTube(self.values[0]).streams.filter(only_audio=True).first()
             if pytube.YouTube(self.values[0]).length > 12000:
+                await queue.close()
                 return await interaction.message.edit(embed=discord.Embed(title="Error",
                                                                           description=f"The video [{pytube.YouTube(self.values[0]).title}]({self.values[0]}) is too long",
                                                                           color=0xff0000))
-            stream.download(filename=f"cache/{self.options[0].label}.mp3")
+            stream.download(filename=f"cache/{format_name(stream.title)}.mp3")
+            await queue.close()
             return await interaction.message.edit(
                 embed=discord.Embed(title="Download", description="Song downloaded.", color=0x00ff00),
-                file=discord.File(f"cache{self.options[0].label}", filename=f"{self.options[0].label}.mp3"), view=None)
+                file=discord.File(f"cache/{format_name(stream.title)}", filename=f"{format_name(stream.title)}.mp3"), view=None)
         if not queue.queue:
             await queue.set_position(0)
-            await queue.add_song_to_queue({'title': self.options[0].label, 'url': self.values[0], 'asker': interaction.user.id})
+            await queue.add_song_to_queue({'title': pytube.YouTube(self.values[0]).title, 'url': self.values[0], 'asker': interaction.user.id})
             await queue.close()
         else:
-            await queue.add_song_to_queue({'title': self.options[0].label, 'url': self.values[0], 'asker': interaction.user.id})
+            await queue.add_song_to_queue({'title': pytube.YouTube(self.values[0]).title, 'url': self.values[0], 'asker': interaction.user.id})
             await queue.close()
         if interaction.guild.voice_client is None:
             await interaction.user.voice.channel.connect()
         if not interaction.guild.voice_client.is_playing():
             await interaction.message.edit(embed=discord.Embed(title="Play",
-                                                               description=f"Playing song [{self.options[0].label}]({self.values[0]})",
+                                                               description=f"Playing song [{pytube.YouTube(self.values[0]).title}]({self.values[0]})",
                                                                color=0x00ff00))
             await play_song(self.ctx, queue.queue[queue.position]['url'])
         else:
@@ -376,17 +378,15 @@ class Config:
         await self.__cursor.execute("SELECT * FROM SERVER WHERE id = ?", (self.id,))
         config = await self.__cursor.fetchone()
         if config is None:
-            await self.__cursor.execute("INSERT INTO SERVER VALUES (?, ?, ?, ?, ?, ?, ?)", (self.id, None, False, False, False, 100, 0))
+            await self.__cursor.execute("INSERT INTO SERVER VALUES (?, ?, ?, ?, ?, ?)", (self.id, False, False, False, 100, 0))
             await self.__connexion.commit()
             await self.__cursor.execute("SELECT * FROM SERVER WHERE id = ?", (self.id,))
             config = await self.__cursor.fetchone()
-        self._channel = config[1]
-        self._loop_song = config[2]
-        self._loop_queue = config[3]
-        self._random = config[4]
-        self._volume = config[5]
-        self._position = config[6]
-        # Ensuite on récupère la queue et les playlists
+        self._loop_song = config[1]
+        self._loop_queue = config[2]
+        self._random = config[3]
+        self._volume = config[4]
+        self._position = config[5]
         queue = await self.__cursor.execute("SELECT id, title, url, asker FROM SONG JOIN QUEUE ON SONG.id = QUEUE.song_id WHERE QUEUE.server_id = ? ORDER BY QUEUE.position", (self.id,))
         queue = await queue.fetchall()
         if queue is None:
@@ -404,18 +404,7 @@ class Config:
         self._playlists = [await Playlist.create(playlists_name[i][0], playlists_songs[i], self.id) for i in range(len(playlists_name))] if playlists_name is not None else []
         if self.is_copy:
             await self.close()
-
-    @property
-    def channel(self):
-        return self._channel
-    
-    async def set_channel(self, value):
-        self._channel = value
-        if self.is_copy:
-            return
-        await self.__cursor.execute("UPDATE SERVER SET channel = ? WHERE id = ?", (value, self.id))
-        await self.__connexion.commit()
-    
+            
     @property
     def loop_song(self):
         return self._loop_song
@@ -487,9 +476,10 @@ class Config:
         if await self.__cursor.fetchone() is None:
             # Si elle n'existe pas on l'ajoute, en ajoutant un id
             await self.__cursor.execute("SELECT COUNT(*) FROM SONG")
-            song["id"] = await self.__cursor.fetchone()[0] + 1
+            song["id"] = await self.__cursor.fetchone()
+            song["id"] = song["id"][0] + 1
             await self.__cursor.execute("INSERT INTO SONG VALUES (?, ?, ?, ?)", song_to_sql(song))
-        await self.__cursor.execute("INSERT INTO QUEUE VALUES (?, ?, ?)", (self.id, song["id"], len(self._queue) - 1))
+        await self.__cursor.execute("INSERT INTO QUEUE VALUES (?, ?, ?)", (song["id"], self.id, len(self._queue) - 1))
         await self.__connexion.commit()
 
     async def remove_song_from_queue(self, song):
@@ -563,3 +553,22 @@ async def get_config(guild_id, is_copy) -> Config:
         return await Config.create(guild_id, is_copy)
     else:
         return None
+    
+
+class CustomFormatter(logging.Formatter):
+    """Logging Formatter to add colors"""
+
+    format = "[%(asctime)s] %(levelname)s : %(message)s"
+
+    FORMATS = {
+        logging.DEBUG: "\033[34m" + format,  # Blue
+        logging.INFO: "\033[32m" + format,  # Green
+        logging.WARNING: "\033[33m" + format,  # Yellow
+        logging.ERROR: "\033[31m" + format,  # Red
+        logging.CRITICAL: "\033[31m" + format,  # Red
+    }
+
+    def format(self, record):
+        log_fmt = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(log_fmt)
+        return formatter.format(record)

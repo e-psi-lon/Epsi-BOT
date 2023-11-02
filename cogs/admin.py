@@ -1,5 +1,4 @@
 from discord.ext import commands
-
 from utils import *
 
 removed_count = 0

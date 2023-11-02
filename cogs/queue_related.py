@@ -216,8 +216,8 @@ class Queue(commands.Cog):
         ctx.guild.voice_client.stop()
         await ctx.respond(
             embed=discord.Embed(title="Play",
-                                description=f"Playing [{queue.queue[index]['title']}]"
-                                            f"({queue.queue[index]['url']}).",
+                                description=f"Playing [{queue.queue[index-1]['title']}]"
+                                            f"({queue.queue[index-1]['url']}).",
                                 color=0x00ff00))
 
 

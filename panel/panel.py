@@ -5,6 +5,8 @@ import json
 from discord.ext import commands
 import requests
 import pytube
+
+
 class Panel(Flask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -69,7 +71,7 @@ async def panel():
 
 @app.route('/server/<int:server_id>', methods=['GET', 'POST'])
 async def server(server_id):
-    config = await get_config(server_id, False)
+    config = await get_config(server_id, request.method != 'POST')
     if server_id not in [guild.id for guild in guilds.get(session['user_id'], [])] or 'token' not in session or config is None:
         return redirect(url_for('panel'))
     if request.method == 'POST':
@@ -86,9 +88,8 @@ async def server(server_id):
         if config.position != values['position']:
             await config.set_position(values['position'])
         if config.queue != values['queue']:
-            await config.set_queue(values['queue'])
-
-            
+            await config.edit_queue(values['queue'])
+        await config.close()
         return redirect(url_for('server', server_id=server_id))
     server_data = {"channel":config.channel, "loop_song":config.loop_song, "loop_queue":config.loop_queue, "random":config.random, "position":config.position, "queue":config.queue}
     server_data["id"] = server_id
@@ -106,6 +107,7 @@ async def clear(server_id):
 async def add(server_id):
     config = await get_config(server_id, False)
     await config.add_song_to_queue({"title":pytube.YouTube(request.form['url']).title, "url":request.form['url'], "asker":session['user']['id']})
+    await config.close()
     return redirect(url_for('server', server_id=server_id))
 
 @app.route('/login')

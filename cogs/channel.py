@@ -27,6 +27,7 @@ class Channel(commands.Cog):
                                                                "channel.", color=0xff0000))
         queue = await get_config(ctx.guild.id, False)
         if ctx.author.voice is None:
+            await queue.close()
             return await ctx.respond(embed=discord.Embed(title="Error", description="You must be in a voice channel.",
                                                          color=0xff0000))
         await ctx.author.voice.channel.connect()
@@ -35,13 +36,13 @@ class Channel(commands.Cog):
         if queue.queue:
             if queue.position > len(queue.queue) - 1:
                 await queue.set_position(0)
-                await queue.close()
+            await queue.close()
             # Si il y a plus d'un élément dans la queue on les télécharge tous sur un thread séparé
             await play_song(ctx, queue.queue[queue.position]['url'])
             if len(queue.queue) > 1:
                 for song in queue.queue[1:]:
                     # On limite le nombre de threads à 3
-                    while len([thread for thread in threading.enumerate() if thread.name.startswith("Download-")]) >= 3:
+                    while len([thread for thread in threading.enumerate() if thread.name.startswith("Download-")]) >= 2:
                         await asyncio.sleep(0.1)
                     video = pytube.YouTube(song['url'])
                     if video.length > 12000:
@@ -51,6 +52,8 @@ class Channel(commands.Cog):
                     else:
                         threading.Thread(target=download, args=(song['url'],),
                                          name=f"Download-{video.video_id}").start()
+        else:
+            await queue.close()
 
 
 def setup(bot):

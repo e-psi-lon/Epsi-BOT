@@ -1,6 +1,5 @@
 import asyncio
 import threading
-
 import pytube
 from discord.commands import SlashCommandGroup
 from discord.ext import commands
@@ -22,8 +21,10 @@ class Playlist(commands.Cog):
             return await ctx.respond(embed=EMBED_ERROR_NAME_TOO_LONG)
         queue = await get_config(ctx.interaction.guild.id, False)
         if not queue.queue:
+            await queue.close()
             return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
         if name in [playlist.name for playlist in queue.playlists]:
+            await queue.close()
             return await ctx.respond(embed=discord.Embed(title="Error", description="A playlist with this name already exists.", color=0xff0000))
         playlist = await Playlist.create(name, queue.queue)
         await queue.add_playlist(playlist)
@@ -40,6 +41,7 @@ class Playlist(commands.Cog):
                 return await ctx.respond(embed=EMBED_ERROR_NAME_TOO_LONG)
             queue = await get_config(ctx.interaction.guild.id, False)
             if name in [playlist.name for playlist in queue.playlists]:
+                await queue.close()
                 return await ctx.respond(embed=discord.Embed(title="Error", description="A playlist with this name already exists.", color=0xff0000))
             playlist = await Playlist.create(name, [{'title': video.title, 'url': video.watch_url, 'asker': ctx.user.id} for video in playlist.videos])
             await queue.add_playlist(playlist)
@@ -55,6 +57,7 @@ class Playlist(commands.Cog):
     async def delete(self, ctx: discord.ApplicationContext, name: discord.Option(str, "The name of the playlist", required=True, autocomplete=discord.utils.basic_autocomplete(get_playlists))):
         queue = await get_config(ctx.guild.id, False)
         if name not in [playlist.name for playlist in queue.playlists]:
+            await queue.close()
             return await ctx.respond(embed=EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
                                 .add_field(name="Existing playlists:", value="\n".join([playlist.name for playlist in queue.playlists])))
         await queue.remove_playlist([playlist for playlist in queue.playlists if playlist.name == name][0])
@@ -67,6 +70,7 @@ class Playlist(commands.Cog):
     async def add(self, ctx: discord.ApplicationContext, name: discord.Option(str, "The name of the playlist", required=True, autocomplete=discord.utils.basic_autocomplete(get_playlists)), query: discord.Option(str, "The YouTube video to add to the playlist", required=True)):
         queue = await get_config(ctx.guild.id, False)
         if name not in [playlist.name for playlist in queue.playlists]:
+            await queue.close()
             return await ctx.respond(embed=EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
                                 .add_field(name="Existing playlists:", value="\n".join([playlist.name for playlist in queue.playlists])))
         try:
@@ -76,8 +80,10 @@ class Playlist(commands.Cog):
                 await queue.close()
                 await ctx.respond(embed=discord.Embed(title="Playlist", description=f"Song added to playlist {name}.", color=0x00ff00))
             except:
+                await queue.close()
                 return await ctx.respond(embed=discord.Embed(title="Error", description="Error while getting song.", color=0xff0000))
         except:
+            await queue.close()
             return await ctx.respond(embed=discord.Embed(title="Error", description="You must use an url of a youtube video (the research feature is not available for this command yet)", color=0xff0000))
 
     @playlist.command(name="remove", description="Removes a song from a playlist")
@@ -85,9 +91,11 @@ class Playlist(commands.Cog):
                     song: discord.Option(str, "The name of the song", required=True, autocomplete=discord.utils.basic_autocomplete(get_playlists_songs))):
         queue = await get_config(ctx.guild.id, False)
         if name not in [playlist.name for playlist in queue.playlists]:
+            await queue.close()
             return await ctx.respond(embed=EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
                                 .add_field(name="Existing playlists:", value="\n".join([playlist.name for playlist in queue.playlists])))
         if song not in [song['title'] for song in [playlist for playlist in queue.playlists if playlist.name == name][0].songs]:
+            await queue.close()
             return await ctx.respond(embed=discord.Embed(title="Error", description="This song is not in the playlist.", color=0xff0000))
         await [playlist for playlist in queue.playlists if playlist.name == name][0].remove_song(song)
         await queue.close()
@@ -99,6 +107,7 @@ class Playlist(commands.Cog):
         queue = await get_config(ctx.guild.id, False)
         await ctx.response.defer()
         if name not in [playlist.name for playlist in queue.playlists]:
+            await queue.close()
             return await ctx.respond(embed=EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
                                 .add_field(name="Existing playlists:", value="\n".join([playlist.name for playlist in queue.playlists])))
         await queue.edit_queue([playlist for playlist in queue.playlists if playlist.name == name][0].songs)
@@ -106,7 +115,7 @@ class Playlist(commands.Cog):
         await queue.close()
         for song in queue.queue:
             # On limite le nombre de threads à 3
-            while len([thread for thread in threading.enumerate() if thread.name.startswith("Download-")]) >= 3:
+            while len([thread for thread in threading.enumerate() if thread.name.startswith("Download-")]) >= 2:
                 await asyncio.sleep(0.1)
             if pytube.YouTube(song['url']).length > 12000:
                 await ctx.respond(embed=discord.Embed(title="Error", description=f"The video [{pytube.YouTube(song['url']).title}]({song['url']}) is too long", color=0xff0000))
@@ -157,11 +166,12 @@ class Playlist(commands.Cog):
             return await ctx.respond(embed=EMBED_ERROR_NAME_TOO_LONG)
         queue = await get_config(ctx.guild.id, False)
         if name not in [playlist.name for playlist in queue.playlists]:
+            await queue.close()
             return await ctx.respond(embed=EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
-                                .add_field(name="Existing playlists:", value="\n".join(queue['playlist'].keys())))
+                                .add_field(name="Existing playlists:", value="\n".join([playlist.name for playlist in queue.playlists])))
         if new_name in [playlist.name for playlist in queue.playlists]:
+            await queue.close()
             return await ctx.respond(embed=discord.Embed(title="Error", description="A playlist with this name already exists.", color=0xff0000))
-        queue['playlist'][new_name] = queue['playlist'][name]
         new_playlist = await Playlist.create(new_name, [playlist for playlist in queue.playlists if playlist.name == name][0].songs)
         await queue.remove_playlist([playlist for playlist in queue.playlists if playlist.name == name][0])
         await queue.add_playlist(new_playlist)

@@ -1,14 +1,21 @@
-CREATE TABLE IF NOT EXISTS SERVER (
-    id INT,
-    channel VARCHAR(255),
-    loop_song BOOLEAN,
-    loop_queue BOOLEAN,
-    random BOOLEAN,
-    volume INT,
-    position INT,
-    PRIMARY KEY (id)
-);
+import sqlite3
 
+conn = sqlite3.connect("../database/database.db")
+cursor = conn.cursor()
+
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS SERVER (
+        id INT,
+        loop_song BOOLEAN,
+        loop_queue BOOLEAN,
+        random BOOLEAN,
+        volume INT,
+        position INT,
+        PRIMARY KEY (id)
+    );
+''')
+
+cursor.execute('''
 CREATE TABLE IF NOT EXISTS SONG (
     id INT,
     title VARCHAR(255),
@@ -16,7 +23,9 @@ CREATE TABLE IF NOT EXISTS SONG (
     asker VARCHAR(255),
     PRIMARY KEY (id)
 );
+''')
 
+cursor.execute('''
 CREATE TABLE IF NOT EXISTS QUEUE (
     song_id INT,
     server_id INT,
@@ -24,8 +33,9 @@ CREATE TABLE IF NOT EXISTS QUEUE (
     FOREIGN KEY (song_id) REFERENCES SONG(id)
     FOREIGN KEY (server_id) REFERENCES SERVER(id)
 );
+''')
 
-
+cursor.execute('''
 CREATE TABLE IF NOT EXISTS PLAYLIST (
     name VARCHAR(255),
     server_id INT,
@@ -34,7 +44,8 @@ CREATE TABLE IF NOT EXISTS PLAYLIST (
     FOREIGN KEY (server_id) REFERENCES SERVER(id)
     FOREIGN KEY (song_id) REFERENCES SONG(id)
 );
+''')
 
 
-
-INSERT INTO SERVER VALUES (761485410596552736, NULL, FALSE, TRUE, FALSE, 100, 0);
+conn.commit()
+conn.close()
