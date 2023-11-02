@@ -1,18 +1,17 @@
 import datetime
+import sys
 import threading
-
+import logging
 import discord.utils
 from discord.ext.pages import Page, Paginator, PaginatorButton
-
 from panel.panel import app
 from utils import *
+
 
 
 class Bot(commands.Bot):
     async def on_ready(self):
         global start_time
-        print(
-            f'Logged in as {self.user.name} at {datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")} (time elapsed {datetime.datetime.now() - start_time})')
         await self.change_presence(
             activity=discord.Activity(type=discord.ActivityType.watching, name=f"/help | {len(self.guilds)} servers"))
         app.set_bot(self)
@@ -157,7 +156,7 @@ def start(instance: Bot):
     ]
     os.system("cls" if os.name == "nt" else "clear")
     start_time = datetime.datetime.now()
-    print(f"Script started at {datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+    print(f"\033[0mScript started at {datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
     for cog in cogs:
         try:
             instance.load_extension(cog)
@@ -169,4 +168,8 @@ def start(instance: Bot):
 
 
 if __name__ == "__main__":
+    # Les logs sont envoyés dans la console
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(CustomFormatter())
+    logging.basicConfig(level=logging.INFO, handlers=[console_handler])
     start(bot)

@@ -5,6 +5,8 @@ import json
 from discord.ext import commands
 import requests
 import pytube
+
+
 class Panel(Flask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -69,24 +71,27 @@ async def panel():
 
 @app.route('/server/<int:server_id>', methods=['GET', 'POST'])
 async def server(server_id):
-    server_filename = os.path.join('queue', f'{server_id}.json')
-    if server_id not in [guild.id for guild in guilds.get(session['user_id'], [])] or 'token' not in session or not os.path.exists(server_filename):
+    config = await get_config(server_id, request.method != 'POST')
+    if server_id not in [guild.id for guild in guilds.get(session['user_id'], [])] or 'token' not in session or config is None:
         return redirect(url_for('panel'))
-
     if request.method == 'POST':
-        with open(server_filename, 'r') as file:
-            data = json.load(file)
-        with open(server_filename, 'w') as file:
-            values = request.form.to_dict()
-            for key in values.keys():
-                if values[key] != data[key]:
-                    if isinstance(data[key], bool):
-                        data[key] = values[key] == "on"
-            json.dump(data, file, indent=4)
+        values = request.form.to_dict()
+        for key, value in values.items():
+            if isinstance(getattr(config, key), bool):
+                value = value == 'on'
+        if config.loop_song != values['loop_song']:
+            await config.set_loop_song(values['loop_song'])
+        if config.loop_queue != values['loop_queue']:
+            await config.set_loop_queue(values['loop_queue'])
+        if config.random != values['random']:
+            await config.set_random(values['random'])
+        if config.position != values['position']:
+            await config.set_position(values['position'])
+        if config.queue != values['queue']:
+            await config.edit_queue(values['queue'])
+        await config.close()
         return redirect(url_for('server', server_id=server_id))
-
-    with open(server_filename, 'r') as file:
-        server_data = json.load(file)
+    server_data = {"channel":config.channel, "loop_song":config.loop_song, "loop_queue":config.loop_queue, "random":config.random, "position":config.position, "queue":config.queue}
     server_data["id"] = server_id
     server_data["name"] = app.bot.get_guild(server_id).name
     return render_template('server.html', server=server_data, app=app, pytube=pytube)
@@ -94,22 +99,15 @@ async def server(server_id):
 
 @app.route('/server/<int:server_id>/clear')
 async def clear(server_id): 
-    server_filename = os.path.join('queue', f'{server_id}.json')
-    with open(server_filename, 'r') as file:
-        data = json.load(file)
-    data['queue'] = []
-    with open(server_filename, 'w') as file:
-        json.dump(data, file, indent=4)
+    config = await get_config(server_id, False)
+    await config.edit([])
     return redirect(url_for('server', server_id=server_id))
 
 @app.route('/server/<int:server_id>/add', methods=['POST'])
 async def add(server_id):
-    server_filename = os.path.join('queue', f'{server_id}.json')
-    with open(server_filename, 'r') as file:
-        data = json.load(file)
-    data['queue'].append(request.form['url'])
-    with open(server_filename, 'w') as file:
-        json.dump(data, file, indent=4)
+    config = await get_config(server_id, False)
+    await config.add_song_to_queue({"title":pytube.YouTube(request.form['url']).title, "url":request.form['url'], "asker":session['user']['id']})
+    await config.close()
     return redirect(url_for('server', server_id=server_id))
 
 @app.route('/login')

@@ -1,6 +1,8 @@
 # Bot generated
 cache/
 
+test.*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
