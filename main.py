@@ -172,4 +172,12 @@ if __name__ == "__main__":
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(CustomFormatter())
     logging.basicConfig(level=logging.INFO, handlers=[console_handler])
+    if not os.path.exists("database/database.db"):
+        os.mkdir("database/")
+        with open("database/database.db", "w") as f:
+            f.write("")
+        # On initialise la base de données avec "_others/generate_db.py", on se déplace dans le dossier "_others"
+        os.chdir("_others")
+        os.system("python generate_db.py")
+        os.chdir("..")
     start(bot)
