@@ -371,7 +371,7 @@ class Config:
         return self
         
     async def init(self):
-        self.__connexion = await aiosqlite.connect("DATABASE_FILE")
+        self.__connexion = await aiosqlite.connect(DATABASE_FILE)
         self.__cursor = await self.__connexion.cursor()
         await self.__cursor.execute("SELECT * FROM SERVER WHERE id = ?", (self.id,))
         config = await self.__cursor.fetchone()
