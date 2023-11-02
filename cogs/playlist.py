@@ -124,7 +124,7 @@ class Playlist(commands.Cog):
     @playlist.command(name="list", description="Lists all the playlists")
     async def list_playlist(self, ctx: discord.ApplicationContext):
         queue = await get_config(ctx.guild.id, True)
-        if queue.playlists == []:
+        if not queue.playlists:
             return await ctx.respond(embed=discord.Embed(title="Playlists", description="No playlists.", color=0x00ff00))   
         embed = discord.Embed(title="Playlists", color=0x00ff00)
         for name in [playlist.name for playlist in queue.playlists]:

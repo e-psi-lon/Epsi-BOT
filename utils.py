@@ -82,9 +82,9 @@ async def disconnect_from_channel(state: discord.VoiceState, bot: commands.Bot):
             if guild.id == state.channel.guild.id:
                 await client.disconnect(force=True)
                 queue = await get_config(guild.id, False)
-                queue.edit_queue([])
-                queue.set_position(0)
-                queue.close()
+                await queue.edit_queue([])
+                await queue.set_position(0)
+                await queue.close()
                 ok = True
             if ok:
                 break
@@ -127,7 +127,7 @@ class SelectVideo(discord.ui.Select):
             await queue.add_song_to_queue({'title': self.options[0].label, 'url': self.values[0], 'asker': interaction.user.id})
             await queue.close()
         else:
-            queue.add_song_to_queue({'title': self.options[0].label, 'url': self.values[0], 'asker': interaction.user.id})
+            await queue.add_song_to_queue({'title': self.options[0].label, 'url': self.values[0], 'asker': interaction.user.id})
             await queue.close()
         if interaction.guild.voice_client is None:
             await interaction.user.voice.channel.connect()
@@ -177,8 +177,8 @@ async def get_queue_songs(ctx: discord.AutocompleteContext):
     queue = await get_config(ctx.interaction.guild.id, True)
     if len(queue.queue) < 1:
         return []
-    queue.queue.pop(queue.position)
-    queue_ = queue.queue
+    queue_ = queue.queue.copy()
+    queue_.pop(queue.position)
     return [song['title'] for song in queue_]
 
 
@@ -218,7 +218,7 @@ async def change_song(ctx: discord.ApplicationContext):
         await queue.set_position(-1)
     if not queue.loop_song:
         if queue.random and len(queue.queue) > 1:
-            queue.position = random.choice(list(set(range(0, len(queue.queue))) - {queue.position}))
+            await queue.set_position(random.choice(list(set(range(0, len(queue.queue))) - {queue.position})))
         elif len(queue.queue) < 1:
             await queue.set_position(0)
         else:
@@ -515,6 +515,8 @@ class Config:
         for playlist in self._playlists:
             await playlist.close()
     
+    async def copy(self):
+        return await Config.create(self.id, True)
 
     @property
     def playlists(self):
@@ -551,4 +553,12 @@ class Config:
 
 
 async def get_config(guild_id, is_copy) -> Config:
-    return await Config.create(guild_id, is_copy)
+    connexions = await aiosqlite.connect("db.db")
+    cursor = await connexions.cursor()
+    await cursor.execute("SELECT * FROM SERVER WHERE id = ?", (guild_id,))
+    config = await cursor.fetchone()
+    await connexions.close()
+    if config is not None:
+        return await Config.create(guild_id, is_copy)
+    else:
+        return None

@@ -16,21 +16,21 @@
             </form>
         </div>
         <form method="POST">
-            <label for="loop-song">Loop Song: </label>
-            <input id="loop-song" type="checkbox" name="loop-song" {% if server["loop-song"] %} checked {% endif %}>
+            <label for="loop_song">Loop Song: </label>
+            <input id="loop_song" type="checkbox" name="loop_song" {% if server["loop-song"] %} checked {% endif %}>
             <br>
-            <label for="loop-queue">Loop Queue: </label>
-            <input id="loop-queue" type="checkbox" name="loop-queue" {% if server["loop-queue"] %} checked {% endif %}>
+            <label for="loop_queue">Loop Queue: </label>
+            <input id="loop_queue" type="checkbox" name="loop_queue" {% if server["loop-queue"] %} checked {% endif %}>
             <br>
             <label for="random">Random: </label>
             <input id="random" type="checkbox" name="random" {% if server["random"] %} checked {% endif %}>
             <br>
-            <label for="index">Index: </label>
-            <input id="index" type="number" name="index" value="{{ server["index"] }}">
+            <label for="position">Position: </label>
+            <input id="position" type="number" name="position" value="{{ server["position"] }}">
             <br>
             <div class="queue">
                 {% for song in server["queue"] %}
-                    <div class="song{% if song == server['queue'][server['index']] %} current {% endif %}" draggable="true" id="song{{ loop.index0 }}">
+                    <div class="song{% if song == server['queue'][server['position']] %} current {% endif %}" draggable="true" id="{{ song["id"] }}
                         <div class="preview_div">
                             {% if song["url"].startswith("https://youtube.com/watch?v=") %}
                                 <iframe class="preview" src="https://www.youtube.com/embed/{{ pytube.YouTube(song['url']).video_id}}" title={{ pytube.YouTube(song['url']).title}} frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
@@ -42,7 +42,7 @@
                             <div class="title">{{ song["title"] }}</div>
                             <div class="url" draggable="false"><a draggable="false" target="_blank" href={{ song["url"] }}>{{ song["url"] }}</a></div>
                             <div class="asker">Asked by {{ app.bot.get_user(song["asker"]).global_name }}</div>
-                            <button class="remove" type="button" onclick="window.location.href='/server/{{ server['id'] }}/remove/{{ loop.index0 }}'">Supprimer</button>
+                            <button class="remove" type="button" onclick="window.location.href='/server/{{ server['id'] }}/remove/{{ song["id"] }}'">Supprimer</button>
                         </div>
                     </div>
                 {% endfor %}
