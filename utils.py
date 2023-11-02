@@ -161,6 +161,7 @@ EMBED_ERROR_INDEX_TOO_HIGH = discord.Embed(title="Error", description="The index
 EMBED_ERROR_NAME_TOO_LONG = discord.Embed(title="Error", description="The name is too long.", color=0xff0000)
 EMBED_ERROR_NO_RESULTS_FOUND = discord.Embed(title="Error", description="No results found.", color=0xff0000)
 EMBED_ERROR_VIDEO_TOO_LONG = discord.Embed(title="Error", description="The video is too long.", color=0xff0000)
+DATABASE_FILE = "database/database.db"
 
 
 async def get_playlists(ctx: discord.AutocompleteContext):
@@ -297,7 +298,7 @@ class Playlist:
 
 
     async def init(self):
-        self.__connexion = await aiosqlite.connect("db.db")
+        self.__connexion = await aiosqlite.connect(DATABASE_FILE)
         self.__cursor = await self.__connexion.cursor()
         for song in self.songs:
             await self.__cursor.execute("SELECT * FROM SONG WHERE title = ? AND url = ? AND asker = ?", (song["title"], song["url"], song["asker"]))
@@ -370,7 +371,7 @@ class Config:
         return self
         
     async def init(self):
-        self.__connexion = await aiosqlite.connect("db.db")
+        self.__connexion = await aiosqlite.connect("DATABASE_FILE")
         self.__cursor = await self.__connexion.cursor()
         await self.__cursor.execute("SELECT * FROM SERVER WHERE id = ?", (self.id,))
         config = await self.__cursor.fetchone()
@@ -496,7 +497,7 @@ class Config:
             self._queue.remove(song)
             if self.is_copy:
                 return
-            await self.__cursor.execute("DELETE FROM QUEUE WHERE server_id = ? AND song_id = ?", (self.id, song["id"]))
+            await self.__cursor.execute("DELETE FROM QUEUE WHERE server_id = ? AND song_id = ?", (song["id"], self.id))
             await self.__connexion.commit()
         except ValueError:
             pass
@@ -507,7 +508,7 @@ class Config:
             return
         await self.__cursor.execute("DELETE FROM QUEUE WHERE server_id = ?", (self.id,))
         for index, song in enumerate(queue):
-            await self.__cursor.execute("INSERT INTO QUEUE VALUES (?, ?, ?)", (self.id, song["id"], index))
+            await self.__cursor.execute("INSERT INTO QUEUE VALUES (?, ?, ?)", (song["id"], self.id, index))
         await self.__connexion.commit()
 
     async def close(self):
@@ -553,11 +554,11 @@ class Config:
 
 
 async def get_config(guild_id, is_copy) -> Config:
-    connexions = await aiosqlite.connect("db.db")
-    cursor = await connexions.cursor()
+    connexion = await aiosqlite.connect(DATABASE_FILE)
+    cursor = await connexion.cursor()
     await cursor.execute("SELECT * FROM SERVER WHERE id = ?", (guild_id,))
     config = await cursor.fetchone()
-    await connexions.close()
+    await connexion.close()
     if config is not None:
         return await Config.create(guild_id, is_copy)
     else:
