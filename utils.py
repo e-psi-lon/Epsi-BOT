@@ -559,7 +559,7 @@ async def get_config(guild_id, is_copy) -> Config:
 class CustomFormatter(logging.Formatter):
     """Logging Formatter to add colors"""
 
-    format = "[%(asctime)s] %(levelname)s : %(message)s"
+    format = "[%(asctime)s] %(levelname)s : %(message)s" + "\033[0m"
 
     FORMATS = {
         logging.DEBUG: "\033[34m" + format,  # Blue
@@ -573,3 +573,9 @@ class CustomFormatter(logging.Formatter):
         log_fmt = self.FORMATS.get(record.levelno)
         formatter = logging.Formatter(log_fmt)
         return formatter.format(record)
+    
+
+
+def get_lyrics(title):
+    """Get the lyrics of a song"""
+    return None

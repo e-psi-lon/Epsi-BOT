@@ -1,13 +1,3 @@
-"""
-On affiche chaque table sous le format
-+-----------------+-------------------+-------------------+-------------------+
-| Nom de la clé 1 | Nom de la clé 2 | Nom de la clé 3 | Nom de la clé 4 |
-+-----------------+-----------------+-----------------+-----------------+
-| Valeur 1        | Valeur 2        | Valeur 3        | Valeur 4        |
-| Valeur 5        | Valeur 6        | Valeur 7        | Valeur 8        |
-| Valeur 9        | Valeur 10       | Valeur 11       | Valeur 12       |
-+-----------------+-----------------+-----------------+-----------------+
-"""
 import sqlite3
 import os
 

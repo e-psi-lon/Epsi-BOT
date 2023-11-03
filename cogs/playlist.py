@@ -115,7 +115,7 @@ class Playlist(commands.Cog):
         await queue.close()
         for song in queue.queue:
             # On limite le nombre de threads à 3
-            while len([thread for thread in threading.enumerate() if thread.name.startswith("Download-")]) >= 2:
+            while len([thread for thread in threading.enumerate() if thread.name.startswith("Download-")]) >= 3:
                 await asyncio.sleep(0.1)
             if pytube.YouTube(song['url']).length > 12000:
                 await ctx.respond(embed=discord.Embed(title="Error", description=f"The video [{pytube.YouTube(song['url']).title}]({song['url']}) is too long", color=0xff0000))

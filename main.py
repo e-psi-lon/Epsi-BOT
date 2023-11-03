@@ -6,8 +6,20 @@ import discord.utils
 from discord.ext.pages import Page, Paginator, PaginatorButton
 from panel.panel import app
 from utils import *
+import os
+import sys
 
 
+def check_update():
+    current_hash = os.popen("git rev-parse HEAD").read().strip()
+    origin_hash = os.popen("git ls-remote origin main | awk '{print $1}'").read().strip()
+    if current_hash != origin_hash:
+        os.system("git pull")
+        logging.info("Bot updated to the latest version")
+        os.execl(sys.executable, sys.executable, *sys.argv)
+    else:
+        logging.info("Bot is already up to date")
+    threading.Timer(18000, check_update).start()
 
 class Bot(commands.Bot):
     async def on_ready(self):
@@ -18,6 +30,12 @@ class Bot(commands.Bot):
         # On deplace le processus du bot (le processus principal) dans un thread
         # pour pouvoir lancer le serveur web
         threading.Thread(target=app.run, name="Panel", kwargs={"host":"0.0.0.0"}).start()
+        # On verifie si on est sur main ou sur dev ou une autre branche
+        if os.popen("git branch --show-current").read().strip() == "main":
+            check_update()
+            threading.Timer(18000, check_update).start()
+        logging.info(f"Bot ready in {datetime.datetime.now() - start_time}")
+        
 
 
 bot = Bot(intents=discord.Intents.all())
@@ -140,8 +158,6 @@ async def help_command(ctx: discord.ApplicationContext):
 def start(instance: Bot):
     # Charger les cogs
     global start_time
-    if not os.path.exists('queue/'):
-        os.mkdir('queue/')
     if not os.path.exists('cache/'):
         os.mkdir('cache/')
     cogs = [
@@ -163,7 +179,7 @@ def start(instance: Bot):
         except Exception as e:
             print(f"Failed to load extension {cog}")
             print(e)
-    # Lancer l
+    # Lancer l'instance du bot
     instance.run("MTEyODA3NDQ0Njk4NTQ5ODYyNA.G-kQRY.fuaCtflpY1SrNMJAS2fqixVMmwRUF7m2HRW6tw")
 
 

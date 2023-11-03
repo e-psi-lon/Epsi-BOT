@@ -40,9 +40,20 @@ class Others(commands.Cog):
 
     @commands.slash_command(name="lyrics", description="Shows the lyrics of the current song")
     async def lyrics(self, ctx: discord.ApplicationContext):
-        pass
-
-
+        await ctx.defer()
+        queue = await get_config(ctx.guild.id, True)
+        if ctx.guild.voice_client is None:
+            return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
+        if not queue.queue:
+            return await ctx.respond(embed=discord.Embed(title="Error", description="No song is currently playing.", color=0xff0000))
+        if not queue.queue[queue.position]['url'].startswith("https://www.youtube.com/watch?v="):
+            return await ctx.respond(embed=discord.Embed(title="Error", description="This command is only available for youtube videos.", color=0xff0000))
+        video = pytube.YouTube(queue.queue[queue.position]['url'])
+        lyrics = get_lyrics(video.title)
+        if not lyrics:
+            return await ctx.respond(embed=discord.Embed(title="Error", description="No lyrics found.", color=0xff0000))
+        await ctx.respond(embed=discord.Embed(title="Lyrics", description=lyrics, color=0x00ff00))
+        
 
 def setup(bot):
     bot.add_cog(Others(bot))
