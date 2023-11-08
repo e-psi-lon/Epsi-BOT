@@ -1,7 +1,6 @@
 from threading import Timer
 from utils import *
 from flask import *
-import json
 from discord.ext import commands
 import requests
 import pytube
@@ -91,16 +90,16 @@ async def server(server_id):
             await config.edit_queue(values['queue'])
         await config.close()
         return redirect(url_for('server', server_id=server_id))
-    server_data = {"channel":config.channel, "loop_song":config.loop_song, "loop_queue":config.loop_queue, "random":config.random, "position":config.position, "queue":config.queue}
-    server_data["id"] = server_id
-    server_data["name"] = app.bot.get_guild(server_id).name
+    server_data = {"loop_song": config.loop_song, "loop_queue": config.loop_queue, "random": config.random,
+                   "position": config.position, "queue": config.queue, "id": server_id,
+                   "name": app.bot.get_guild(server_id).name}
     return render_template('server.html', server=server_data, app=app, pytube=pytube)
 
 
 @app.route('/server/<int:server_id>/clear')
 async def clear(server_id): 
     config = await get_config(server_id, False)
-    await config.edit([])
+    await config.edit_queue([])
     return redirect(url_for('server', server_id=server_id))
 
 @app.route('/server/<int:server_id>/add', methods=['POST'])
@@ -128,7 +127,7 @@ async def callback():
         session['user_id'] = user['id']
         timers[user['id']] = timer
         return redirect(url_for('panel'))
-    except requests.HTTPError as e:
+    except requests.HTTPError:
         return redirect(url_for('index'))
 
 

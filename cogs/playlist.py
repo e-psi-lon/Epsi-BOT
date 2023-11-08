@@ -1,9 +1,5 @@
-import asyncio
 import threading
-import pytube
 from discord.commands import SlashCommandGroup
-from discord.ext import commands
-
 from utils import *
 
 

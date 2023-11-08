@@ -1,7 +1,5 @@
 import datetime
-import sys
 import threading
-import logging
 import discord.utils
 from discord.ext.pages import Page, Paginator, PaginatorButton
 from panel.panel import app

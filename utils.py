@@ -38,7 +38,7 @@ class Sinks(Enum):
     mp4 = discord.sinks.MP4Sink()
 
 
-async def finished_record_callback(sink, channel: discord.TextChannel, *args):
+async def finished_record_callback(sink, channel: discord.TextChannel, _):
     mention_strs = []
     audio_segs: list[pydub.AudioSegment] = []
     files: list[discord.File] = []
@@ -174,7 +174,7 @@ async def get_playlists(ctx: discord.AutocompleteContext):
 
 async def get_playlists_songs(ctx: discord.AutocompleteContext):
     config = await get_config(ctx.interaction.guild.id, True)
-    return [song['title'] for song in [playlist for playlist in config.playlists if playlist.name == ctx.data['playlist']][0].songs]
+    return [song['title'] for song in [playlist for playlist in config.playlists if playlist.name == ctx.options['playlist']][0].songs]
 
 
 async def get_queue_songs(ctx: discord.AutocompleteContext):
@@ -283,11 +283,14 @@ def sql_to_song(sql):
 
 def song_to_sql(song):
     """Convert a song to a tuple to insert it in the database"""
-    return (song["id"], song["title"], song["url"], song["asker"])
+    return song["id"], song["title"], song["url"], song["asker"]
 
 
 class Playlist:
     def __init__(self, name, songs, server_id, is_copy):
+        self.id = None
+        self.__cursor = None
+        self.__connexion = None
         self.name = name
         self.songs = songs
         self.server_id = server_id
@@ -307,7 +310,8 @@ class Playlist:
             await self.__cursor.execute("SELECT * FROM SONG WHERE title = ? AND url = ? AND asker = ?", (song["title"], song["url"], song["asker"]))
             if await self.__cursor.fetchone() is None:
                 await self.__cursor.execute("SELECT COUNT(*) FROM SONG")
-                song["id"] = await self.__cursor.fetchone()[0] + 1
+                song["id"] = await self.__cursor.fetchone()
+                song["id"] = song["id"][0] + 1
                 await self.__cursor.execute("INSERT INTO SONG VALUES (?, ?, ?, ?)", song_to_sql(song))
         if self.is_copy:
             await self.close()
@@ -362,14 +366,23 @@ class Playlist:
 
 
 class Config:
-    def __init__(self, id, is_copy):
-        self.id = id
+    def __init__(self, server_id, is_copy):
+        self._playlists = None
+        self._queue = None
+        self._position = None
+        self._volume = None
+        self._random = None
+        self._loop_queue = None
+        self._loop_song = None
+        self.__connexion = None
+        self.__cursor = None
+        self.id = server_id
         self.is_copy = is_copy
 
     
     @classmethod
-    async def create(cls, id, is_copy):
-        self = cls(id, is_copy)
+    async def create(cls, server_id, is_copy):
+        self = cls(server_id, is_copy)
         await self.init()
         return self
         
@@ -480,6 +493,10 @@ class Config:
             song["id"] = await self.__cursor.fetchone()
             song["id"] = song["id"][0] + 1
             await self.__cursor.execute("INSERT INTO SONG VALUES (?, ?, ?, ?)", song_to_sql(song))
+        else:
+            await self.__cursor.execute("SELECT id FROM SONG WHERE title = ? AND url = ? AND asker = ?", (song["title"], song["url"], song["asker"]))
+            song["id"] = await self.__cursor.fetchone()
+            song["id"] = song["id"][0]
         await self.__cursor.execute("INSERT INTO QUEUE VALUES (?, ?, ?)", (song["id"], self.id, len(self._queue) - 1))
         await self.__connexion.commit()
 
@@ -544,7 +561,7 @@ class Config:
         await self.__connexion.commit()
 
 
-async def get_config(guild_id, is_copy) -> Config:
+async def get_config(guild_id, is_copy) -> Config | None:
     connexion = await aiosqlite.connect(DATABASE_FILE)
     cursor = await connexion.cursor()
     await cursor.execute("SELECT * FROM SERVER WHERE id = ?", (guild_id,))

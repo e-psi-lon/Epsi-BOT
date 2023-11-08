@@ -98,7 +98,8 @@ class State(commands.Cog):
                 await ctx.respond(embed=discord.Embed(title="Queue",
                                                       description=f"Song [{pytube.YouTube(url).title}]({url}) added to queue.",
                                                       color=0x00ff00))
-            except:
+            except Exception as e:
+                logging.error(f"Error while adding song to queue: {e}")
                 return await ctx.respond(
                     embed=discord.Embed(title="Error", description="Error while getting song.", color=0xff0000))
         except:
@@ -108,7 +109,7 @@ class State(commands.Cog):
                     embed=discord.Embed(title="Error", description="No results found.", color=0xff0000))
             view = Research(videos, ctx, False)
             await ctx.respond(
-                embed=discord.Embed(title="Select audio", description=f"Select an audio to play for query `{query}` from the list below",
+                embed=discord.Embed(title="Select audio", description=f'Select an audio to play for query `{query}` from the list below',
                                     color=0x00ff00), view=view)
 
     @commands.slash_command(name="pause", description="Pauses the current song")
