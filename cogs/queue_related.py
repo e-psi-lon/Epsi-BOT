@@ -9,6 +9,7 @@ class Queue(commands.Cog):
 
     @commands.slash_command(name="queue", description="Shows the current queue")
     async def queue(self, ctx: discord.ApplicationContext):
+        await ctx.response.defer()
         queue = await get_config(ctx.guild.id, True)
         if not queue.queue:
             return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
@@ -25,6 +26,7 @@ class Queue(commands.Cog):
     @commands.slash_command(name="skip", description="Skips the current song")
     async def skip(self, ctx: discord.ApplicationContext,
                    by: discord.Option(int, "How many songs to skip", required=False)):
+        await ctx.response.defer()
         queue = await get_config(ctx.guild.id, False)
         if not queue.queue:
             await queue.close()
@@ -50,6 +52,7 @@ class Queue(commands.Cog):
     @loop.command(name="song", description="Loops the current song")
     async def loop_song(self, ctx: discord.ApplicationContext,
                         state: discord.Option(bool, "The loop state", required=False)):
+        await ctx.response.defer()
         queue = await get_config(ctx.guild.id, False)
         if state is None:
             state = not queue.loop_song
@@ -63,6 +66,7 @@ class Queue(commands.Cog):
     @loop.command(name="queue", description="Loops the current song")
     async def loop_queue(self, ctx: discord.ApplicationContext,
                          state: discord.Option(bool, "The loop state", required=False)):
+        await ctx.response.defer()
         queue = await get_config(ctx.guild.id, False)
         if state is None:
             state = not queue.loop_queue
@@ -76,6 +80,7 @@ class Queue(commands.Cog):
 
     @commands.slash_command(name="now", description="Shows the current song")
     async def now(self, ctx: discord.ApplicationContext):
+        await ctx.response.defer()
         queue = await get_config(ctx.guild.id, True)
         if not queue.queue:
             return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
@@ -91,6 +96,7 @@ class Queue(commands.Cog):
     async def remove_name(self, ctx: discord.ApplicationContext,
                           song: discord.Option(str, "The name of the song to remove", required=True,
                                                autocomplete=discord.utils.basic_autocomplete(get_queue_songs))):
+        await ctx.response.defer()
         queue = await get_config(ctx.guild.id, False)
         await queue.remove_song_from_queue([song for song in queue.queue if song['title'] == song][0])
         await queue.close()
@@ -100,6 +106,7 @@ class Queue(commands.Cog):
     @remove.command(name="from-index", description="Removes a song from the queue ")
     async def remove_index(self, ctx: discord.ApplicationContext,
                            index: discord.Option(int, "The index of the song to remove", required=True)):
+        await ctx.response.defer()
         queue = await get_config(ctx.guild.id, False)
         if index < 0 or index >= len(queue.queue):
             await queue.close()
@@ -113,6 +120,7 @@ class Queue(commands.Cog):
 
     @commands.slash_command(name="clear", description="Clears the queue")
     async def clear(self, ctx: discord.ApplicationContext):
+        await ctx.response.defer()
         queue = await get_config(ctx.guild.id, False)
         if not queue.queue:
             await queue.close()
@@ -129,6 +137,7 @@ class Queue(commands.Cog):
 
     @commands.slash_command(name="back", description="Goes back to the previous song")
     async def back(self, ctx: discord.ApplicationContext):
+        await ctx.response.defer()
         queue = await get_config(ctx.guild.id, False)
         if not queue.queue:
             await queue.close()

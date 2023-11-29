@@ -161,9 +161,12 @@ class State(commands.Cog):
             if volume < 0:
                 return await ctx.respond(
                     embed=discord.Embed(title="Error", description="Volume is too low.", color=0xff0000))
-            ctx.guild.voice_client.source.volume = volume / 100
+            try:
+                ctx.guild.voice_client.source.volume = volume / 100
+            except:
+                pass
             queue = await get_config(ctx.guild.id, False)
-            await queue.set_volume(ctx.guild.voice_client.source.volume*100)
+            await queue.set_volume(volume*100)
             await queue.close()
             return await ctx.respond(embed=discord.Embed(title="Volume", description=f"Volume set to {volume}%",
                                                   color=0x00ff00))
@@ -173,14 +176,21 @@ class State(commands.Cog):
                                                   description=f"Volume is {ctx.guild.voice_client.source.volume * 100}%",
                                                   color=0x00ff00))
         except:
-            await ctx.respond(
-                embed=discord.Embed(title="Error", description="Error while getting volume.", color=0xff0000))
+            try:
+                queue = await get_config(ctx.guild.id, True)
+                await ctx.respond(embed=discord.Embed(title="Volume",
+                                                      description=f"Volume is {queue.volume}%",
+                                                      color=0x00ff00))
+            except:
+                await ctx.respond(
+                    embed=discord.Embed(title="Error", description="Error while getting volume.", color=0xff0000))
 
     @commands.slash_command(name="record",
                             description="Enregistre nos chers gogols en train de chanter (c'est Rignchen qui m'as dit de laisser ça)")
     async def record(self, ctx: discord.ApplicationContext,
                      time: discord.Option(int, "Le temps d'enregistrement en secondes (de 1s à 260s)", required=True),
                      format: discord.Option(Sinks, "Le format d'enregistrement", required=True)):
+        await ctx.response.defer()
         if ctx.guild.voice_client is None:
             return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
         if time > 260:
@@ -218,7 +228,7 @@ class State(commands.Cog):
         if not users:
             users = ["No one will be recorded"]
         await ctx.respond(
-            f"⚠ {', '.join(users)}, {ctx.author.mention} is recording you for {time} seconds",
+            f":⚠: {', '.join(users)}, {ctx.author.mention} is recording you for {time} seconds",
             embed=discord.Embed(title="Record",
                                 description=f"Recording for {time} seconds. The record will stop at <t:{int(time + datetime.now().timestamp())}:R>.",
                                 color=0x00ff00))

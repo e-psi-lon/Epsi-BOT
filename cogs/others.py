@@ -39,7 +39,7 @@ class Others(commands.Cog):
 
     @commands.slash_command(name="lyrics", description="Shows the lyrics of the current song")
     async def lyrics(self, ctx: discord.ApplicationContext):
-        await ctx.defer()
+        await ctx.response.defer()
         queue = await get_config(ctx.guild.id, True)
         if ctx.guild.voice_client is None:
             return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)

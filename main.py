@@ -6,6 +6,7 @@ from panel.panel import app
 from utils import *
 import os
 import sys
+import multiprocessing
 
 
 def check_update():
@@ -19,15 +20,18 @@ def check_update():
         logging.info("Bot is already up to date")
     threading.Timer(18000, check_update).start()
 
+def start_app(app):
+    app.run(host="0.0.0.0")
+
 class Bot(commands.Bot):
     async def on_ready(self):
         global start_time
         await self.change_presence(
             activity=discord.Activity(type=discord.ActivityType.watching, name=f"/help | {len(self.guilds)} servers"))
         app.set_bot(self)
-        # On deplace le processus du bot (le processus principal) dans un thread
         # pour pouvoir lancer le serveur web
-        threading.Thread(target=app.run, name="Panel", kwargs={"host":"0.0.0.0"}).start()
+        threading.Thread(target=start_app, args=(app,)).start()
+
         # On verifie si on est sur main ou sur dev ou une autre branche
         if os.popen("git branch --show-current").read().strip() == "main":
             check_update()
@@ -170,7 +174,7 @@ def start(instance: Bot):
     ]
     os.system("cls" if os.name == "nt" else "clear")
     start_time = datetime.datetime.now()
-    print(f"\033[0mScript started at {datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+    print(f"\033[0mScript started at {datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')} using python executable {sys.executable}")
     for cog in cogs:
         try:
             instance.load_extension(cog)

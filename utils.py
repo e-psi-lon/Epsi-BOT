@@ -12,7 +12,7 @@ import discord.ext.pages
 from discord.ext import commands
 import requests
 import aiosqlite
-
+import threading
 
 def download(url: str, file_format: str = "mp3"):
     """Download a video from a YouTube URL"""
@@ -38,7 +38,7 @@ class Sinks(Enum):
     mp4 = discord.sinks.MP4Sink()
 
 
-async def finished_record_callback(sink, channel: discord.TextChannel, _):
+async def finished_record_callback(sink, channel: discord.TextChannel):
     mention_strs = []
     audio_segs: list[pydub.AudioSegment] = []
     files: list[discord.File] = []
@@ -249,17 +249,14 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
                                     
         player = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(download(url), executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"), config.volume / 100)
         try:
-            ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
-                                        wait_finish=True)
+            ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)), wait_finish=True)
         except:
             while ctx.guild.voice_client.is_playing():
                 await asyncio.sleep(0.1)
-            ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
-                                        wait_finish=True)
+            ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)), wait_finish=True)
     except:
         player = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(download(url), executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"), config.volume / 100)
-        ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
-                                    wait_finish=True)
+        ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)), wait_finish=True)
 
 
 async def on_play_song_finished(ctx: discord.ApplicationContext, error=None):
