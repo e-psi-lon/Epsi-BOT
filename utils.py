@@ -328,7 +328,7 @@ class Playlist:
             await self.__cursor.execute("INSERT INTO SONG VALUES (?, ?, ?, ?)", song_to_sql(song))
             logging.info(f"Added song {song['title']} to database")
         await self.__cursor.execute("INSERT INTO PLAYLIST VALUES (?, ?, ?, ?)", (self.name, self.id, song["id"], len(self.songs) - 1))
-        logging.info(f"Added song {song['title']} to playlist {self.name}")
+        logging.info(f"Added song {song['title']} to playlist {self.name} from server {self.server_id}")
         await self.__connexion.commit()
 
     async def remove_song(self, song):
@@ -336,7 +336,7 @@ class Playlist:
         if self.is_copy:
             return
         await self.__cursor.execute("DELETE FROM PLAYLIST WHERE server_id = ? AND name = ? AND song_id = ?", (self.id, self.name, song["id"]))
-        logging.info(f"Removed song {song['title']} from playlist {self.name}")
+        logging.info(f"Removed song {song['title']} from playlist {self.name} from server {self.server_id}")
         await self.__connexion.commit()
     
     async def edit_name(self, name):
@@ -344,7 +344,7 @@ class Playlist:
         if self.is_copy:
             return
         await self.__cursor.execute("UPDATE PLAYLIST SET name = ? WHERE server_id = ? AND name = ?", (name, self.server_id, self.name))
-        logging.info(f"Edited playlist {self.name} to {name}")
+        logging.info(f"Edited playlist {self.name} to {name} from server {self.server_id}")
         await self.__connexion.commit()
     
     async def edit_songs(self, songs):
@@ -352,15 +352,17 @@ class Playlist:
         if self.is_copy:
             return
         await self.__cursor.execute("DELETE FROM PLAYLIST WHERE server_id = ? AND name = ?", (self.server_id, self.name))
-        logging.info(f"Edited playlist {self.name}")
+        logging.info(f"Edited playlist {self.name} from server {self.server_id}")
         for index, song in enumerate(songs):
             await self.__cursor.execute("INSERT INTO PLAYLIST VALUES (?, ?, ?, ?)", (self.name, self.id, song["id"], index))
+            logging.info(f"Added song {song['title']} to playlist {self.name}")
         await self.__connexion.commit()
     
     async def delete(self):
         await self.__cursor.execute("DELETE FROM PLAYLIST WHERE server_id = ? AND name = ?", (self.id, self.name))
         await self.__connexion.commit()
-        await self.__connexion.close()
+        logging.info(f"Deleted playlist {self.name} from server {self.server_id}")
+        await self.close()
         
     async def close(self):
         await self.__connexion.close()
@@ -398,6 +400,7 @@ class Config:
         config = await self.__cursor.fetchone()
         if config is None:
             await self.__cursor.execute("INSERT INTO SERVER VALUES (?, ?, ?, ?, ?, ?)", (self.id, False, False, False, 100, 0))
+            logging.info(f"Added server {self.id} to database")
             await self.__connexion.commit()
             await self.__cursor.execute("SELECT * FROM SERVER WHERE id = ?", (self.id,))
             config = await self.__cursor.fetchone()
@@ -433,6 +436,7 @@ class Config:
         if self.is_copy:
             return
         await self.__cursor.execute("UPDATE SERVER SET loop_song = ? WHERE id = ?", (value, self.id))
+        logging.info(f"Toggled loop_song to {value} for server {self.id}")
         await self.__connexion.commit()
     
     @property
@@ -445,6 +449,7 @@ class Config:
         if self.is_copy:
             return
         await self.__cursor.execute("UPDATE SERVER SET loop_queue = ? WHERE id = ?", (value, self.id))
+        logging.info(f"Toggled loop_queue to {value} for server {self.id}")
         await self.__connexion.commit()
     
     @property
@@ -457,6 +462,7 @@ class Config:
         if self.is_copy:
             return
         await self.__cursor.execute("UPDATE SERVER SET random = ? WHERE id = ?", (value, self.id))
+        logging.info(f"Toggled random to {value} for server {self.id}")
         await self.__connexion.commit()
     
     @property
@@ -469,6 +475,7 @@ class Config:
         if self.is_copy:
             return
         await self.__cursor.execute("UPDATE SERVER SET volume = ? WHERE id = ?", (value, self.id))
+        logging.info(f"Updated volume to {value} for server {self.id}")
         await self.__connexion.commit()
     
     @property
@@ -481,6 +488,7 @@ class Config:
         if self.is_copy:
             return
         await self.__cursor.execute("UPDATE SERVER SET position = ? WHERE id = ?", (value, self.id))
+        logging.info(f"Changed position in queue to {value} for server {self.id}")
         await self.__connexion.commit()
 
     @property
@@ -498,11 +506,13 @@ class Config:
             song["id"] = await self.__cursor.fetchone()
             song["id"] = song["id"][0] + 1
             await self.__cursor.execute("INSERT INTO SONG VALUES (?, ?, ?, ?)", song_to_sql(song))
+            logging.info(f"Added song {song['title']} to database")
         else:
             await self.__cursor.execute("SELECT id FROM SONG WHERE title = ? AND url = ? AND asker = ?", (song["title"], song["url"], song["asker"]))
             song["id"] = await self.__cursor.fetchone()
             song["id"] = song["id"][0]
         await self.__cursor.execute("INSERT INTO QUEUE VALUES (?, ?, ?)", (song["id"], self.id, len(self._queue) - 1))
+        logging.info(f"Added song {song['title']} to {self.id} queue")
         await self.__connexion.commit()
 
     async def remove_song_from_queue(self, song):
@@ -511,6 +521,7 @@ class Config:
             if self.is_copy:
                 return
             await self.__cursor.execute("DELETE FROM QUEUE WHERE server_id = ? AND song_id = ?", (song["id"], self.id))
+            logging.info(f"Removed song {song['title']} from {self.id} queue")
             await self.__connexion.commit()
         except ValueError:
             pass
@@ -522,6 +533,7 @@ class Config:
         await self.__cursor.execute("DELETE FROM QUEUE WHERE server_id = ?", (self.id,))
         for index, song in enumerate(queue):
             await self.__cursor.execute("INSERT INTO QUEUE VALUES (?, ?, ?)", (song["id"], self.id, index))
+        logging.info(f"Fully edited queue for server {self.id}")
         await self.__connexion.commit()
 
     async def close(self):
@@ -547,6 +559,7 @@ class Config:
             return
         for song_index, song in enumerate(playlist.songs):
             await self.__cursor.execute("INSERT INTO PLAYLIST VALUES (?, ?, ?, ?)", (playlist.name, self.id, song["id"], song_index))
+            logging.info(f"Added song {song['title']} to playlist {playlist.name} from server {self.id}")
         await self.__connexion.commit()
     
     async def remove_playlist(self, playlist):
@@ -554,6 +567,7 @@ class Config:
         if self.is_copy:
             return
         await self.__cursor.execute("DELETE FROM PLAYLIST WHERE server_id = ? AND name = ?", (self.id, playlist.name))
+        logging.info(f"Deleted playlist {playlist.name} from server {self.id}")
         await self.__connexion.commit()
     
     async def edit_playlists(self, playlists: list[Playlist]):
@@ -564,6 +578,7 @@ class Config:
         for playlist in playlists:
             for song_index, song in enumerate(playlist.songs):
                 await self.__cursor.execute("INSERT INTO PLAYLIST VALUES (?, ?, ?, ?)", (playlist.name, self.id, song["id"], song_index))
+        logging.info(f"Edited all playlists from server {self.id}")
         await self.__connexion.commit()
 
 
