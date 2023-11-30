@@ -156,6 +156,7 @@ class Queue(commands.Cog):
 
     @commands.slash_command(name="shuffle", description="Shuffles the queue")
     async def shuffle(self, ctx: discord.ApplicationContext):
+        await ctx.response.defer()
         queue = await get_config(ctx.guild.id, False)
         if not queue.queue:
             await queue.close()
@@ -171,6 +172,7 @@ class Queue(commands.Cog):
     @random_command.command(name="toggle", description="Toggles the random mode")
     async def random_toggle(self, ctx: discord.ApplicationContext,
                             state: discord.Option(bool, "The random state", required=False)):
+        await ctx.response.defer()
         queue = await get_config(ctx.guild.id, False)
         if state is None:
             state = not queue.random
@@ -182,6 +184,7 @@ class Queue(commands.Cog):
 
     @random_command.command(name="query", description="Shows the current random state")
     async def random(self, ctx: discord.ApplicationContext):
+        await ctx.response.defer()
         queue = await get_config(ctx.guild.id, True)
         await ctx.respond(
             embed=discord.Embed(title="Random", description=f"Random mode is {'on' if queue.random else 'off'}.",
@@ -193,6 +196,7 @@ class Queue(commands.Cog):
     async def play_queue_song(self, ctx: discord.ApplicationContext,
                               song: discord.Option(str, "The index of the song to play", required=True,
                                                    autocomplete=discord.utils.basic_autocomplete(get_queue_songs))):
+        await ctx.response.defer()
         queue = await get_config(ctx.guild.id, False)
         if not queue.queue:
             await queue.close()
@@ -211,6 +215,7 @@ class Queue(commands.Cog):
     @play.command(name="number", description="Plays a song from the queue")
     async def play_queue_index(self, ctx: discord.ApplicationContext,
                                index: discord.Option(int, "The index of the song to play", required=True)):
+        await ctx.response.defer()
         queue = await get_config(ctx.guild.id, False)
         if not queue.queue:
             await queue.close()

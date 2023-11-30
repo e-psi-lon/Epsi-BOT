@@ -16,6 +16,7 @@ class Todo(commands.Cog):
     async def add_line(self, ctx: discord.ApplicationContext, line: discord.Option(str,
                                                                                    "The line to add", required=True),
                        index: discord.Option(int, "The index of the line to add", required=False, default=None)):
+        await ctx.response.defer()
         if ctx.channel.id != 1128286383161745479:
             embed = discord.Embed(title="Ajout d'une ligne", description="Cette commande ne peut être utilisée que dans"
                                                                          " le channel <#1128286383161745479>",
@@ -39,6 +40,7 @@ class Todo(commands.Cog):
     @todo.command(name="remove_line", description="Removes a line from the message")
     async def remove_line(self, ctx: discord.ApplicationContext, index: discord.Option(int, "The index of the line to "
                                                                                             "remove", required=True)):
+        await ctx.response.defer()
         if ctx.channel.id != 1128286383161745479:
             embed = discord.Embed(title="Suppression d'une ligne",
                                   description="Cette commande ne peut être utilisée que"
@@ -62,6 +64,7 @@ class Todo(commands.Cog):
                                                                                      "The index of the line to edit",
                                                                                      required=True),
                         line: discord.Option(str, "The new line", required=True)):
+        await ctx.response.defer()
         if ctx.channel.id != 1128286383161745479:
             embed = discord.Embed(title="Modification d'une ligne", description="Cette commande ne peut être utilisée "
                                                                                 "que dans le channel "
@@ -89,6 +92,7 @@ class Todo(commands.Cog):
                      user: discord.Option(
             discord.User, "The user to assign the task to", required=True)
             ):
+        await ctx.response.defer()
         if ctx.channel.id != 1128286383161745479:
             embed = discord.Embed(title="Assignation d'une ligne", description="Cette commande ne peut être utilisée "
                                                                                "que dans le channel "
@@ -144,6 +148,7 @@ class Todo(commands.Cog):
 
     @todo.command(name="tuto", description="Sends a tutorial on how to use the to-do list")
     async def tuto(self, ctx: discord.ApplicationContext):
+        await ctx.response.defer()
         embed = discord.Embed(title="Tutoriel",
                               description="Voici un tutoriel sur comment utiliser la to-do list, \"[...]\" signifie que le paramètre est optionnel et \"<...>\" signifie que le paramètre est obligatoire",
                               color=0x00ff00)

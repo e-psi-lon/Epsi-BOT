@@ -8,6 +8,7 @@ class Others(commands.Cog):
     @commands.slash_command(name="download_file", description="Download the audio of a youtube video")
     # choices est une liste de formats audio uniquement (pas vidéo)
     async def download(self, ctx, query, file_format: discord.Option(str, description="The file_format of the file", choices=["mp3", "ogg"], required=False, default="ogg")):
+        await ctx.response.defer()
         try:
             video = pytube.YouTube(query)
             try:

@@ -18,6 +18,7 @@ class State(commands.Cog):
     @play.command(name="url", description="Plays the audio of a file from an URL")
     async def play_url(self, ctx: discord.ApplicationContext,
                        url: discord.Option(str, "The URL of the audio to play", required=True)):
+        await ctx.response.defer()
         if ctx.user.id in [501303816302362635, 942531230291877910]:
             return await ctx.respond(embed=discord.Embed(title="Error", description="Non mais tu me prends pour qui, je te connais hein",
                                                          color=0xff0000))
@@ -47,6 +48,7 @@ class State(commands.Cog):
     @play.command(name="file", description="Plays the audio of a file")
     async def play_file(self, ctx: discord.ApplicationContext,
                         file: discord.Option(discord.Attachment, "The file to play", required=True)):
+        await ctx.response.defer()
         if ctx.guild.voice_client is None:
             return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
         if file.content_type not in ['audio/mpeg', 'audio/wav', 'audio/ogg', 'video/mp4']:
@@ -73,6 +75,7 @@ class State(commands.Cog):
     @play.command(name="youtube", description="Plays the audio of a YouTube video")
     async def play_youtube(self, ctx: discord.ApplicationContext,
                    query: discord.Option(str, "The YouTube audio to play", required=True)):
+        await ctx.response.defer()
         if ctx.guild.voice_client is None:
             return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
         try:
@@ -114,6 +117,7 @@ class State(commands.Cog):
 
     @commands.slash_command(name="pause", description="Pauses the current song")
     async def pause(self, ctx: discord.ApplicationContext):
+        await ctx.response.defer()
         if ctx.guild.voice_client is None:
             return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
         if ctx.guild.voice_client.is_paused():
@@ -127,6 +131,7 @@ class State(commands.Cog):
 
     @commands.slash_command(name="resume", description="Resumes the current song")
     async def resume(self, ctx: discord.ApplicationContext):
+        await ctx.response.defer()
         if ctx.guild.voice_client is None:
             return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
         if not ctx.guild.voice_client.is_paused():
@@ -137,6 +142,7 @@ class State(commands.Cog):
 
     @commands.slash_command(name="stop", description="Stops the current song")
     async def stop(self, ctx: discord.ApplicationContext):
+        await ctx.response.defer()
         if ctx.guild.voice_client is None:
             return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
         if not ctx.guild.voice_client.is_playing():
@@ -152,6 +158,7 @@ class State(commands.Cog):
 
     @commands.slash_command(name="volume", description="Gets or sets the volume of the bot")
     async def volume(self, ctx: discord.ApplicationContext, volume: discord.Option(int, "The volume to set (from 0 to 100)", required=False)):
+        await ctx.response.defer()
         if ctx.guild.voice_client is None:
             return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
         if volume is not None:
@@ -236,6 +243,7 @@ class State(commands.Cog):
 
     @commands.slash_command(name="stop_record", description="Arrête l'enregistrement")
     async def stop_record(self, ctx: discord.ApplicationContext):
+        await ctx.response.defer()
         if ctx.guild.voice_client is None:
             return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
         try:

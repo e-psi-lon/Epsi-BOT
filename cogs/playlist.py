@@ -3,7 +3,7 @@ from discord.commands import SlashCommandGroup
 from utils import *
 
 
-class Playlist(commands.Cog):
+class Playlists(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -13,6 +13,7 @@ class Playlist(commands.Cog):
 
     @create.command(name="from-queue", description="Creates a playlist from the queue")
     async def create_from_queue(self, ctx: discord.ApplicationContext, name: discord.Option(str, "The name of the playlist", required=True)):
+        await ctx.response.defer()
         if len(name) > 20:
             return await ctx.respond(embed=EMBED_ERROR_NAME_TOO_LONG)
         queue = await get_config(ctx.interaction.guild.id, False)
@@ -22,13 +23,15 @@ class Playlist(commands.Cog):
         if name in [playlist.name for playlist in queue.playlists]:
             await queue.close()
             return await ctx.respond(embed=discord.Embed(title="Error", description="A playlist with this name already exists.", color=0xff0000))
-        playlist = await Playlist.create(name, queue.queue)
+        playlist = await Playlist.create(name, queue.queue, ctx.guild.id)
         await queue.add_playlist(playlist)
         await queue.close()
+        await playlist.close()
         await ctx.respond(embed=discord.Embed(title="Playlist", description=f"Playlist {name} created.", color=0x00ff00))
 
     @create.command(name="from-youtube", description="Creates a playlist from a youtube playlist")
     async def create_from_youtube(self, ctx: discord.ApplicationContext, url: discord.Option(str, "The url of the playlist", required=True), name: discord.Option(str, "The name of the playlist", required=False)):
+        await ctx.response.defer()
         try:
             playlist = pytube.Playlist(url)
             if name is None:
@@ -51,6 +54,7 @@ class Playlist(commands.Cog):
 
     @playlist.command(name="delete", description="Deletes a playlist")
     async def delete(self, ctx: discord.ApplicationContext, name: discord.Option(str, "The name of the playlist", required=True, autocomplete=discord.utils.basic_autocomplete(get_playlists))):
+        await ctx.response.defer()
         queue = await get_config(ctx.guild.id, False)
         if name not in [playlist.name for playlist in queue.playlists]:
             await queue.close()
@@ -64,6 +68,7 @@ class Playlist(commands.Cog):
 
     @playlist.command(name="add", description="Adds a song to a playlist")
     async def add(self, ctx: discord.ApplicationContext, name: discord.Option(str, "The name of the playlist", required=True, autocomplete=discord.utils.basic_autocomplete(get_playlists)), query: discord.Option(str, "The YouTube video to add to the playlist", required=True)):
+        await ctx.response.defer()
         queue = await get_config(ctx.guild.id, False)
         if name not in [playlist.name for playlist in queue.playlists]:
             await queue.close()
@@ -85,6 +90,7 @@ class Playlist(commands.Cog):
     @playlist.command(name="remove", description="Removes a song from a playlist")
     async def remove(self, ctx: discord.ApplicationContext, name: discord.Option(str, "The name of the playlist", required=True, autocomplete=discord.utils.basic_autocomplete(get_playlists)),
                     song: discord.Option(str, "The name of the song", required=True, autocomplete=discord.utils.basic_autocomplete(get_playlists_songs))):
+        await ctx.response.defer()
         queue = await get_config(ctx.guild.id, False)
         if name not in [playlist.name for playlist in queue.playlists]:
             await queue.close()
@@ -100,6 +106,7 @@ class Playlist(commands.Cog):
 
     @playlist.command(name="play", description="Plays a playlist")
     async def play(self, ctx: discord.ApplicationContext, name: discord.Option(str, "The name of the playlist", required=True, autocomplete=discord.utils.basic_autocomplete(get_playlists))):
+        await ctx.response.defer()
         queue = await get_config(ctx.guild.id, False)
         await ctx.response.defer()
         if name not in [playlist.name for playlist in queue.playlists]:
@@ -128,6 +135,7 @@ class Playlist(commands.Cog):
 
     @playlist.command(name="list", description="Lists all the playlists")
     async def list_playlist(self, ctx: discord.ApplicationContext):
+        await ctx.response.defer()
         queue = await get_config(ctx.guild.id, True)
         if not queue.playlists:
             return await ctx.respond(embed=discord.Embed(title="Playlists", description="No playlists.", color=0x00ff00))   
@@ -141,6 +149,7 @@ class Playlist(commands.Cog):
 
     @playlist.command(name="show", description="Shows a playlist")
     async def show(self, ctx: discord.ApplicationContext, name: discord.Option(str, "The name of the playlist", required=True, autocomplete=discord.utils.basic_autocomplete(get_playlists))):
+        await ctx.response.defer()
         queue = await get_config(ctx.guild.id, True)
         if name not in [playlist.name for playlist in queue.playlists]:
             return await ctx.respond(embed=EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
@@ -158,6 +167,7 @@ class Playlist(commands.Cog):
     @playlist.command(name="rename", description="Renames a playlist")
     async def rename(self, ctx: discord.ApplicationContext, name: discord.Option(str, "The name of the playlist", required=True, autocomplete=discord.utils.basic_autocomplete(get_playlists)),
                     new_name: discord.Option(str, "The new name of the playlist", required=True)):
+        await ctx.response.defer()
         if len(new_name) > 20:
             return await ctx.respond(embed=EMBED_ERROR_NAME_TOO_LONG)
         queue = await get_config(ctx.guild.id, False)
@@ -176,4 +186,4 @@ class Playlist(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(Playlist(bot))
+    bot.add_cog(Playlists(bot))

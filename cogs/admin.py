@@ -8,6 +8,7 @@ class Admin(commands.Cog):
 
     @commands.slash_command(name="remove_cache", description="Removes the audio cache", guild_ids=[761485410596552736])
     async def remove_cache(self, ctx: discord.ApplicationContext):
+        await ctx.response.defer()
         if ctx.author.id != OWNER_ID:
             embed = discord.Embed(title="Error", description="You are not the owner of the bot.", color=0xff0000)
             return await ctx.respond(embed=embed, delete_after=30)
@@ -33,6 +34,7 @@ class Admin(commands.Cog):
                     count: discord.Option(int, description="The number of messages to delete", required=False,
                                           default=1)):
         global removed_count
+        await ctx.response.defer()
         if ctx.author.id != OWNER_ID:
             embed = discord.Embed(title="Error", description="You are not the owner of the bot.", color=0xff0000)
             return await ctx.respond(embed=embed, delete_after=30)

@@ -8,6 +8,7 @@ class Channel(commands.Cog):
 
     @commands.slash_command(name="leave", description="Leaves the voice channel")
     async def leave(self, ctx: discord.ApplicationContext):
+        await ctx.response.defer()
         if ctx.guild.voice_client is None:
             return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
         await ctx.guild.voice_client.disconnect(force=True)
@@ -20,6 +21,7 @@ class Channel(commands.Cog):
 
     @commands.slash_command(name='join', description='Join the voice channel you are in.')
     async def join(self, ctx: discord.ApplicationContext):
+        await ctx.response.defer()
         if ctx.guild.voice_client is not None:
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description="Bot is already connected to a voice "

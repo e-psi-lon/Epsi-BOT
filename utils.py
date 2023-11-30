@@ -310,8 +310,11 @@ class Playlist:
                 song["id"] = await self.__cursor.fetchone()
                 song["id"] = song["id"][0] + 1
                 await self.__cursor.execute("INSERT INTO SONG VALUES (?, ?, ?, ?)", song_to_sql(song))
+                logging.info(f"Added song {song['title']} to database")
+        await self.__connexion.commit()
         if self.is_copy:
             await self.close()
+            
 
     async def add_song(self, song):
         self.songs.append(song)
@@ -323,7 +326,9 @@ class Playlist:
             await self.__cursor.execute("SELECT COUNT(*) FROM SONG")
             song["id"] = await self.__cursor.fetchone()[0] + 1
             await self.__cursor.execute("INSERT INTO SONG VALUES (?, ?, ?, ?)", song_to_sql(song))
+            logging.info(f"Added song {song['title']} to database")
         await self.__cursor.execute("INSERT INTO PLAYLIST VALUES (?, ?, ?, ?)", (self.name, self.id, song["id"], len(self.songs) - 1))
+        logging.info(f"Added song {song['title']} to playlist {self.name}")
         await self.__connexion.commit()
 
     async def remove_song(self, song):
@@ -331,20 +336,23 @@ class Playlist:
         if self.is_copy:
             return
         await self.__cursor.execute("DELETE FROM PLAYLIST WHERE server_id = ? AND name = ? AND song_id = ?", (self.id, self.name, song["id"]))
+        logging.info(f"Removed song {song['title']} from playlist {self.name}")
         await self.__connexion.commit()
     
     async def edit_name(self, name):
         self.name = name
         if self.is_copy:
             return
-        await self.__cursor.execute("UPDATE PLAYLIST SET name = ? WHERE server_id = ? AND name = ?", (name, self.id, self.name))
+        await self.__cursor.execute("UPDATE PLAYLIST SET name = ? WHERE server_id = ? AND name = ?", (name, self.server_id, self.name))
+        logging.info(f"Edited playlist {self.name} to {name}")
         await self.__connexion.commit()
     
     async def edit_songs(self, songs):
         self.songs = songs
         if self.is_copy:
             return
-        await self.__cursor.execute("DELETE FROM PLAYLIST WHERE server_id = ? AND name = ?", (self.id, self.name))
+        await self.__cursor.execute("DELETE FROM PLAYLIST WHERE server_id = ? AND name = ?", (self.server_id, self.name))
+        logging.info(f"Edited playlist {self.name}")
         for index, song in enumerate(songs):
             await self.__cursor.execute("INSERT INTO PLAYLIST VALUES (?, ?, ?, ?)", (self.name, self.id, song["id"], index))
         await self.__connexion.commit()
@@ -533,11 +541,12 @@ class Config:
     def playlists(self, value):
         self._playlists = value
 
-    async def add_playlist(self, playlist):
+    async def add_playlist(self, playlist: Playlist):
         self._playlists.append(playlist)
         if self.is_copy:
             return
-        await self.__cursor.execute("INSERT INTO PLAYLIST VALUES (?, ?, ?, ?)", (playlist.name, self.id, playlist.songs["id"], len(self._playlists) - 1))
+        for song_index, song in enumerate(playlist.songs):
+            await self.__cursor.execute("INSERT INTO PLAYLIST VALUES (?, ?, ?, ?)", (playlist.name, self.id, song["id"], song_index))
         await self.__connexion.commit()
     
     async def remove_playlist(self, playlist):
@@ -580,12 +589,12 @@ class CustomFormatter(logging.Formatter):
         logging.INFO: "\033[32m" + format,  # Green
         logging.WARNING: "\033[33m" + format,  # Yellow
         logging.ERROR: "\033[31m" + format,  # Red
-        logging.CRITICAL: "\033[31m" + format,  # Red
+        logging.CRITICAL: "\033[41m" + format  # Red
     }
 
     def format(self, record):
         log_fmt = self.FORMATS.get(record.levelno)
-        formatter = logging.Formatter(log_fmt)
+        formatter = logging.Formatter(log_fmt, datefmt="%d/%m/%Y %H:%M:%S")
         return formatter.format(record)
     
 
