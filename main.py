@@ -1,7 +1,8 @@
 import datetime
+import multiprocessing
+from multiprocessing.connection import Connection
 import threading
 import discord.utils
-from panel.panel import app
 from utils import *
 import os
 import sys
@@ -20,17 +21,22 @@ def check_update():
         logging.info("Bot is already up to date")
     threading.Timer(18000, check_update).start()
 
-def start_app(app):
+def start_app(conn: Connection, bot):
+    from panel.panel import app
+    app.set_bot(bot)
     app.run(host="0.0.0.0")
+    conn.close()
+
 
 class Bot(commands.Bot):
     async def on_ready(self):
         global start_time
         await self.change_presence(
             activity=discord.Activity(type=discord.ActivityType.watching, name=f"/help | {len(self.guilds)} servers"))
-        app.set_bot(self)
         # pour pouvoir lancer le serveur web
-        threading.Thread(target=start_app, args=(app,), name="Panel").start()
+        parent_conn, child_conn = multiprocessing.Pipe()
+        p = multiprocessing.Process(target=start_app, args=(child_conn, self), name="Panel")
+        p.start()
 
         # On verifie si on est sur main ou sur dev ou une autre branche
         if os.popen("git branch --show-current").read().strip() == "main":
