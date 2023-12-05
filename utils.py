@@ -256,8 +256,15 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
             ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)), wait_finish=True)
     except:
         player = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(download(url), executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"), config.volume / 100)
-        ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)), wait_finish=True)
-
+        try:
+            ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)), wait_finish=True)
+        except:
+            try:
+                await ctx.guild.voice_client.disconnect(force=True)
+            except:
+                pass
+            await ctx.author.voice.channel.connect()
+            ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)), wait_finish=True)
 
 async def on_play_song_finished(ctx: discord.ApplicationContext, error=None):
     if error is not None and error:
@@ -596,9 +603,8 @@ async def get_config(guild_id, is_copy) -> Config | None:
 
 class CustomFormatter(logging.Formatter):
     """Logging Formatter to add colors"""
-
-    format = "[%(asctime)s] %(levelname)s : %(message)s" + "\033[0m"
-
+    # [timestamp] level : message (path.to.file.from.working.directory:line_number) # On obtient le chemin relatif et on remplace les / (ou \) par des . comme pour les modules
+    format = "[{asctime}] {levelname} : {message} (" + "{pathname}".replace(os.getcwd(), "").replace("\\", "/").replace("/", ".") + ":{lineno}" + ")\033[0m"
     FORMATS = {
         logging.DEBUG: "\033[34m" + format,  # Blue
         logging.INFO: "\033[32m" + format,  # Green
@@ -609,7 +615,7 @@ class CustomFormatter(logging.Formatter):
 
     def format(self, record):
         log_fmt = self.FORMATS.get(record.levelno)
-        formatter = logging.Formatter(log_fmt, datefmt="%d/%m/%Y %H:%M:%S")
+        formatter = logging.Formatter(log_fmt, datefmt="%d/%m/%Y %H:%M:%S", style = "{")
         return formatter.format(record)
     
 

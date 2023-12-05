@@ -1,3 +1,4 @@
+import multiprocessing
 import threading
 from discord.commands import SlashCommandGroup
 from utils import *
@@ -108,7 +109,6 @@ class Playlists(commands.Cog):
     async def play(self, ctx: discord.ApplicationContext, name: discord.Option(str, "The name of the playlist", required=True, autocomplete=discord.utils.basic_autocomplete(get_playlists))):
         await ctx.response.defer()
         queue = await get_config(ctx.guild.id, False)
-        await ctx.response.defer()
         if name not in [playlist.name for playlist in queue.playlists]:
             await queue.close()
             return await ctx.respond(embed=EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
@@ -116,14 +116,17 @@ class Playlists(commands.Cog):
         await queue.edit_queue([playlist for playlist in queue.playlists if playlist.name == name][0].songs)
         await queue.set_position(0)
         await queue.close()
+        q = multiprocessing.Queue()
+        p = multiprocessing.Process(target=worker, args=(q,))
+        p.start()
         for song in queue.queue:
-            # On limite le nombre de threads à 3
-            while len([thread for thread in threading.enumerate() if thread.name.startswith("Download-")]) >= 3:
-                await asyncio.sleep(0.1)
+            
             if pytube.YouTube(song['url']).length > 12000:
                 await ctx.respond(embed=discord.Embed(title="Error", description=f"The video [{pytube.YouTube(song['url']).title}]({song['url']}) is too long", color=0xff0000))
             else:
-                threading.Thread(target=download, args=(song['url'],), name=f"Download-{pytube.YouTube(song['url']).video_id}").start()
+                q.put(song['url'])
+        q.put(None)
+        p.join()
         if ctx.guild.voice_client is None:
             await ctx.user.voice.channel.connect()
         if not ctx.guild.voice_client.is_playing():
@@ -184,6 +187,15 @@ class Playlists(commands.Cog):
         await queue.close()
         await ctx.respond(embed=discord.Embed(title="Playlist", description=f"Playlist {name} renamed to {new_name}.", color=0x00ff00))
 
+
+def worker(queue: multiprocessing.Queue):
+    while True:
+        song_url = queue.get()
+        if song_url is None:
+            break
+        download(song_url)
+    queue.task_done()
+    queue.close()
 
 def setup(bot):
     bot.add_cog(Playlists(bot))
