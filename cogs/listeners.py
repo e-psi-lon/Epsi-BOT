@@ -5,6 +5,7 @@ class Listeners(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
+
     @commands.Cog.listener("on_voice_state_update")
     async def on_voice_state_update(self, _: discord.Member, before: discord.VoiceState,
                                     after: discord.VoiceState):

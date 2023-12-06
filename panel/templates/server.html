@@ -41,7 +41,7 @@
                         <div class="song_info">
                             <div class="title">{{ song["title"] }}</div>
                             <div class="url" draggable="false"><a draggable="false" target="_blank" href={{ song["url"] }}>{{ song["url"] }}</a></div>
-                            <div class="asker">Asked by {{ app.bot.get_user(song["asker"]).global_name }}</div>
+                            <div class="asker">Asked by {{ get_from_conn(app.conn, "user", user_id=song["asker"])["global_name"] }}</div>
                             <button class="remove" type="button" onclick="window.location.href='/server/{{ server['id'] }}/remove/{{ song["id"] }}'">Supprimer</button>
                         </div>
                     </div>

@@ -1,3 +1,4 @@
+import multiprocessing
 import threading
 from utils import *
 
@@ -41,21 +42,27 @@ class Channel(commands.Cog):
             # Si il y a plus d'un élément dans la queue on les télécharge tous sur un thread séparé
             await play_song(ctx, queue.queue[queue.position]['url'])
             if len(queue.queue) > 1:
+                q = multiprocessing.Queue()
+                p = multiprocessing.Process(target=worker, args=(q,), name="Audio-Downloader")
+                p.start()
                 for song in queue.queue[1:]:
-                    # On limite le nombre de threads à 3
-                    while len([thread for thread in threading.enumerate() if thread.name.startswith("Download-")]) >= 3:
-                        await asyncio.sleep(0.1)
-                    video = pytube.YouTube(song['url'])
-                    if video.length > 12000:
-                        await ctx.respond(embed=discord.Embed(title="Error",
-                                                              description=f"The video [{video.title}]({song['url']}) is too long",
-                                                              color=0xff0000))
+                    if pytube.YouTube(song['url']).length > 12000:
+                        await ctx.respond(embed=discord.Embed(title="Error", description=f"The video [{pytube.YouTube(song['url']).title}]({song['url']}) is too long", color=0xff0000))
                     else:
-                        threading.Thread(target=download, args=(song['url'],),
-                                         name=f"Download-{video.video_id}").start()
+                        q.put(song['url'])
+                q.put(None)
+                p.join()
         else:
             await queue.close()
 
+
+def worker(q: multiprocessing.Queue):
+    while True:
+        url = q.get()
+        if url is None:
+            break
+        download(url)
+    q.close()
 
 def setup(bot):
     bot.add_cog(Channel(bot))

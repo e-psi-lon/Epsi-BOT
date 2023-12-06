@@ -117,10 +117,9 @@ class Playlists(commands.Cog):
         await queue.set_position(0)
         await queue.close()
         q = multiprocessing.Queue()
-        p = multiprocessing.Process(target=worker, args=(q,))
+        p = multiprocessing.Process(target=worker, args=(q,), name="Audio-Downloader")
         p.start()
         for song in queue.queue:
-            
             if pytube.YouTube(song['url']).length > 12000:
                 await ctx.respond(embed=discord.Embed(title="Error", description=f"The video [{pytube.YouTube(song['url']).title}]({song['url']}) is too long", color=0xff0000))
             else:
@@ -194,7 +193,6 @@ def worker(queue: multiprocessing.Queue):
         if song_url is None:
             break
         download(song_url)
-    queue.task_done()
     queue.close()
 
 def setup(bot):

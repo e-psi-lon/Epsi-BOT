@@ -1,16 +1,17 @@
 import datetime
 import multiprocessing
 from multiprocessing.connection import Connection
-import threading
 import discord.utils
 from utils import *
+import threading
 import os
 import sys
+from discord.ext import tasks
 
 
 
-
-def check_update():
+@tasks.loop(seconds=18000)
+async def check_update():
     current_hash = os.popen("git rev-parse HEAD").read().strip()
     origin_hash = os.popen("git ls-remote origin main | awk '{print $1}'").read().strip()
     if current_hash != origin_hash:
@@ -19,13 +20,15 @@ def check_update():
         os.execl(sys.executable, sys.executable, *sys.argv)
     else:
         logging.info("Bot is already up to date")
-    threading.Timer(18000, check_update).start()
 
-def start_app(conn: Connection, bot):
+def start_app(conn: Connection):
     from panel.panel import app
-    app.set_bot(bot)
+    app.set_connection(conn)
     app.run(host="0.0.0.0")
     conn.close()
+
+
+
 
 
 class Bot(commands.Bot):
@@ -35,17 +38,48 @@ class Bot(commands.Bot):
             activity=discord.Activity(type=discord.ActivityType.watching, name=f"/help | {len(self.guilds)} servers"))
         # pour pouvoir lancer le serveur web
         parent_conn, child_conn = multiprocessing.Pipe()
-        p = multiprocessing.Process(target=start_app, args=(child_conn, self), name="Panel")
+        p = multiprocessing.Process(target=start_app, args=(child_conn,), name="Panel")
         p.start()
-
+        self.conn = parent_conn
         # On verifie si on est sur main ou sur dev ou une autre branche
         if os.popen("git branch --show-current").read().strip() == "main":
-            check_update()
-            threading.Timer(18000, check_update).start()
+            check_update.start()
+        # On lance le thread qui va écouter les messages du serveur web
+        threading.Thread(target=listen_to_conn, args=(self,), name="Listener").start()
         logging.info(f"Bot ready in {datetime.datetime.now() - start_time}")
         self.help_command = commands.DefaultHelpCommand()
         
-
+def listen_to_conn(bot: Bot):
+    while True:
+        message = bot.conn.recv()
+        match message:
+            case {"type": "get", "content": "guilds"}:
+                bot.conn.send([{
+                    "name": guild.name,
+                    "id": guild.id,
+                    "icon": guild.icon,
+                    "members": [{"name": member.name, "global_name": member.global_name, "id": member.id, "avatar": member.avatar if not hasattr(member.avatar, "url") else member.avatar.url} for member in guild.members],
+                    "channels": [{"name": channel.name, "id": channel.id, "type": channel.type.name} for channel in guild.channels]
+                } for guild in bot.guilds])
+            case {"type": "get", "content": "guild"}:
+                guild = bot.get_guild(message["guild_id"])
+                bot.conn.send({
+                    "name": guild.name,
+                    "id": guild.id,
+                    "icon": guild.icon,
+                    "members": [{"name": member.name, "global_name": member.global_name, "id": member.id, "avatar": member.avatar if not hasattr(member.avatar, "url") else member.avatar.url} for member in guild.members],
+                    "channels": [{"name": channel.name, "id": channel.id, "type": channel.type.name} for channel in guild.channels]
+                })
+            case {"type": "get", "content": "user"}:
+                user = bot.get_user(message["user_id"])
+                bot.conn.send({
+                    "name": user.name,
+                    "global_name": user.global_name,
+                    "id": user.id,
+                    "avatar": user.avatar if not hasattr(user.avatar, "url") else user.avatar.url
+                })
+            case _:
+                pass
 
 bot = Bot(intents=discord.Intents.all())
 

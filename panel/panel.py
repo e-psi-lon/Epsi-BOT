@@ -1,18 +1,18 @@
 from threading import Timer
 from utils import *
 from flask import *
-from discord.ext import commands
 import requests
 import pytube
+from multiprocessing.connection import Connection
 
 
 class Panel(Flask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.bot: commands.Bot | None = None
+        self.conn: Connection | None = None
 
-    def set_bot(self, bot: commands.Bot):
-        self.bot = bot
+    def set_connection(self, conn: Connection):
+        self.conn = conn
 
 
 app = Panel(__name__)
@@ -24,6 +24,12 @@ REDIRECT_URI = "http://86.196.98.254/auth/discord/callback"
 
 timers = {}
 guilds: dict[int, list[discord.Guild]] = {}
+
+def get_from_conn(conn: Connection, content: str, **kwargs):
+    conn.send({"type": "get", "content": content, **kwargs})
+    data = conn.recv()
+    logging.info(type(data))
+    return conn.recv()
 
 def to_url(url: str) -> str:
     return url.replace(' ', '%20')\
@@ -56,15 +62,16 @@ async def panel():
         if user['avatar']:
             user['avatar_url'] = f"https://cdn.discordapp.com/avatars/{user['id']}/{user['avatar']}.png"
         if user['id'] == '708006478807695450':
-            guilds[session['user_id']] = app.bot.guilds
+            guilds[session['user_id']] = app.conn
         else:
-            guilds[session['user_id']] = [guild for guild in str(app.bot.guilds) if session["user_id"] in [str(member.id) for member in guild.members]]
+            guilds[session['user_id']] = [guild for guild in str(get_from_conn(app.conn, "guilds")) if session["user_id"] in [str(member["id"]) for member in guild["members"]]]
         session['user'] = user
     if guilds.get(session["user_id"], None) is None:
         if session['user']['id'] == '708006478807695450':
-            guilds[session['user_id']] = app.bot.guilds
+            # On demande a la connexion avec le bot de nous donner les guilds. Pour cela on lui envoie un message et on attend la reponse
+            guilds[session['user_id']] = get_from_conn(app.conn, "guilds")
         else:
-            guilds[session['user_id']] = [guild for guild in app.bot.guilds if str(session["user_id"]) in [str(member.id) for member in guild.members]]
+            guilds[session['user_id']] = [guild for guild in get_from_conn(app.conn, "guilds") if str(session["user_id"]) in [str(member["id"]) for member in guild["members"]]]
     return render_template('panel.html', servers=guilds[session['user_id']], user=session['user'])
 
 
@@ -92,7 +99,7 @@ async def server(server_id):
         return redirect(url_for('server', server_id=server_id))
     server_data = {"loop_song": config.loop_song, "loop_queue": config.loop_queue, "random": config.random,
                    "position": config.position, "queue": config.queue, "id": server_id,
-                   "name": app.bot.get_guild(server_id).name}
+                   "name": get_from_conn(app.conn, f"guild", server_id=server_id)["name"]}
     return render_template('server.html', server=server_data, app=app, pytube=pytube)
 
 

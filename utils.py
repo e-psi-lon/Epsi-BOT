@@ -12,22 +12,26 @@ import discord.ext.pages
 from discord.ext import commands
 import requests
 import aiosqlite
-import threading
 
 def download(url: str, file_format: str = "mp3"):
     """Download a video from a YouTube URL"""
     if not url.startswith("https://youtube.com/watch?v="):
         if os.path.exists(f"cache/{format_name(url.split('/')[-1])}"):
+            logging.info(f"{url.split('/')[-1]} already in cache as cache/{format_name(url.split('/')[-1])}")
             return f"cache/{format_name(url.split('/')[-1])}"
         r = requests.get(url)
         with open(f"cache/{format_name(url.split('/')[-1])}", "wb") as f:
             f.write(r.content)
+        logging.info(f"Downloaded {url.split('/')[-1]} to cache/{format_name(url.split('/')[-1])}")
         return f"cache/{format_name(url.split('/')[-1])}"
     stream = pytube.YouTube(url)
+    video_id = stream.video_id
     if os.path.exists(f"cache/{format_name(stream.title)}.{file_format}"):
+        logging.info(f"Downloaded {stream.title} to cache/{format_name(stream.title)}.{file_format} (video id: {video_id})")
         return f"cache/{format_name(stream.title)}.{file_format}"
     stream = stream.streams.filter(only_audio=True).first()
     stream.download(filename=f"cache/{format_name(stream.title)}.{file_format}")
+    logging.info(f"Downloaded {stream.title} to cache/{format_name(stream.title)}.{file_format} (video id: {video_id})")
     return f"cache/{format_name(stream.title)}.{file_format}"
 
 
