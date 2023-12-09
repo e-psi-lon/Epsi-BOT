@@ -1,13 +1,20 @@
 import datetime
 import multiprocessing
 from multiprocessing.connection import Connection
-import discord.utils
-from utils import *
 import threading
 import os
 import sys
+import dependencies_check
+if __name__ == "__main__":
+    if len(list(dependencies_check.check_libs())) > 0 and list(dependencies_check.check_libs())[0][0] != "pynacl":
+        dependencies_check.update_libs([lib for lib, _, _ in dependencies_check.check_libs()])
+        os.execl(sys.executable, sys.executable, *sys.argv)
+import discord.utils
+from utils import *
 from discord.ext import tasks
+from dotenv import load_dotenv
 
+load_dotenv()
 
 
 @tasks.loop(seconds=18000)
@@ -54,29 +61,50 @@ def listen_to_conn(bot: Bot):
         message = bot.conn.recv()
         match message:
             case {"type": "get", "content": "guilds"}:
+                logging.info("Got a request for all guilds")
                 bot.conn.send([{
                     "name": guild.name,
                     "id": guild.id,
-                    "icon": guild.icon,
-                    "members": [{"name": member.name, "global_name": member.global_name, "id": member.id, "avatar": member.avatar if not hasattr(member.avatar, "url") else member.avatar.url} for member in guild.members],
-                    "channels": [{"name": channel.name, "id": channel.id, "type": channel.type.name} for channel in guild.channels]
+                    "icon": "" if not hasattr(guild.icon, "url") else guild.icon.url,
+                    "members": [{
+                        "name": member.name,
+                        "global_name": member.global_name,
+                        "id": member.id,
+                        "avatar": "" if not hasattr(member.avatar, "url") else member.avatar.url
+                    } for member in guild.members],
+                    "channels": [{
+                        "name": channel.name,
+                        "id": channel.id,
+                        "type": channel.type.name
+                    } for channel in guild.channels]
                 } for guild in bot.guilds])
             case {"type": "get", "content": "guild"}:
-                guild = bot.get_guild(message["guild_id"])
+                logging.info(f"Got a request for a specific guild : {message}")
+                guild = bot.get_guild(message["server_id"])
                 bot.conn.send({
                     "name": guild.name,
                     "id": guild.id,
-                    "icon": guild.icon,
-                    "members": [{"name": member.name, "global_name": member.global_name, "id": member.id, "avatar": member.avatar if not hasattr(member.avatar, "url") else member.avatar.url} for member in guild.members],
-                    "channels": [{"name": channel.name, "id": channel.id, "type": channel.type.name} for channel in guild.channels]
+                    "icon": "" if not hasattr(guild.icon, "url") else guild.icon.url,
+                    "members": [{
+                        "name": member.name,
+                        "global_name": member.global_name,
+                        "id": member.id,
+                        "avatar": "" if not hasattr(member.avatar, "url") else member.avatar.url
+                    } for member in guild.members],
+                    "channels": [{
+                        "name": channel.name,
+                        "id": channel.id,
+                        "type": channel.type.name
+                    } for channel in guild.channels]
                 })
             case {"type": "get", "content": "user"}:
+                logging.info(f"Got a request for a specific user : {message}")
                 user = bot.get_user(message["user_id"])
                 bot.conn.send({
                     "name": user.name,
                     "global_name": user.global_name,
                     "id": user.id,
-                    "avatar": user.avatar if not hasattr(user.avatar, "url") else user.avatar.url
+                    "avatar": "" if not hasattr(user.avatar, "url") else user.avatar.url
                 })
             case _:
                 pass
@@ -109,15 +137,21 @@ def start(instance: Bot):
     ]
     os.system("cls" if os.name == "nt" else "clear")
     start_time = datetime.datetime.now()
-    print(f"\033[0mScript started at {datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')} using python executable {sys.executable}")
+    logging.info(f"Script started at {datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')} using python executable {sys.executable}")
+    if len(list(dependencies_check.check_updates())) > 0:
+        dependencies_check.update_requirements()
+        logging.info("Requirements updated")
+    if len(list(dependencies_check.check_libs())) > 0:
+        dependencies_check.update_libs([lib for lib, _, _ in dependencies_check.check_libs()])
+        logging.info("Libs updated")
     for cog in cogs:
         try:
             instance.load_extension(cog)
         except Exception as e:
-            print(f"Failed to load extension {cog}")
-            print(e)
+            logging.error(f"Failed to load extension {cog}")
+            logging.error(e)
     # Lancer l'instance du bot
-    instance.run("MTEyODA3NDQ0Njk4NTQ5ODYyNA.G-kQRY.fuaCtflpY1SrNMJAS2fqixVMmwRUF7m2HRW6tw")
+    instance.run(os.environ["TOKEN"])
 
 
 if __name__ == "__main__":

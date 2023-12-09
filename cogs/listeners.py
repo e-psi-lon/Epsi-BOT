@@ -13,9 +13,11 @@ class Listeners(commands.Cog):
         if after.channel is not None:
             if len(after.channel.members) == 1 and after.channel.members[0].id == self.bot.user.id:
                 await disconnect_from_channel(after, self.bot)
+                logging.info("Bot disconnected from channel")
         if before.channel is not None:
             if len(before.channel.members) == 1 and before.channel.members[0].id == self.bot.user.id:
                 await disconnect_from_channel(before, self.bot)
+                logging.info("Bot disconnected from channel")
 
     @commands.Cog.listener("on_guild_join")
     async def on_guild_join(self, guild: discord.Guild):

@@ -235,7 +235,7 @@ async def change_song(ctx: discord.ApplicationContext):
     try:
         await play_song(ctx, queue.queue[queue.position]['url'])
     except Exception as e:
-        print(f"Erreur : {e}")
+        logging.error(f"Erreur : {e}")
 
 
 async def play_song(ctx: discord.ApplicationContext, url: str):
@@ -272,7 +272,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
 
 async def on_play_song_finished(ctx: discord.ApplicationContext, error=None):
     if error is not None and error:
-        print("Error:", error)
+        logging.error("Error:", error)
         await ctx.respond(
             embed=discord.Embed(title="Error", description="An error occured while playing the song.", color=0xff0000))
     await change_song(ctx)

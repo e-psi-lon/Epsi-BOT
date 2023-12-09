@@ -1,15 +1,21 @@
+import sys
 from threading import Timer
 from utils import *
 from flask import *
 import requests
 import pytube
 from multiprocessing.connection import Connection
-
+import logging
 
 class Panel(Flask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.conn: Connection | None = None
+        # On modifie le logger pour qu'il affiche les logs selon le format qu'on a pour les autres logs
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setFormatter(CustomFormatter())
+        logging.basicConfig(level=logging.INFO, handlers=[console_handler])
+        self.logger = logging.getLogger(__name__)
 
     def set_connection(self, conn: Connection):
         self.conn = conn
@@ -28,8 +34,7 @@ guilds: dict[int, list[discord.Guild]] = {}
 def get_from_conn(conn: Connection, content: str, **kwargs):
     conn.send({"type": "get", "content": content, **kwargs})
     data = conn.recv()
-    logging.info(type(data))
-    return conn.recv()
+    return data
 
 def to_url(url: str) -> str:
     return url.replace(' ', '%20')\
@@ -78,7 +83,7 @@ async def panel():
 @app.route('/server/<int:server_id>', methods=['GET', 'POST'])
 async def server(server_id):
     config = await get_config(server_id, request.method != 'POST')
-    if server_id not in [guild.id for guild in guilds.get(session['user_id'], [])] or 'token' not in session or config is None:
+    if server_id not in [guild["id"] for guild in guilds.get(session['user_id'], [])] or 'token' not in session or config is None:
         return redirect(url_for('panel'))
     if request.method == 'POST':
         values = request.form.to_dict()
@@ -99,7 +104,7 @@ async def server(server_id):
         return redirect(url_for('server', server_id=server_id))
     server_data = {"loop_song": config.loop_song, "loop_queue": config.loop_queue, "random": config.random,
                    "position": config.position, "queue": config.queue, "id": server_id,
-                   "name": get_from_conn(app.conn, f"guild", server_id=server_id)["name"]}
+                   "name": get_from_conn(app.conn, "guild", server_id=server_id)["name"]}
     return render_template('server.html', server=server_data, app=app, pytube=pytube)
 
 
@@ -134,7 +139,7 @@ async def callback():
         session['user_id'] = user['id']
         timers[user['id']] = timer
         return redirect(url_for('panel'))
-    except requests.HTTPError:
+    except requests.HTTPError as e:
         return redirect(url_for('index'))
 
 
