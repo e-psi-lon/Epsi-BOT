@@ -41,3 +41,10 @@ Il y a 4 tables:
     | __server_id__ # | INT          |
     | __song_id__ #   | INT          |
     | position        | INT          |
+
+# Contributeurs 
+
+<a href = "https://github.com/e-psi-lon/Music-BOT/graphs/contributors">
+  <img src = "https://contrib.rocks/image?repo=e-psi-lon/Music-BOT"/> (la repo est privée donc je sais pas si ça affiche)
+</a>
+
