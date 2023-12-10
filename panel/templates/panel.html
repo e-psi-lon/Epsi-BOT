@@ -1,22 +1,23 @@
 <!DOCTYPE html>
 <html lang="fr">
-    <head>
-        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
-        <title>Liste des Serveurs</title>
-    </head>
-    <body>
-        <h1>Liste des Serveurs </h1>
-        <div class="user"><img src="{{ user["avatar_url"] if user["avatar_url"] else url_for('static', filename='default_avatar.png') }}" class="icon"><span class="name">{{ user["global_name"] }}</span></div>
-        <button class="logout" onclick="window.location.href='/logout'">Se déconnecter</button>
-        <ul class="ulServerList">
-            {% for server in servers %}
-                <li class="serverList">
-                    <div class="server" onclick="window.location.href='/server/{{ server["id"] }}'">
-                        <img src='{{ server["icon"] }}' class="icon">
-                        <div class="name">{{ server["name"] }}</div>
-                    </div>
-                </li>
-            {% endfor %}
-        </ul>
-    </body>
+<head>
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet" type="text/css">
+    <title>Liste des Serveurs</title>
+</head>
+<body>
+<h1>Liste des Serveurs </h1>
+<div class="user"><img  src="{{ user["avatar_url"] if user["avatar_url"] else url_for('static',
+    filename='default_avatar.png') }}" class="icon"><span class="name">{{ user["global_name"] }}</span></div>
+<button class="logout" onclick="window.location.href='/logout'">Se déconnecter</button>
+<ul class="ulServerList">
+    {% for server in servers %}
+    <li class="serverList">
+        <div class="server" onclick="window.location.href='/server/{{ server["id"] }}'">
+        <img class="icon" src='{{ server["icon"] }}'>
+        <div class="name">{{ server["name"] }}</div>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+</body>
 </html>

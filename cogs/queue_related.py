@@ -209,8 +209,9 @@ class Queue(commands.Cog):
         await queue.set_position(index - 1)
         await queue.close()
         ctx.guild.voice_client.stop()
-        await ctx.respond(embed=discord.Embed(title="Play", description=f"Playing [{song}]({queue.queue[index]['url']}).",
-                                              color=0x00ff00))
+        await ctx.respond(
+            embed=discord.Embed(title="Play", description=f"Playing [{song}]({queue.queue[index]['url']}).",
+                                color=0x00ff00))
 
     @play.command(name="number", description="Plays a song from the queue")
     async def play_queue_index(self, ctx: discord.ApplicationContext,
@@ -229,8 +230,8 @@ class Queue(commands.Cog):
         ctx.guild.voice_client.stop()
         await ctx.respond(
             embed=discord.Embed(title="Play",
-                                description=f"Playing [{queue.queue[index-1]['title']}]"
-                                            f"({queue.queue[index-1]['url']}).",
+                                description=f"Playing [{queue.queue[index - 1]['title']}]"
+                                            f"({queue.queue[index - 1]['url']}).",
                                 color=0x00ff00))
 
 

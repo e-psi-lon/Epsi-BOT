@@ -2,6 +2,7 @@ from utils import *
 
 removed_count = 0
 
+
 class Admin(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -44,10 +45,12 @@ class Admin(commands.Cog):
                                   color=0xff0000)
             return await ctx.respond(embed=embed, delete_after=30)
         removed_count = 0
+
         def check(m):
             global removed_count
             removed_count += 1
             return m.author.id == self.bot.user.id and m.id != 1128641774789861488 and removed_count <= count
+
         await ctx.channel.purge(check=check)
         embed = discord.Embed(title="Clean", description=f"Cleaned {count} messages.", color=0x00ff00)
         await ctx.respond(embed=embed, delete_after=30)

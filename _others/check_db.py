@@ -1,6 +1,7 @@
 import sqlite3
 import os
 
+
 def format_table(table):
     # table est un dict avec comme clé le nom de la clé et comme valeur une liste des valeurs pour cette clé
     # On récupère les clés
@@ -37,7 +38,6 @@ def format_table(table):
     return table
 
 
-
 def check_db():
     # On récupère les tables
     conn = sqlite3.connect("database/database.db")
@@ -64,7 +64,7 @@ def check_db():
         # On affiche le tableau
         print(format_table(table_dict))
     conn.close()
-    
+
 
 if __name__ == "__main__":
     os.system("cls" if os.name == "nt" else "clear")

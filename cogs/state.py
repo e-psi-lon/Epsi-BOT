@@ -20,9 +20,11 @@ class State(commands.Cog):
                        url: discord.Option(str, "The URL of the audio to play", required=True)):
         await ctx.response.defer()
         if ctx.user.id in [501303816302362635, 942531230291877910]:
-            return await ctx.respond(embed=discord.Embed(title="Error", description="Non mais tu me prends pour qui, je te connais hein",
-                                                         color=0xff0000))
-        if url.startswith("https://www.youtube.com/") or url.startswith("https://youtu.be/") or url.startswith("https://youtube.com/"):
+            return await ctx.respond(
+                embed=discord.Embed(title="Error", description="Non mais tu me prends pour qui, je te connais hein",
+                                    color=0xff0000))
+        if url.startswith("https://www.youtube.com/") or url.startswith("https://youtu.be/") or url.startswith(
+                "https://youtube.com/"):
             return await self.play_youtube(ctx, url)
         if ctx.guild.voice_client is None:
             return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
@@ -32,7 +34,8 @@ class State(commands.Cog):
             return await ctx.respond(embed=discord.Embed(title="Error", description="Invalid URL.", color=0xff0000))
         queue = await get_config(ctx.guild.id, False)
         if not queue.queue:
-            await queue.add_song_to_queue({'title': url.split('/')[-1].split('?')[0], 'url': url, 'asker': ctx.author.id})
+            await queue.add_song_to_queue(
+                {'title': url.split('/')[-1].split('?')[0], 'url': url, 'asker': ctx.author.id})
             await ctx.respond(embed=discord.Embed(title="Play",
                                                   description=f"Playing song [{url.split('/')[-1].split('?')[0]}]({url})",
                                                   color=0x00ff00))
@@ -74,7 +77,7 @@ class State(commands.Cog):
 
     @play.command(name="youtube", description="Plays the audio of a YouTube video")
     async def play_youtube(self, ctx: discord.ApplicationContext,
-                   query: discord.Option(str, "The YouTube audio to play", required=True)):
+                           query: discord.Option(str, "The YouTube audio to play", required=True)):
         await ctx.response.defer()
         if ctx.guild.voice_client is None:
             return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
@@ -83,14 +86,16 @@ class State(commands.Cog):
             try:
                 queue = await get_config(ctx.guild.id, False)
                 if not queue.queue:
-                    await queue.add_song_to_queue({'title': pytube.YouTube(query).title, 'url': url, 'asker': ctx.author.id})
+                    await queue.add_song_to_queue(
+                        {'title': pytube.YouTube(query).title, 'url': url, 'asker': ctx.author.id})
                     await queue.close()
                     await ctx.respond(embed=discord.Embed(title="Play",
                                                           description=f"Playing song [{pytube.YouTube(url).title}]({url})",
                                                           color=0x00ff00))
                     await play_song(ctx, url)
                     return await asyncio.sleep(1)
-                await queue.add_song_to_queue({'title': pytube.YouTube(query).title, 'url': url, 'asker': ctx.author.id})
+                await queue.add_song_to_queue(
+                    {'title': pytube.YouTube(query).title, 'url': url, 'asker': ctx.author.id})
                 await queue.close()
                 video = pytube.YouTube(url)
                 if video.length > 12000:
@@ -112,7 +117,8 @@ class State(commands.Cog):
                     embed=discord.Embed(title="Error", description="No results found.", color=0xff0000))
             view = Research(videos, ctx, False)
             await ctx.respond(
-                embed=discord.Embed(title="Select audio", description=f'Select an audio to play for query `{query}` from the list below',
+                embed=discord.Embed(title="Select audio",
+                                    description=f'Select an audio to play for query `{query}` from the list below',
                                     color=0x00ff00), view=view)
 
     @commands.slash_command(name="pause", description="Pauses the current song")
@@ -155,9 +161,9 @@ class State(commands.Cog):
         ctx.guild.voice_client.stop()
         await ctx.respond(embed=discord.Embed(title="Stop", description="Song stopped.", color=0x00ff00))
 
-
     @commands.slash_command(name="volume", description="Gets or sets the volume of the bot")
-    async def volume(self, ctx: discord.ApplicationContext, volume: discord.Option(int, "The volume to set (from 0 to 100)", required=False)):
+    async def volume(self, ctx: discord.ApplicationContext,
+                     volume: discord.Option(int, "The volume to set (from 0 to 100)", required=False)):
         await ctx.response.defer()
         if ctx.guild.voice_client is None:
             return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
@@ -173,11 +179,11 @@ class State(commands.Cog):
             except:
                 pass
             queue = await get_config(ctx.guild.id, False)
-            await queue.set_volume(volume*100)
+            await queue.set_volume(volume * 100)
             await queue.close()
             return await ctx.respond(embed=discord.Embed(title="Volume", description=f"Volume set to {volume}%",
-                                                  color=0x00ff00))
-            
+                                                         color=0x00ff00))
+
         try:
             await ctx.respond(embed=discord.Embed(title="Volume",
                                                   description=f"Volume is {ctx.guild.voice_client.source.volume * 100}%",

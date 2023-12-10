@@ -90,8 +90,8 @@ class Todo(commands.Cog):
     async def assign(self, ctx: discord.ApplicationContext,
                      index: discord.Option(int, "The index of the line to assign", required=True),
                      user: discord.Option(
-            discord.User, "The user to assign the task to", required=True)
-            ):
+                         discord.User, "The user to assign the task to", required=True)
+                     ):
         await ctx.response.defer()
         if ctx.channel.id != 1128286383161745479:
             embed = discord.Embed(title="Assignation d'une ligne", description="Cette commande ne peut être utilisée "

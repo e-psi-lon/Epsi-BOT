@@ -13,6 +13,7 @@ from discord.ext import commands
 import requests
 import aiosqlite
 
+
 def download(url: str, file_format: str = "mp3"):
     """Download a video from a YouTube URL"""
     if not url.startswith("https://youtube.com/watch?v="):
@@ -27,7 +28,8 @@ def download(url: str, file_format: str = "mp3"):
     stream = pytube.YouTube(url)
     video_id = stream.video_id
     if os.path.exists(f"cache/{format_name(stream.title)}.{file_format}"):
-        logging.info(f"Downloaded {stream.title} to cache/{format_name(stream.title)}.{file_format} (video id: {video_id})")
+        logging.info(
+            f"{stream.title} already in cache/{format_name(stream.title)}.{file_format} (video id: {video_id})")
         return f"cache/{format_name(stream.title)}.{file_format}"
     stream = stream.streams.filter(only_audio=True).first()
     stream.download(filename=f"cache/{format_name(stream.title)}.{file_format}")
@@ -73,8 +75,8 @@ async def finished_record_callback(sink, channel: discord.TextChannel):
     with io.BytesIO() as f:
         longest.export(f, format=sink.encoding)
         await message.edit(content=f"## Recorded {', '.join(mention_strs)}" if len(
-                               mention_strs) > 1 else f"Recorded {mention_strs[0]}" if len(
-                               mention_strs) == 1 else "Recorded no one",
+            mention_strs) > 1 else f"Recorded {mention_strs[0]}" if len(
+            mention_strs) == 1 else "Recorded no one",
                            files=files + [
                                discord.File(f, filename=f"record.{sink.encoding}")] if sink.encoding != "wav" else files
                            )
@@ -128,13 +130,16 @@ class SelectVideo(discord.ui.Select):
             await queue.close()
             return await interaction.message.edit(
                 embed=discord.Embed(title="Download", description="Song downloaded.", color=0x00ff00),
-                file=discord.File(f"cache/{format_name(stream.title)}", filename=f"{format_name(stream.title)}.mp3"), view=None)
+                file=discord.File(f"cache/{format_name(stream.title)}", filename=f"{format_name(stream.title)}.mp3"),
+                view=None)
         if not queue.queue:
             await queue.set_position(0)
-            await queue.add_song_to_queue({'title': pytube.YouTube(self.values[0]).title, 'url': self.values[0], 'asker': interaction.user.id})
+            await queue.add_song_to_queue(
+                {'title': pytube.YouTube(self.values[0]).title, 'url': self.values[0], 'asker': interaction.user.id})
             await queue.close()
         else:
-            await queue.add_song_to_queue({'title': pytube.YouTube(self.values[0]).title, 'url': self.values[0], 'asker': interaction.user.id})
+            await queue.add_song_to_queue(
+                {'title': pytube.YouTube(self.values[0]).title, 'url': self.values[0], 'asker': interaction.user.id})
             await queue.close()
         if interaction.guild.voice_client is None:
             await interaction.user.voice.channel.connect()
@@ -178,7 +183,8 @@ async def get_playlists(ctx: discord.AutocompleteContext):
 
 async def get_playlists_songs(ctx: discord.AutocompleteContext):
     config = await get_config(ctx.interaction.guild.id, True)
-    return [song['title'] for song in [playlist for playlist in config.playlists if playlist.name == ctx.options['playlist']][0].songs]
+    return [song['title'] for song in
+            [playlist for playlist in config.playlists if playlist.name == ctx.options['playlist']][0].songs]
 
 
 async def get_queue_songs(ctx: discord.AutocompleteContext):
@@ -202,8 +208,6 @@ def format_name(name: str):
         .replace("?", "u003F") \
         .replace('"', "u0022") \
         .replace("'", "u0027")
-
-
 
 
 def get_index_from_title(title, list_to_check):
@@ -250,25 +254,34 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description=f"The video [{video.title}]({url}) is too long",
                                     color=0xff0000))
-                                    
-        player = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(download(url), executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"), config.volume / 100)
+
+        player = discord.PCMVolumeTransformer(
+            discord.FFmpegPCMAudio(download(url), executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"),
+            config.volume / 100)
         try:
-            ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)), wait_finish=True)
+            ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
+                                        wait_finish=True)
         except:
             while ctx.guild.voice_client.is_playing():
                 await asyncio.sleep(0.1)
-            ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)), wait_finish=True)
+            ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
+                                        wait_finish=True)
     except:
-        player = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(download(url), executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"), config.volume / 100)
+        player = discord.PCMVolumeTransformer(
+            discord.FFmpegPCMAudio(download(url), executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"),
+            config.volume / 100)
         try:
-            ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)), wait_finish=True)
+            ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
+                                        wait_finish=True)
         except:
             try:
                 await ctx.guild.voice_client.disconnect(force=True)
             except:
                 pass
             await ctx.author.voice.channel.connect()
-            ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)), wait_finish=True)
+            ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
+                                        wait_finish=True)
+
 
 async def on_play_song_finished(ctx: discord.ApplicationContext, error=None):
     if error is not None and error:
@@ -278,16 +291,17 @@ async def on_play_song_finished(ctx: discord.ApplicationContext, error=None):
     await change_song(ctx)
 
 
-
 def convert(audio, file_format):
     stream = ffmpeg.input(audio)
     stream = ffmpeg.output(stream, f"{audio.split('/')[1][:-4]}.{file_format}", format=file_format)
     ffmpeg.run(stream)
     return f"{audio.split('/')[1][:-4]}.{file_format}"
 
+
 def sql_to_song(sql):
     """Convert a song from the database to a dict"""
     return {"id": sql[0], "title": sql[1], "url": sql[2], "asker": sql[3]}
+
 
 def song_to_sql(song):
     """Convert a song to a tuple to insert it in the database"""
@@ -310,12 +324,12 @@ class Playlist:
         await self.init()
         return self
 
-
     async def init(self):
         self.__connexion = await aiosqlite.connect(DATABASE_FILE)
         self.__cursor = await self.__connexion.cursor()
         for song in self.songs:
-            await self.__cursor.execute("SELECT * FROM SONG WHERE title = ? AND url = ? AND asker = ?", (song["title"], song["url"], song["asker"]))
+            await self.__cursor.execute("SELECT * FROM SONG WHERE title = ? AND url = ? AND asker = ?",
+                                        (song["title"], song["url"], song["asker"]))
             if await self.__cursor.fetchone() is None:
                 await self.__cursor.execute("SELECT COUNT(*) FROM SONG")
                 song["id"] = await self.__cursor.fetchone()
@@ -325,20 +339,21 @@ class Playlist:
         await self.__connexion.commit()
         if self.is_copy:
             await self.close()
-            
 
     async def add_song(self, song):
         self.songs.append(song)
         if self.is_copy:
             return
-        await self.__cursor.execute("SELECT * FROM SONG WHERE title = ? AND url = ? AND asker = ?", (song["title"], song["url"], song["asker"]))
+        await self.__cursor.execute("SELECT * FROM SONG WHERE title = ? AND url = ? AND asker = ?",
+                                    (song["title"], song["url"], song["asker"]))
         if await self.__cursor.fetchone() is None:
             # Si elle n'existe pas on l'ajoute, en ajoutant un id
             await self.__cursor.execute("SELECT COUNT(*) FROM SONG")
             song["id"] = await self.__cursor.fetchone()[0] + 1
             await self.__cursor.execute("INSERT INTO SONG VALUES (?, ?, ?, ?)", song_to_sql(song))
             logging.info(f"Added song {song['title']} to database")
-        await self.__cursor.execute("INSERT INTO PLAYLIST VALUES (?, ?, ?, ?)", (self.name, self.id, song["id"], len(self.songs) - 1))
+        await self.__cursor.execute("INSERT INTO PLAYLIST VALUES (?, ?, ?, ?)",
+                                    (self.name, self.id, song["id"], len(self.songs) - 1))
         logging.info(f"Added song {song['title']} to playlist {self.name} from server {self.server_id}")
         await self.__connexion.commit()
 
@@ -346,41 +361,44 @@ class Playlist:
         self.songs.remove(song)
         if self.is_copy:
             return
-        await self.__cursor.execute("DELETE FROM PLAYLIST WHERE server_id = ? AND name = ? AND song_id = ?", (self.id, self.name, song["id"]))
+        await self.__cursor.execute("DELETE FROM PLAYLIST WHERE server_id = ? AND name = ? AND song_id = ?",
+                                    (self.id, self.name, song["id"]))
         logging.info(f"Removed song {song['title']} from playlist {self.name} from server {self.server_id}")
         await self.__connexion.commit()
-    
+
     async def edit_name(self, name):
         self.name = name
         if self.is_copy:
             return
-        await self.__cursor.execute("UPDATE PLAYLIST SET name = ? WHERE server_id = ? AND name = ?", (name, self.server_id, self.name))
+        await self.__cursor.execute("UPDATE PLAYLIST SET name = ? WHERE server_id = ? AND name = ?",
+                                    (name, self.server_id, self.name))
         logging.info(f"Edited playlist {self.name} to {name} from server {self.server_id}")
         await self.__connexion.commit()
-    
+
     async def edit_songs(self, songs):
         self.songs = songs
         if self.is_copy:
             return
-        await self.__cursor.execute("DELETE FROM PLAYLIST WHERE server_id = ? AND name = ?", (self.server_id, self.name))
+        await self.__cursor.execute("DELETE FROM PLAYLIST WHERE server_id = ? AND name = ?",
+                                    (self.server_id, self.name))
         logging.info(f"Edited playlist {self.name} from server {self.server_id}")
         for index, song in enumerate(songs):
-            await self.__cursor.execute("INSERT INTO PLAYLIST VALUES (?, ?, ?, ?)", (self.name, self.id, song["id"], index))
+            await self.__cursor.execute("INSERT INTO PLAYLIST VALUES (?, ?, ?, ?)",
+                                        (self.name, self.id, song["id"], index))
             logging.info(f"Added song {song['title']} to playlist {self.name}")
         await self.__connexion.commit()
-    
+
     async def delete(self):
         await self.__cursor.execute("DELETE FROM PLAYLIST WHERE server_id = ? AND name = ?", (self.id, self.name))
         await self.__connexion.commit()
         logging.info(f"Deleted playlist {self.name} from server {self.server_id}")
         await self.close()
-        
+
     async def close(self):
         await self.__connexion.close()
 
     def __eq__(self, other):
         return self.name == other.name and self.songs == other.songs and self.server_id == other.server_id
-
 
 
 class Config:
@@ -397,20 +415,20 @@ class Config:
         self.id = server_id
         self.is_copy = is_copy
 
-    
     @classmethod
     async def create(cls, server_id, is_copy):
         self = cls(server_id, is_copy)
         await self.init()
         return self
-        
+
     async def init(self):
         self.__connexion = await aiosqlite.connect(DATABASE_FILE)
         self.__cursor = await self.__connexion.cursor()
         await self.__cursor.execute("SELECT * FROM SERVER WHERE id = ?", (self.id,))
         config = await self.__cursor.fetchone()
         if config is None:
-            await self.__cursor.execute("INSERT INTO SERVER VALUES (?, ?, ?, ?, ?, ?)", (self.id, False, False, False, 100, 0))
+            await self.__cursor.execute("INSERT INTO SERVER VALUES (?, ?, ?, ?, ?, ?)",
+                                        (self.id, False, False, False, 100, 0))
             logging.info(f"Added server {self.id} to database")
             await self.__connexion.commit()
             await self.__cursor.execute("SELECT * FROM SERVER WHERE id = ?", (self.id,))
@@ -420,7 +438,9 @@ class Config:
         self._random = config[3]
         self._volume = config[4]
         self._position = config[5]
-        queue = await self.__cursor.execute("SELECT id, title, url, asker FROM SONG JOIN QUEUE ON SONG.id = QUEUE.song_id WHERE QUEUE.server_id = ? ORDER BY QUEUE.position", (self.id,))
+        queue = await self.__cursor.execute(
+            "SELECT id, title, url, asker FROM SONG JOIN QUEUE ON SONG.id = QUEUE.song_id WHERE QUEUE.server_id = ? ORDER BY QUEUE.position",
+            (self.id,))
         queue = await queue.fetchall()
         if queue is None:
             self._queue = []
@@ -432,12 +452,16 @@ class Config:
             playlists_name = []
         playlists_songs = []
         for playlist in playlists_name:
-            await self.__cursor.execute("SELECT id, title, url, asker FROM SONG JOIN PLAYLIST ON SONG.id = PLAYLIST.song_id WHERE PLAYLIST.name = ? ORDER BY PLAYLIST.position", playlist)
-            playlists_songs.append([sql_to_song(song) for song in await self.__cursor.fetchall() if await self.__cursor.fetchall() is not None])
-        self._playlists = [await Playlist.create(playlists_name[i][0], playlists_songs[i], self.id) for i in range(len(playlists_name))] if playlists_name is not None else []
+            await self.__cursor.execute(
+                "SELECT id, title, url, asker FROM SONG JOIN PLAYLIST ON SONG.id = PLAYLIST.song_id WHERE PLAYLIST.name = ? ORDER BY PLAYLIST.position",
+                playlist)
+            playlists_songs.append([sql_to_song(song) for song in await self.__cursor.fetchall() if
+                                    await self.__cursor.fetchall() is not None])
+        self._playlists = [await Playlist.create(playlists_name[i][0], playlists_songs[i], self.id) for i in
+                           range(len(playlists_name))] if playlists_name is not None else []
         if self.is_copy:
             await self.close()
-            
+
     @property
     def loop_song(self):
         return self._loop_song
@@ -449,11 +473,10 @@ class Config:
         await self.__cursor.execute("UPDATE SERVER SET loop_song = ? WHERE id = ?", (value, self.id))
         logging.info(f"Toggled loop_song to {value} for server {self.id}")
         await self.__connexion.commit()
-    
+
     @property
     def loop_queue(self):
         return self._loop_queue
-    
 
     async def set_loop_queue(self, value):
         self._loop_queue = value
@@ -462,11 +485,10 @@ class Config:
         await self.__cursor.execute("UPDATE SERVER SET loop_queue = ? WHERE id = ?", (value, self.id))
         logging.info(f"Toggled loop_queue to {value} for server {self.id}")
         await self.__connexion.commit()
-    
+
     @property
     def random(self):
         return self._random
-    
 
     async def set_random(self, value):
         self._random = value
@@ -475,11 +497,10 @@ class Config:
         await self.__cursor.execute("UPDATE SERVER SET random = ? WHERE id = ?", (value, self.id))
         logging.info(f"Toggled random to {value} for server {self.id}")
         await self.__connexion.commit()
-    
+
     @property
     def volume(self):
         return self._volume
-
 
     async def set_volume(self, value):
         self._volume = value
@@ -488,11 +509,10 @@ class Config:
         await self.__cursor.execute("UPDATE SERVER SET volume = ? WHERE id = ?", (value, self.id))
         logging.info(f"Updated volume to {value} for server {self.id}")
         await self.__connexion.commit()
-    
+
     @property
     def position(self):
         return self._position
-    
 
     async def set_position(self, value):
         self._position = value
@@ -505,12 +525,13 @@ class Config:
     @property
     def queue(self):
         return self._queue
-    
+
     async def add_song_to_queue(self, song):
         self._queue.append(song)
         if self.is_copy:
             return
-        await self.__cursor.execute("SELECT * FROM SONG WHERE title = ? AND url = ? AND asker = ?", (song["title"], song["url"], song["asker"]))
+        await self.__cursor.execute("SELECT * FROM SONG WHERE title = ? AND url = ? AND asker = ?",
+                                    (song["title"], song["url"], song["asker"]))
         if await self.__cursor.fetchone() is None:
             # Si elle n'existe pas on l'ajoute, en ajoutant un id
             await self.__cursor.execute("SELECT COUNT(*) FROM SONG")
@@ -519,7 +540,8 @@ class Config:
             await self.__cursor.execute("INSERT INTO SONG VALUES (?, ?, ?, ?)", song_to_sql(song))
             logging.info(f"Added song {song['title']} to database")
         else:
-            await self.__cursor.execute("SELECT id FROM SONG WHERE title = ? AND url = ? AND asker = ?", (song["title"], song["url"], song["asker"]))
+            await self.__cursor.execute("SELECT id FROM SONG WHERE title = ? AND url = ? AND asker = ?",
+                                        (song["title"], song["url"], song["asker"]))
             song["id"] = await self.__cursor.fetchone()
             song["id"] = song["id"][0]
         await self.__cursor.execute("INSERT INTO QUEUE VALUES (?, ?, ?)", (song["id"], self.id, len(self._queue) - 1))
@@ -536,7 +558,7 @@ class Config:
             await self.__connexion.commit()
         except ValueError:
             pass
-    
+
     async def edit_queue(self, queue):
         self._queue = queue
         if self.is_copy:
@@ -551,14 +573,13 @@ class Config:
         await self.__connexion.close()
         for playlist in self._playlists:
             await playlist.close()
-    
+
     async def copy(self):
         return await Config.create(self.id, True)
 
     @property
     def playlists(self):
         return self._playlists
-    
 
     @playlists.setter
     def playlists(self, value):
@@ -569,10 +590,11 @@ class Config:
         if self.is_copy:
             return
         for song_index, song in enumerate(playlist.songs):
-            await self.__cursor.execute("INSERT INTO PLAYLIST VALUES (?, ?, ?, ?)", (playlist.name, self.id, song["id"], song_index))
+            await self.__cursor.execute("INSERT INTO PLAYLIST VALUES (?, ?, ?, ?)",
+                                        (playlist.name, self.id, song["id"], song_index))
             logging.info(f"Added song {song['title']} to playlist {playlist.name} from server {self.id}")
         await self.__connexion.commit()
-    
+
     async def remove_playlist(self, playlist):
         self._playlists.remove(playlist)
         if self.is_copy:
@@ -580,7 +602,7 @@ class Config:
         await self.__cursor.execute("DELETE FROM PLAYLIST WHERE server_id = ? AND name = ?", (self.id, playlist.name))
         logging.info(f"Deleted playlist {playlist.name} from server {self.id}")
         await self.__connexion.commit()
-    
+
     async def edit_playlists(self, playlists: list[Playlist]):
         self._playlists = playlists
         if self.is_copy:
@@ -588,7 +610,8 @@ class Config:
         await self.__cursor.execute("DELETE FROM PLAYLIST WHERE server_id = ?", (self.id,))
         for playlist in playlists:
             for song_index, song in enumerate(playlist.songs):
-                await self.__cursor.execute("INSERT INTO PLAYLIST VALUES (?, ?, ?, ?)", (playlist.name, self.id, song["id"], song_index))
+                await self.__cursor.execute("INSERT INTO PLAYLIST VALUES (?, ?, ?, ?)",
+                                            (playlist.name, self.id, song["id"], song_index))
         logging.info(f"Edited all playlists from server {self.id}")
         await self.__connexion.commit()
 
@@ -603,12 +626,13 @@ async def get_config(guild_id, is_copy) -> Config | None:
         return await Config.create(guild_id, is_copy)
     else:
         return None
-    
+
 
 class CustomFormatter(logging.Formatter):
     """Logging Formatter to add colors"""
     # [timestamp] level : message (path.to.file.from.working.directory:line_number) # On obtient le chemin relatif et on remplace les / (ou \) par des . comme pour les modules
-    format = "[{asctime}] {levelname} : {message} (" + "{pathname}".replace(os.getcwd(), "").replace("\\", "/").replace("/", ".") + ":{lineno}" + ")\033[0m"
+    format = "[{asctime}] {levelname} : {message} (" + "{pathname}".replace(os.getcwd(), "").replace("\\", "/").replace(
+        "/", ".") + ":{lineno}" + ")\033[0m"
     FORMATS = {
         logging.DEBUG: "\033[34m" + format,  # Blue
         logging.INFO: "\033[32m" + format,  # Green
@@ -619,9 +643,8 @@ class CustomFormatter(logging.Formatter):
 
     def format(self, record):
         log_fmt = self.FORMATS.get(record.levelno)
-        formatter = logging.Formatter(log_fmt, datefmt="%d/%m/%Y %H:%M:%S", style = "{")
+        formatter = logging.Formatter(log_fmt, datefmt="%d/%m/%Y %H:%M:%S", style="{")
         return formatter.format(record)
-    
 
 
 def get_lyrics(title):

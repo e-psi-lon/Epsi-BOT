@@ -46,6 +46,5 @@ CREATE TABLE IF NOT EXISTS PLAYLIST (
 );
 ''')
 
-
 conn.commit()
 conn.close()

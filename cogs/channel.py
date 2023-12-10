@@ -47,7 +47,9 @@ class Channel(commands.Cog):
                 p.start()
                 for song in queue.queue[1:]:
                     if pytube.YouTube(song['url']).length > 12000:
-                        await ctx.respond(embed=discord.Embed(title="Error", description=f"The video [{pytube.YouTube(song['url']).title}]({song['url']}) is too long", color=0xff0000))
+                        await ctx.respond(embed=discord.Embed(title="Error",
+                                                              description=f"The video [{pytube.YouTube(song['url']).title}]({song['url']}) is too long",
+                                                              color=0xff0000))
                     else:
                         q.put(song['url'])
                 q.put(None)
@@ -63,6 +65,7 @@ def worker(q: multiprocessing.Queue):
             break
         download(url)
     q.close()
+
 
 def setup(bot):
     bot.add_cog(Channel(bot))

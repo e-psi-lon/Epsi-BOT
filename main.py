@@ -5,6 +5,7 @@ import threading
 import os
 import sys
 import dependencies_check
+
 if __name__ == "__main__":
     if len(list(dependencies_check.check_libs())) > 0 and list(dependencies_check.check_libs())[0][0] != "pynacl":
         dependencies_check.update_libs([lib for lib, _, _ in dependencies_check.check_libs()])
@@ -28,14 +29,12 @@ async def check_update():
     else:
         logging.info("Bot is already up to date")
 
+
 def start_app(conn: Connection):
     from panel.panel import app
     app.set_connection(conn)
     app.run(host="0.0.0.0")
     conn.close()
-
-
-
 
 
 class Bot(commands.Bot):
@@ -55,7 +54,8 @@ class Bot(commands.Bot):
         threading.Thread(target=listen_to_conn, args=(self,), name="Listener").start()
         logging.info(f"Bot ready in {datetime.datetime.now() - start_time}")
         self.help_command = commands.DefaultHelpCommand()
-        
+
+
 def listen_to_conn(bot: Bot):
     while True:
         message = bot.conn.recv()
@@ -109,6 +109,7 @@ def listen_to_conn(bot: Bot):
             case _:
                 pass
 
+
 bot = Bot(intents=discord.Intents.all())
 
 
@@ -118,7 +119,7 @@ async def _help(ctx):
     mapping = bot.get_bot_mapping()
     embeds = bot.send_bot_help(mapping)
     await ctx.respond(embeds=embeds)
-    
+
 
 def start(instance: Bot):
     # Charger les cogs
@@ -137,7 +138,8 @@ def start(instance: Bot):
     ]
     os.system("cls" if os.name == "nt" else "clear")
     start_time = datetime.datetime.now()
-    logging.info(f"Script started at {datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')} using python executable {sys.executable}")
+    logging.info(
+        f"Script started at {datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')} using python executable {sys.executable}")
     if len(list(dependencies_check.check_updates())) > 0:
         dependencies_check.update_requirements()
         logging.info("Requirements updated")

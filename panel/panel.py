@@ -7,6 +7,7 @@ import pytube
 from multiprocessing.connection import Connection
 import logging
 
+
 class Panel(Flask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -31,29 +32,33 @@ REDIRECT_URI = "http://86.196.98.254/auth/discord/callback"
 timers = {}
 guilds: dict[int, list[discord.Guild]] = {}
 
+
 def get_from_conn(conn: Connection, content: str, **kwargs):
     conn.send({"type": "get", "content": content, **kwargs})
     data = conn.recv()
     return data
 
+
 def to_url(url: str) -> str:
-    return url.replace(' ', '%20')\
-        .replace('?', '%3F')\
-        .replace('=', '%3D')\
-        .replace('&', '%26')\
-        .replace(':', '%3A')\
-        .replace('/', '%2F')\
-        .replace('+', '%2B')\
-        .replace(',', '%2C')\
-        .replace(';', '%3B')\
-        .replace('@', '%40')\
+    return url.replace(' ', '%20') \
+        .replace('?', '%3F') \
+        .replace('=', '%3D') \
+        .replace('&', '%26') \
+        .replace(':', '%3A') \
+        .replace('/', '%2F') \
+        .replace('+', '%2B') \
+        .replace(',', '%2C') \
+        .replace(';', '%3B') \
+        .replace('@', '%40') \
         .replace('#', '%23')
+
 
 @app.route('/')
 async def index():
     if 'token' in session:
         return redirect(url_for('panel'))
     return render_template('index.html')
+
 
 @app.route('/panel')
 async def panel():
@@ -69,21 +74,24 @@ async def panel():
         if user['id'] == '708006478807695450':
             guilds[session['user_id']] = app.conn
         else:
-            guilds[session['user_id']] = [guild for guild in str(get_from_conn(app.conn, "guilds")) if session["user_id"] in [str(member["id"]) for member in guild["members"]]]
+            guilds[session['user_id']] = [guild for guild in str(get_from_conn(app.conn, "guilds")) if
+                                          session["user_id"] in [str(member["id"]) for member in guild["members"]]]
         session['user'] = user
     if guilds.get(session["user_id"], None) is None:
         if session['user']['id'] == '708006478807695450':
             # On demande a la connexion avec le bot de nous donner les guilds. Pour cela on lui envoie un message et on attend la reponse
             guilds[session['user_id']] = get_from_conn(app.conn, "guilds")
         else:
-            guilds[session['user_id']] = [guild for guild in get_from_conn(app.conn, "guilds") if str(session["user_id"]) in [str(member["id"]) for member in guild["members"]]]
+            guilds[session['user_id']] = [guild for guild in get_from_conn(app.conn, "guilds") if
+                                          str(session["user_id"]) in [str(member["id"]) for member in guild["members"]]]
     return render_template('panel.html', servers=guilds[session['user_id']], user=session['user'])
 
 
 @app.route('/server/<int:server_id>', methods=['GET', 'POST'])
 async def server(server_id):
     config = await get_config(server_id, request.method != 'POST')
-    if server_id not in [guild["id"] for guild in guilds.get(session['user_id'], [])] or 'token' not in session or config is None:
+    if server_id not in [guild["id"] for guild in
+                         guilds.get(session['user_id'], [])] or 'token' not in session or config is None:
         return redirect(url_for('panel'))
     if request.method == 'POST':
         values = request.form.to_dict()
@@ -109,28 +117,33 @@ async def server(server_id):
 
 
 @app.route('/server/<int:server_id>/clear')
-async def clear(server_id): 
+async def clear(server_id):
     config = await get_config(server_id, False)
     await config.edit_queue([])
     return redirect(url_for('server', server_id=server_id))
 
+
 @app.route('/server/<int:server_id>/add', methods=['POST'])
 async def add(server_id):
     config = await get_config(server_id, False)
-    await config.add_song_to_queue({"title":pytube.YouTube(request.form['url']).title, "url":request.form['url'], "asker":session['user']['id']})
+    await config.add_song_to_queue({"title": pytube.YouTube(request.form['url']).title, "url": request.form['url'],
+                                    "asker": session['user']['id']})
     await config.close()
     return redirect(url_for('server', server_id=server_id))
 
+
 @app.route('/login')
 async def login():
-    return redirect(f"{API_ENDPOINT}/oauth2/authorize?client_id={CLIENT_ID}&redirect_uri={to_url(REDIRECT_URI)}&response_type=code&scope=identify%20guilds")
+    return redirect(
+        f"{API_ENDPOINT}/oauth2/authorize?client_id={CLIENT_ID}&redirect_uri={to_url(REDIRECT_URI)}&response_type=code&scope=identify%20guilds")
+
 
 @app.route('/auth/discord/callback')
 async def callback():
     code = request.args.get('code')
     try:
         token = await token_from_code(code)
-        timer = Timer(token['expires_in'], refresh_token, [token['refresh_token']])\
+        timer = Timer(token['expires_in'], refresh_token, [token['refresh_token']]) \
             .start()
         session['token'] = token
         user = requests.get(f"{API_ENDPOINT}/users/@me", headers={"Authorization": f"Bearer {token['access_token']}"})
@@ -170,6 +183,7 @@ async def token_from_code(code):
     json_data = r.json()
     return json_data
 
+
 async def refresh_token(token):
     data = {
         "grant_type": "refresh_token",
@@ -183,10 +197,11 @@ async def refresh_token(token):
     session['token'] = r.json()
     user_id = session['user']['id']
     session["user_id"] = user_id
-    timer = Timer(session['token']['expires_in'], refresh_token, [session['token']['refresh_token']])\
+    timer = Timer(session['token']['expires_in'], refresh_token, [session['token']['refresh_token']]) \
         .start()
     timers[user_id] = timer
     return r.json()
+
 
 async def revoke_access_token(access_token):
     data = {
