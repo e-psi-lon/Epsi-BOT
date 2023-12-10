@@ -83,4 +83,4 @@ def check_libs():
 
 def update_libs(libs):
     for lib in libs:
-        os.popen(f"{sys.executable} -m pip install --upgrade {lib}")
+        os.popen(f"python -m pip install --upgrade {lib}")
