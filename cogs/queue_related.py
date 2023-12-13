@@ -98,7 +98,11 @@ class Queue(commands.Cog):
                                                autocomplete=discord.utils.basic_autocomplete(get_queue_songs))):
         await ctx.response.defer()
         queue = await get_config(ctx.guild.id, False)
-        await queue.remove_song_from_queue([song for song in queue.queue if song['title'] == song][0])
+        if not queue.queue:
+            await queue.close()
+            return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
+        
+        await queue.remove_song_from_queue([songs for songs in queue.queue if songs['title'] == song][0])
         await queue.close()
         await ctx.respond(
             embed=discord.Embed(title="Remove", description=f"Removed {song} from the queue.", color=0x00ff00))
@@ -110,9 +114,9 @@ class Queue(commands.Cog):
         queue = await get_config(ctx.guild.id, False)
         if index < 0 or index >= len(queue.queue):
             await queue.close()
-            return await ctx.respond(
+            return await ctx.respond(embed=
                 discord.Embed(title="Error", description=f"Index {index} out of range.", color=0xff0000))
-        song = queue.queue[index]
+        song = queue.queue[index-1]
         await queue.remove_song_from_queue(song)
         await queue.close()
         await ctx.respond(

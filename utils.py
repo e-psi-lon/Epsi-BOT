@@ -556,6 +556,7 @@ class Config:
             await self.__cursor.execute("DELETE FROM QUEUE WHERE server_id = ? AND song_id = ?", (song["id"], self.id))
             logging.info(f"Removed song {song['title']} from {self.id} queue")
             await self.__connexion.commit()
+            await self.edit_queue(self._queue)
         except ValueError:
             pass
 

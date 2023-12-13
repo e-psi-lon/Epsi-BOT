@@ -51,7 +51,7 @@ class Bot(commands.Bot):
         if os.popen("git branch --show-current").read().strip() == "main":
             check_update.start()
         # On lance le thread qui va écouter les messages du serveur web
-        threading.Thread(target=listen_to_conn, args=(self,), name="Listener").start()
+        threading.Thread(target=listen_to_conn, args=(self,), name="Connection to panel").start()
         logging.info(f"Bot ready in {datetime.datetime.now() - start_time}")
         self.help_command = commands.DefaultHelpCommand()
 
