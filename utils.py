@@ -259,11 +259,14 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
             discord.FFmpegPCMAudio(download(url), executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"),
             config.volume / 100)
         try:
+            logging.info(f"Playing song {video.title}")
             ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
                                         wait_finish=True)
+                                        
         except:
             while ctx.guild.voice_client.is_playing():
                 await asyncio.sleep(0.1)
+            logging.info(f"Playing song {video.title}")
             ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
                                         wait_finish=True)
     except:
@@ -271,6 +274,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
             discord.FFmpegPCMAudio(download(url), executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"),
             config.volume / 100)
         try:
+            logging.info(f"Playing song {url}")
             ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
                                         wait_finish=True)
         except:
@@ -279,6 +283,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
             except:
                 pass
             await ctx.author.voice.channel.connect()
+            logging.info(f"Playing song {url}")
             ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
                                         wait_finish=True)
 
@@ -288,6 +293,7 @@ async def on_play_song_finished(ctx: discord.ApplicationContext, error=None):
         logging.error("Error:", error)
         await ctx.respond(
             embed=discord.Embed(title="Error", description="An error occured while playing the song.", color=0xff0000))
+    logging.info("Song finished")
     await change_song(ctx)
 
 
@@ -596,7 +602,7 @@ class Config:
             logging.info(f"Added song {song['title']} to playlist {playlist.name} from server {self.id}")
         await self.__connexion.commit()
 
-    async def remove_playlist(self, playlist):
+    async def remove_playlist(self, playlist: Playlist):
         self._playlists.remove(playlist)
         if self.is_copy:
             return
@@ -617,7 +623,7 @@ class Config:
         await self.__connexion.commit()
 
 
-async def get_config(guild_id, is_copy) -> Config | None:
+async def get_config(guild_id, is_copy) -> Config:
     connexion = await aiosqlite.connect(DATABASE_FILE)
     cursor = await connexion.cursor()
     await cursor.execute("SELECT * FROM SERVER WHERE id = ?", (guild_id,))
@@ -626,12 +632,16 @@ async def get_config(guild_id, is_copy) -> Config | None:
     if config is not None:
         return await Config.create(guild_id, is_copy)
     else:
-        return None
+        connexion = await aiosqlite.connect(DATABASE_FILE)
+        cursor = await connexion.cursor()
+        await cursor.execute("INSERT INTO SERVER VALUES (?, ?, ?, ?, ?, ?)", (guild_id, False, False, False, 100, 0))
+        await connexion.commit()
+        await connexion.close()
+        return await Config.create(guild_id, is_copy)
 
 
 class CustomFormatter(logging.Formatter):
     """Logging Formatter to add colors"""
-    # [timestamp] level : message (path.to.file.from.working.directory:line_number) # On obtient le chemin relatif et on remplace les / (ou \) par des . comme pour les modules
     format = "[{asctime}] {levelname} : {message} (" + "{pathname}".replace(os.getcwd(), "").replace("\\", "/").replace(
         "/", ".") + ":{lineno}" + ")\033[0m"
     FORMATS = {
