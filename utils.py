@@ -29,7 +29,7 @@ def download(url: str, file_format: str = "mp3"):
     video_id = stream.video_id
     if os.path.exists(f"cache/{format_name(stream.title)}.{file_format}"):
         logging.info(
-            f"{stream.title} already in cache/{format_name(stream.title)}.{file_format} (video id: {video_id})")
+            f"{stream.title} already in cache as cache/{format_name(stream.title)}.{file_format} (video id: {video_id})")
         return f"cache/{format_name(stream.title)}.{file_format}"
     stream = stream.streams.filter(only_audio=True).first()
     stream.download(filename=f"cache/{format_name(stream.title)}.{file_format}")
