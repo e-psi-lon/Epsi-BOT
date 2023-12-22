@@ -237,6 +237,7 @@ def worker(queue: multiprocessing.Queue):
             break
         download(song_url)
     queue.close()
+    logging.info("Audio-Downloader process ended")
 
 
 def setup(bot):

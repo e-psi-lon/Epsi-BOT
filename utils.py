@@ -115,6 +115,9 @@ class SelectVideo(discord.ui.Select):
         self.options = options
 
     async def callback(self, interaction: discord.Interaction):
+        # Si l'utilisateur a l'origine du select n'est pas l'utilisateur à l'origine de l'interaction, on ignore
+        if interaction.user.id != self.ctx.author.id:
+            return await interaction.response.send_message("You are not the author of the command.", ephemeral=True)
         await interaction.message.edit(
             embed=discord.Embed(title="Select audio", description=f"You selected : {self.options[0].label}",
                                 color=0x00ff00), view=None)

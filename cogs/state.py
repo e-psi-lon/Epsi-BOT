@@ -226,7 +226,7 @@ class State(commands.Cog):
 
         if vc.channel.voice_states[vc.client.user.id].self_deaf:
             return await ctx.respond(embed=discord.Embed(title="Error", description="Bot is deafened.", color=0xff0000))
-        timer = threading.Timer(time, finished_record)
+        timer = asyncio.TimerHandle(time, finished_record)
         vc.start_recording(
             format.value,
             finished_record_callback,
