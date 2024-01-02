@@ -263,6 +263,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description=f"The video [{video.title}]({url}) is too long",
                                     color=0xff0000))
+        file = download(url)
         player = discord.PCMVolumeTransformer(
             discord.FFmpegPCMAudio(file, executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"),
             config.volume / 100)

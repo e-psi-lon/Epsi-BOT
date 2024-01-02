@@ -104,14 +104,13 @@ class State(commands.Cog):
                         discord.Embed(title="Error", description=f"The video [{video.title}]({url}) is too long",
                                       color=0xff0000))
                 threading.Thread(target=download, args=(url,), name=f"Download-{video.video_id}").start()
-                # Instead of using a Thread, use futures
                 await ctx.respond(embed=discord.Embed(title="Queue",
                                                       description=f"Song [{pytube.YouTube(url).title}]({url}) added to queue.",
                                                       color=0x00ff00))
             except Exception as e:
                 logging.error(f"Error while adding song to queue: {e}")
                 return await ctx.respond(
-                    embed=discord.Embed(title="Error", description="Error while getting song.", color=0xff0000))
+                    embed=discord.Embed(title="Error", description=f"Error while adding song to queue. (Error: {e})", color=0xff0000))
         except:
             videos = pytube.Search(query).results
             if not videos:
