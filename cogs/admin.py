@@ -39,11 +39,6 @@ class Admin(commands.Cog):
         if ctx.author.id != OWNER_ID:
             embed = discord.Embed(title="Error", description="You are not the owner of the bot.", color=0xff0000)
             return await ctx.respond(embed=embed, delete_after=30)
-        if ctx.channel.id != 1128286383161745479:
-            embed = discord.Embed(title="Error",
-                                  description="You must be in <#1128286383161745479> to use this command.",
-                                  color=0xff0000)
-            return await ctx.respond(embed=embed, delete_after=30)
         removed_count = 0
 
         def check(m):

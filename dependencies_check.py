@@ -1,4 +1,3 @@
-import sys
 import pkg_resources
 import os
 
