@@ -1,4 +1,5 @@
 import threading
+import concurrent.futures as futures
 from datetime import datetime
 from discord.ext import commands
 from discord.commands import SlashCommandGroup
@@ -103,6 +104,7 @@ class State(commands.Cog):
                         discord.Embed(title="Error", description=f"The video [{video.title}]({url}) is too long",
                                       color=0xff0000))
                 threading.Thread(target=download, args=(url,), name=f"Download-{video.video_id}").start()
+                # Instead of using a Thread, use futures
                 await ctx.respond(embed=discord.Embed(title="Queue",
                                                       description=f"Song [{pytube.YouTube(url).title}]({url}) added to queue.",
                                                       color=0x00ff00))

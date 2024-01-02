@@ -4,7 +4,7 @@ from utils import *
 from flask import *
 import requests
 import pytube
-from multiprocessing.connection import Connection
+from multiprocessing.connection import Connection, PipeConnection
 import logging
 
 
@@ -36,6 +36,8 @@ guilds: dict[int, list[discord.Guild]] = {}
 def get_from_conn(conn: Connection, content: str, **kwargs):
     conn.send({"type": "get", "content": content, **kwargs})
     data = conn.recv()
+    if isinstance(data, PipeConnection):
+        data = data.get()
     return data
 
 

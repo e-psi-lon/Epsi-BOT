@@ -1,10 +1,10 @@
 import datetime
 import multiprocessing
 from multiprocessing.connection import Connection
-import threading
 import os
 import sys
 import dependencies_check
+import threading
 
 if __name__ == "__main__":
     if len(list(dependencies_check.check_libs())) > 0 and list(dependencies_check.check_libs())[0][0] != "pynacl":
@@ -50,8 +50,8 @@ class Bot(commands.Bot):
         # On verifie si on est sur main ou sur dev ou une autre branche
         if os.popen("git branch --show-current").read().strip() == "main":
             check_update.start()
-        # On lance le thread qui va écouter les messages du serveur web
-        threading.Thread(target=listen_to_conn, args=(self,), name="Connection to panel").start()
+        # On lance la tache asynchrone qui va écouter les connexions
+        threading.Thread(target=listen_to_conn, args=(self,), name="Connection-Listener").start()
         logging.info(f"Bot ready in {datetime.datetime.now() - start_time}")
         self.help_command = commands.DefaultHelpCommand()
 
@@ -111,6 +111,7 @@ def listen_to_conn(bot: Bot):
 
 
 bot = Bot(intents=discord.Intents.all())
+bot.owner_id = 708006478807695450
 
 
 @bot.slash_command(name="help", description="Affiche l'aide du bot", guild_ids=[812807444698549862])
@@ -120,6 +121,21 @@ async def _help(ctx):
     embeds = bot.send_bot_help(mapping)
     await ctx.respond(embeds=embeds)
 
+
+@bot.slash_command(name="send", description="Envoie un message dans un salon")
+async def send_message(ctx: discord.ApplicationContext, channel: int, *, message: str):
+    if ctx.author.id != bot.owner_id:
+        raise commands.NotOwner
+    await ctx.response.defer()
+    channel = bot.get_channel(channel)
+    await channel.send(message)
+    await ctx.respond(content="Message envoyé !", ephemeral=True)
+
+
+@send_message.error
+async def send_message_error(ctx, error):
+    if isinstance(error, commands.NotOwner):
+        await ctx.send("Vous n'êtes pas propriétaire du bot !", ephemeral=True)
 
 def start(instance: Bot):
     # Charger les cogs

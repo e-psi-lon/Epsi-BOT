@@ -12,7 +12,7 @@ import discord.ext.pages
 from discord.ext import commands
 import requests
 import aiosqlite
-
+import pytube.exceptions as pytube_exce
 
 def download(url: str, file_format: str = "mp3"):
     """Download a video from a YouTube URL"""
@@ -27,12 +27,15 @@ def download(url: str, file_format: str = "mp3"):
         return f"cache/{format_name(url.split('/')[-1])}"
     stream = pytube.YouTube(url)
     video_id = stream.video_id
+    if stream.age_restricted:
+        logging.warning(f"Video {stream.title} is age restricted (video id: {video_id})")
+        return None
     if os.path.exists(f"cache/{format_name(stream.title)}.{file_format}"):
         logging.info(
             f"{stream.title} already in cache as cache/{format_name(stream.title)}.{file_format} (video id: {video_id})")
         return f"cache/{format_name(stream.title)}.{file_format}"
     stream = stream.streams.filter(only_audio=True).first()
-    stream.download(filename=f"cache/{format_name(stream.title)}.{file_format}")
+    stream.download(filename=f"cache/{format_name(stream.title)}.{file_format}")    
     logging.info(f"Downloaded {stream.title} to cache/{format_name(stream.title)}.{file_format} (video id: {video_id})")
     return f"cache/{format_name(stream.title)}.{file_format}"
 
@@ -253,13 +256,15 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
     config = await get_config(ctx.guild.id, True)
     try:
         video = pytube.YouTube(url)
+        if video.age_restricted:
+            return await ctx.respond(embed=discord.Embed(title="Error", description=f"The [video]({url}) is age restricted",
+                                                         color=0xff0000))
         if video.length > 12000:
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description=f"The video [{video.title}]({url}) is too long",
                                     color=0xff0000))
-
         player = discord.PCMVolumeTransformer(
-            discord.FFmpegPCMAudio(download(url), executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"),
+            discord.FFmpegPCMAudio(file, executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"),
             config.volume / 100)
         try:
             logging.info(f"Playing song {video.title}")
@@ -273,8 +278,9 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
             ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
                                         wait_finish=True)
     except:
+        file = download(url)
         player = discord.PCMVolumeTransformer(
-            discord.FFmpegPCMAudio(download(url), executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"),
+            discord.FFmpegPCMAudio(file, executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"),
             config.volume / 100)
         try:
             logging.info(f"Playing song {url}")

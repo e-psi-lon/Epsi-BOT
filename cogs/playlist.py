@@ -151,9 +151,15 @@ class Playlists(commands.Cog):
         p = multiprocessing.Process(target=worker, args=(q,), name="Audio-Downloader")
         p.start()
         for song in queue.queue:
-            if pytube.YouTube(song['url']).length > 12000:
+            video = pytube.YouTube(song['url'])
+            if video.age_restricted:
                 await ctx.respond(embed=discord.Embed(title="Error",
-                                                      description=f"The video [{pytube.YouTube(song['url']).title}]({song['url']}) is too long",
+                                                      description=f"The [video]({song['url']}) is age restricted",
+                                                      color=0xff0000))
+                continue
+            if video.length > 12000:
+                await ctx.respond(embed=discord.Embed(title="Error",
+                                                      description=f"The video [{video.title}]({song['url']}) is too long",
                                                       color=0xff0000))
             else:
                 q.put(song['url'])

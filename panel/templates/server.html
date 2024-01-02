@@ -17,13 +17,14 @@
 </div>
 <form method="POST">
     <label for="loop_song">Loop Song: </label>
-    <input id="loop_song" if name="loop_song" server[ type="checkbox" {%"loop-song"] %} checked {% endif %}>
+
+    <input id="loop_song" {% if server["loop_song"] %} checked {% endif %} name="loop_song" type="checkbox">
     <br>
     <label for="loop_queue">Loop Queue: </label>
-    <input id="loop_queue" if name="loop_queue" server[ type="checkbox" {%"loop-queue"] %} checked {% endif %}>
+    <input id="loop_queue" {% if server["loop_queue"] %} checked {% endif %} name="loop_queue" type="checkbox">
     <br>
     <label for="random">Random: </label>
-    <input id="random" if name="random" server[ type="checkbox" {%"random"] %} checked {% endif %}>
+    <input id="random"  {% if server["random"] %} checked {% endif %} name="random" type="checkbox">
     <br>
     <label for="position">Position: </label>
     <input id="position" name="position" position type="number" value="{{ server[""] }}">
@@ -32,7 +33,7 @@
         {% for song in server["queue"] %}
         <div class="song{% if song == server['queue'][server['position']] %} current {% endif %}" draggable="true"
              id="{{ song[" id
-        "] }}
+        "] }}>
         <div class="preview_div">
             {% if song["url"].startswith("https://youtube.com/watch?v=") %}
             <iframe class="preview" 
@@ -45,8 +46,7 @@
         </div>
         <div class="song_info">
             <div class="title">{{ song["title"] }}</div>
-            <div class="url" draggable="false"><a draggable="false" href={{ song[ target="_blank""url"] }}>{{
-                song["url"] }}</a></div>
+            <div class="url" draggable="false"><a draggable="false"  target="_blank" href={{ song["url"] }}>{{ song["url"] }}</a></div>
             <div class="asker">Asked by {{ get_from_conn(app.conn, "user", user_id=song["asker"])["global_name"] }}
             </div>
             <button class="remove" onclick="window.location.href='/server/{{ server['id'] }}/remove/{{ song['id'] }}'" type="button">Supprimer</button>
