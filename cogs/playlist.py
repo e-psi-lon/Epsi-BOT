@@ -1,5 +1,4 @@
 import multiprocessing
-import threading
 from discord.commands import SlashCommandGroup
 from utils import *
 

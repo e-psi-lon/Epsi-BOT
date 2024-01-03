@@ -5,7 +5,6 @@ import os
 import sys
 import dependencies_check
 import threading
-
 if __name__ == "__main__":
     if len(list(dependencies_check.check_libs())) > 0 and list(dependencies_check.check_libs())[0][0] != "pynacl":
         dependencies_check.update_libs([lib for lib, _, _ in dependencies_check.check_libs()])
@@ -14,6 +13,7 @@ import discord.utils
 from utils import *
 from discord.ext import tasks
 from dotenv import load_dotenv
+from panel.panel import *
 
 load_dotenv()
 
@@ -50,7 +50,6 @@ class Bot(commands.Bot):
         # On verifie si on est sur main ou sur dev ou une autre branche
         if os.popen("git branch --show-current").read().strip() == "main":
             check_update.start()
-        # On lance la tache asynchrone qui va écouter les connexions
         threading.Thread(target=listen_to_conn, args=(self,), name="Connection-Listener").start()
         logging.info(f"Bot ready in {datetime.datetime.now() - start_time}")
         self.help_command = commands.DefaultHelpCommand()
@@ -58,7 +57,7 @@ class Bot(commands.Bot):
 
 def listen_to_conn(bot: Bot):
     while True:
-        message = bot.conn.recv()
+        message = bot.conn.recv()   
         match message:
             case {"type": "get", "content": "guilds"}:
                 logging.info("Got a request for all guilds")
@@ -123,7 +122,7 @@ async def _help(ctx):
 
 
 @bot.slash_command(name="send", description="Envoie un message dans un salon")
-async def send_message(ctx: discord.ApplicationContext, channel: int, *, message: str):
+async def send_message(ctx: discord.ApplicationContext, channel: discord.Option(discord.TextChannel, description="Le salon où envoyer le message"), message: discord.Option(str, description="Le message à envoyer")):
     if ctx.author.id != bot.owner_id:
         raise commands.NotOwner
     await ctx.response.defer()
@@ -175,7 +174,7 @@ def start(instance: Bot):
 if __name__ == "__main__":
     # Les logs sont envoyés dans la console
     console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setFormatter(CustomFormatter())
+    console_handler.setFormatter(CustomFormatter(source="Bot"))
     logging.basicConfig(level=logging.INFO, handlers=[console_handler])
     if not os.path.exists("database/database.db"):
         os.mkdir("database/")

@@ -1,4 +1,5 @@
 import multiprocessing
+import sys
 from utils import *
 
 
@@ -58,6 +59,9 @@ class Channel(commands.Cog):
 
 
 def worker(q: multiprocessing.Queue):
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(CustomFormatter(source="Audio-Downloader"))
+    logging.basicConfig(level=logging.INFO, handlers=[console_handler])
     while True:
         url = q.get()
         if url is None:

@@ -27,7 +27,8 @@ def download(url: str, file_format: str = "mp3"):
         return f"cache/{format_name(url.split('/')[-1])}"
     stream = pytube.YouTube(url)
     video_id = stream.video_id
-    if stream.age_restricted:
+    logging.info(f'The video is age restricted (video id: {video_id}) : {not stream.age_restricted} ')
+    if not stream.age_restricted:
         logging.warning(f"Video {stream.title} is age restricted (video id: {video_id})")
         return None
     if os.path.exists(f"cache/{format_name(stream.title)}.{file_format}"):
@@ -256,7 +257,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
     config = await get_config(ctx.guild.id, True)
     try:
         video = pytube.YouTube(url)
-        if video.age_restricted:
+        if not video.age_restricted:
             return await ctx.respond(embed=discord.Embed(title="Error", description=f"The [video]({url}) is age restricted",
                                                          color=0xff0000))
         if video.length > 12000:
@@ -651,9 +652,13 @@ async def get_config(guild_id, is_copy) -> Config:
 
 
 class CustomFormatter(logging.Formatter):
-    """Logging Formatter to add colors"""
-    format = "[{asctime}] {levelname} : {message} (" + "{pathname}".replace(os.getcwd(), "").replace("\\", "/").replace(
-        "/", ".") + ":{lineno}" + ")\033[0m"
+    def __init__(self, source, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.source = source
+
+
+    format = "[{asctime}] {source} {levelname} : {message} ({path}:{lineno})\033[0m"
+
     FORMATS = {
         logging.DEBUG: "\033[34m" + format,  # Blue
         logging.INFO: "\033[32m" + format,  # Green
@@ -664,7 +669,9 @@ class CustomFormatter(logging.Formatter):
 
     def format(self, record):
         log_fmt = self.FORMATS.get(record.levelno)
-        formatter = logging.Formatter(log_fmt, datefmt="%d/%m/%Y %H:%M:%S", style="{")
+        path = record.pathname.lower().replace(os.getcwd().lower()+"\\", "").replace("\\", "/").replace("/", ".").replace(".py", "")
+        path = path.replace(".venv.lib.site-packages.", "libs.")
+        formatter = logging.Formatter(log_fmt, "%d/%m/%Y %H:%M:%S", "{", True, defaults={"source": self.source, "path": path})
         return formatter.format(record)
 
 

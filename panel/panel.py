@@ -1,29 +1,29 @@
 import sys
 from threading import Timer
 from utils import *
-from flask import *
+from quart import *
 import requests
 import pytube
 from multiprocessing.connection import Connection, PipeConnection
 import logging
 
 
-class Panel(Flask):
-    def __init__(self, *args, **kwargs):
+class Panel(Quart):
+    def __init__(self, secret_key, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.conn: Connection | None = None
-        # On modifie le logger pour qu'il affiche les logs selon le format qu'on a pour les autres logs
         console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setFormatter(CustomFormatter())
-        logging.basicConfig(level=logging.INFO, handlers=[console_handler])
-        self.logger = logging.getLogger(__name__)
+        console_handler.setFormatter(CustomFormatter(source="Panel"))
+        console_handler.setLevel(logging.INFO)
+        self.logger.removeHandler(self.logger.handlers[0])
+        self.logger.addHandler(console_handler)
+        self.secret_key = secret_key
 
     def set_connection(self, conn: Connection):
         self.conn = conn
 
 
-app = Panel(__name__)
-app.secret_key = "121515145141464146EFG"
+app = Panel("121515145141464146EFG", __name__)
 API_ENDPOINT = "https://discord.com/api/v10"
 CLIENT_ID = 1167171085343666216
 CLIENT_SECRET = "kH848ueQ4RGF3cKBNRJ1W1bFHI0b9bfo"
@@ -37,7 +37,7 @@ def get_from_conn(conn: Connection, content: str, **kwargs):
     conn.send({"type": "get", "content": content, **kwargs})
     data = conn.recv()
     if isinstance(data, PipeConnection):
-        data = data.get()
+        data = data.recv()
     return data
 
 
@@ -59,7 +59,7 @@ def to_url(url: str) -> str:
 async def index():
     if 'token' in session:
         return redirect(url_for('panel'))
-    return render_template('index.html')
+    return await render_template('index.html')
 
 
 @app.route('/panel')
@@ -86,7 +86,7 @@ async def panel():
         else:
             guilds[session['user_id']] = [guild for guild in get_from_conn(app.conn, "guilds") if
                                           str(session["user_id"]) in [str(member["id"]) for member in guild["members"]]]
-    return render_template('panel.html', servers=guilds[session['user_id']], user=session['user'])
+    return await render_template('panel.html', servers=guilds[session['user_id']], user=session['user'])
 
 
 @app.route('/server/<int:server_id>', methods=['GET', 'POST'])
@@ -115,7 +115,7 @@ async def server(server_id):
     server_data = {"loop_song": config.loop_song, "loop_queue": config.loop_queue, "random": config.random,
                    "position": config.position, "queue": config.queue, "id": server_id,
                    "name": get_from_conn(app.conn, "guild", server_id=server_id)["name"]}
-    return render_template('server.html', server=server_data, app=app, pytube=pytube)
+    return await render_template('server.html', server=server_data, app=app, pytube=pytube)
 
 
 @app.route('/server/<int:server_id>/clear')
@@ -199,7 +199,7 @@ async def refresh_token(token):
     session['token'] = r.json()
     user_id = session['user']['id']
     session["user_id"] = user_id
-    timer = Timer(session['token']['expires_in'], refresh_token, [session['token']['refresh_token']]) \
+    timer = Timer(session['token']['expires_in'], asyncio.run(refresh_token()), [session['token']['refresh_token']]) \
         .start()
     timers[user_id] = timer
     return r.json()
