@@ -24,22 +24,25 @@ class Listeners(commands.Cog):
         if channel is not None:
             try:
                 await channel.send(
-                    'Hey, je suis un bot de musique en cours de développement fait par <@!708006478807695450>, il permet de '
-                    'jouer de la musique depuis YouTube dans un channel vocal. Pour l\'instant, il est encore bugué donc en '
+                    'Hey, je suis un bot de musique en cours de développement fait par '
+                    '<@!708006478807695450>, je permet de jouer de la musique depuis YouTube dans un channel '
+                    'vocal. Pour l\'instant, il est encore bugué donc en '
                     'test')
             except discord.Forbidden:
                 try:
                     await guild.text_channels[0].send(
-                        'Hey, je suis un bot de musique en cours de développement fait par <@!708006478807695450>, il permet de '
-                        'jouer de la musique depuis YouTube dans un channel vocal. Pour l\'instant, il est encore bugué donc en '
+                        'Hey, je suis un bot de musique en cours de développement fait par '
+                        '<@!708006478807695450>, je permet de jouer de la musique depuis YouTube dans un channel '
+                        'vocal. Pour l\'instant, il est encore bugué donc en '
                         'test')
                 except discord.Forbidden:
                     pass
         else:
             try:
                 await guild.text_channels[0].send(
-                    'Hey, je suis un bot de musique en cours de développement fait par <@!708006478807695450>, il permet de '
-                    'jouer de la musique depuis YouTube dans un channel vocal. Pour l\'instant, il est encore bugué donc en '
+                    'Hey, je suis un bot de musique en cours de développement fait par '
+                    '<@!708006478807695450>, je permet de jouer de la musique depuis YouTube dans un channel '
+                    'vocal. Pour l\'instant, il est encore bugué donc en '
                     'test')
             except discord.Forbidden:
                 pass

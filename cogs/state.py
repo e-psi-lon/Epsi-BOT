@@ -1,7 +1,5 @@
 import threading
-import concurrent.futures as futures
 from datetime import datetime
-from discord.ext import commands
 from discord.commands import SlashCommandGroup
 from utils import *
 import pytube
@@ -38,7 +36,8 @@ class State(commands.Cog):
             await queue.add_song_to_queue(
                 {'title': url.split('/')[-1].split('?')[0], 'url': url, 'asker': ctx.author.id})
             await ctx.respond(embed=discord.Embed(title="Play",
-                                                  description=f"Playing song [{url.split('/')[-1].split('?')[0]}]({url})",
+                                                  description=f"Playing song "
+                                                              f"[{url.split('/')[-1].split('?')[0]}]({url})",
                                                   color=0x00ff00))
             await play_song(ctx, url)
             await queue.close()
@@ -46,7 +45,8 @@ class State(commands.Cog):
         await queue.add_song_to_queue({'title': url.split('/')[-1].split('?')[0], 'url': url, 'asker': ctx.author.id})
         await queue.close()
         await ctx.respond(embed=discord.Embed(title="Queue",
-                                              description=f"Song [{url.split('/')[-1].split('?')[0]}]({url}) added to queue.",
+                                              description=f"Song [{url.split('/')[-1].split('?')[0]}]({url})"
+                                                          f" added to queue.",
                                               color=0x00ff00))
 
     @play.command(name="file", description="Plays the audio of a file")
@@ -91,7 +91,8 @@ class State(commands.Cog):
                         {'title': pytube.YouTube(query).title, 'url': url, 'asker': ctx.author.id})
                     await queue.close()
                     await ctx.respond(embed=discord.Embed(title="Play",
-                                                          description=f"Playing song [{pytube.YouTube(url).title}]({url})",
+                                                          description=f"Playing song "
+                                                                      f"[{pytube.YouTube(url).title}]({url})",
                                                           color=0x00ff00))
                     await play_song(ctx, url)
                     return await asyncio.sleep(1)
@@ -105,12 +106,14 @@ class State(commands.Cog):
                                       color=0xff0000))
                 threading.Thread(target=download, args=(url,), name=f"Download-{video.video_id}").start()
                 await ctx.respond(embed=discord.Embed(title="Queue",
-                                                      description=f"Song [{pytube.YouTube(url).title}]({url}) added to queue.",
+                                                      description=f"Song [{pytube.YouTube(url).title}]({url})"
+                                                                  f" added to queue.",
                                                       color=0x00ff00))
             except Exception as e:
                 logging.error(f"Error while adding song to queue: {e}")
                 return await ctx.respond(
-                    embed=discord.Embed(title="Error", description=f"Error while adding song to queue. (Error: {e})", color=0xff0000))
+                    embed=discord.Embed(title="Error", description=f"Error while adding song to queue. "
+                                                                   f"(Error: {e})", color=0xff0000))
         except:
             videos = pytube.Search(query).results
             if not videos:
@@ -187,7 +190,8 @@ class State(commands.Cog):
 
         try:
             await ctx.respond(embed=discord.Embed(title="Volume",
-                                                  description=f"Volume is {ctx.guild.voice_client.source.volume * 100}%",
+                                                  description=f"Volume is "
+                                                              f"{ctx.guild.voice_client.source.volume * 100}%",
                                                   color=0x00ff00))
         except:
             try:
@@ -200,7 +204,8 @@ class State(commands.Cog):
                     embed=discord.Embed(title="Error", description="Error while getting volume.", color=0xff0000))
 
     @commands.slash_command(name="record",
-                            description="Enregistre nos chers gogols en train de chanter (c'est Rignchen qui m'as dit de laisser ça)")
+                            description="Enregistre nos chers gogols en train de chanter "
+                                        "(c'est Rignchen qui m'as dit de laisser ça)")
     async def record(self, ctx: discord.ApplicationContext,
                      time: discord.Option(int, "Le temps d'enregistrement en secondes (de 1s à 260s)", required=True),
                      format: discord.Option(Sinks, "Le format d'enregistrement", required=True)):
@@ -227,7 +232,7 @@ class State(commands.Cog):
 
         if vc.channel.voice_states[vc.client.user.id].self_deaf:
             return await ctx.respond(embed=discord.Embed(title="Error", description="Bot is deafened.", color=0xff0000))
-        timer = asyncio.TimerHandle(time, finished_record)
+        timer = asyncio.TimerHandle(time, finished_record, args=[])
         vc.start_recording(
             format.value,
             finished_record_callback,
@@ -244,7 +249,8 @@ class State(commands.Cog):
         await ctx.respond(
             f":⚠: {', '.join(users)}, {ctx.author.mention} is recording you for {time} seconds",
             embed=discord.Embed(title="Record",
-                                description=f"Recording for {time} seconds. The record will stop at <t:{int(time + datetime.now().timestamp())}:R>.",
+                                description=f"Recording for {time} seconds. The record will stop at "
+                                            f"<t:{int(time + datetime.now().timestamp())}:R>.",
                                 color=0x00ff00))
         timer.start()
 

@@ -104,16 +104,16 @@ class Todo(commands.Cog):
         line: discord.EmbedField = lines[index - 1]
         regex1 = r' - Assigned to (.+)$'
         regex2 = r'<@(\d+)>'
-        matchResult = re.findall(regex1, line.value)
-        if len(matchResult) == 0:
+        match_result = re.findall(regex1, line.value)
+        if len(match_result) == 0:
             assigned_user = []
         else:
-            matchResult = matchResult[0]
-            assigned_user = re.findall(regex2, matchResult).copy()
+            match_result = match_result[0]
+            assigned_user = re.findall(regex2, match_result).copy()
         if str(user.id) in assigned_user:
             embed = discord.Embed(title="Assignation d'une ligne",
-                                  description=f"{user.mention} n'est plus assigné à la ligne {line.name} dans le message"
-                                              f" {message.jump_url}")
+                                  description=f"{user.mention} n'est plus assigné à la ligne {line.name} dans "
+                                              f"le message {message.jump_url}")
             await ctx.respond(embed=embed, delete_after=30)
             assigned_user.remove(str(user.id))
         else:
@@ -142,27 +142,37 @@ class Todo(commands.Cog):
         line.value += new_line
         lines[index - 1] = line
         await message.edit(embed=discord.Embed(title="To-Do List",
-                                               description="Les points suivant sont les différentes tâches à effectuer pour améliorer le bot",
+                                               description="Les points suivant sont les différentes tâches à "
+                                                           "effectuer pour améliorer le bot",
                                                fields=lines))
         line = message.embeds[0].fields[index - 1]
+        embed = discord.Embed(title="Assignation d'une ligne", description=f"La ligne {line.name} a été assignée à "
+                                    f"{user.mention} dans le message {message.jump_url}")
+        await ctx.respond(embed=embed, delete_after=30)
 
     @todo.command(name="tuto", description="Sends a tutorial on how to use the to-do list")
     async def tuto(self, ctx: discord.ApplicationContext):
         await ctx.response.defer()
         embed = discord.Embed(title="Tutoriel",
-                              description="Voici un tutoriel sur comment utiliser la to-do list, \"[...]\" signifie que le paramètre est optionnel et \"<...>\" signifie que le paramètre est obligatoire",
+                              description="Voici un tutoriel sur comment utiliser la to-do list, "
+                                          "\"[...]\" signifie que le paramètre est optionnel et \"<...>\" signifie que "
+                                          "le paramètre est obligatoire",
                               color=0x00ff00)
         embed.add_field(name="Ajouter une ligne",
-                        value="Pour ajouter une ligne, utilisez la commande `/todo add_line <line:texte à écrire> [index:index de l'élément]`",
+                        value="Pour ajouter une ligne, utilisez la commande `/todo add_line <line:texte à écrire> "
+                              "[index:index de l'élément]`",
                         inline=False)
         embed.add_field(name="Supprimer une ligne",
-                        value="Pour supprimer une ligne, utilisez la commande `/todo remove_line <index:index de l'élément>`",
+                        value="Pour supprimer une ligne, utilisez la commande `/todo remove_line "
+                              "<index:index de l'élément>`",
                         inline=False)
         embed.add_field(name="Modifier une ligne",
-                        value="Pour modifier une ligne, utilisez la commande `/todo edit_line <index:index de l'élément> <line: nouveau texte>`",
+                        value="Pour modifier une ligne, utilisez la commande `/todo edit_line <index:index de "
+                              "l'élément> <line: nouveau texte>`",
                         inline=False)
         embed.add_field(name="Assigner une ligne",
-                        value="Pour assigner une ligne, utilisez la commande `/todo assign <index:index de l'élément> <user:utilisateur à assigné`",
+                        value="Pour assigner une ligne, utilisez la commande `/todo assign <index:index de l'élément>"
+                              " <user:utilisateur à assigné`",
                         inline=False)
         embed.add_field(name="Tutoriel", value="Pour afficher ce tutoriel, utilisez la commande `/todo tuto`",
                         inline=False)

@@ -114,8 +114,8 @@ class Queue(commands.Cog):
         queue = await get_config(ctx.guild.id, False)
         if index < 0 or index >= len(queue.queue):
             await queue.close()
-            return await ctx.respond(embed=
-                discord.Embed(title="Error", description=f"Index {index} out of range.", color=0xff0000))
+            return await ctx.respond(embed=discord.Embed(title="Error", description=f"Index {index} out of range.",
+                                                         color=0xff0000))
         song = queue.queue[index-1]
         await queue.remove_song_from_queue(song)
         await queue.close()

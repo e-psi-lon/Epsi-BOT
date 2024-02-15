@@ -1,16 +1,15 @@
 import datetime
 import multiprocessing
-from multiprocessing.connection import Connection
 import os
 import sys
 import dependencies_check
 import threading
+
 if __name__ == "__main__":
     if len(list(dependencies_check.check_libs())) > 0 and list(dependencies_check.check_libs())[0][0] != "pynacl":
         dependencies_check.update_libs([lib for lib, _, _ in dependencies_check.check_libs()])
         os.execl(sys.executable, sys.executable, *sys.argv)
 import discord.utils
-from utils import *
 from discord.ext import tasks
 from dotenv import load_dotenv
 from panel.panel import *
@@ -38,6 +37,10 @@ def start_app(conn: Connection):
 
 
 class Bot(commands.Bot):
+    def __init__(self, *args, **options):
+        super().__init__(*args, options)
+        self.conn = None
+
     async def on_ready(self):
         global start_time
         await self.change_presence(
@@ -57,7 +60,7 @@ class Bot(commands.Bot):
 
 def listen_to_conn(bot: Bot):
     while True:
-        message = bot.conn.recv()   
+        message = bot.conn.recv()
         match message:
             case {"type": "get", "content": "guilds"}:
                 logging.info("Got a request for all guilds")
@@ -122,7 +125,9 @@ async def _help(ctx):
 
 
 @bot.slash_command(name="send", description="Envoie un message dans un salon")
-async def send_message(ctx: discord.ApplicationContext, channel: discord.Option(discord.TextChannel, description="Le salon où envoyer le message"), message: discord.Option(str, description="Le message à envoyer")):
+async def send_message(ctx: discord.ApplicationContext,
+                       channel: discord.Option(discord.TextChannel, description="Le salon où envoyer le message"),
+                       message: discord.Option(str, description="Le message à envoyer")):
     if ctx.author.id != bot.owner_id:
         raise commands.NotOwner
     await ctx.response.defer()
@@ -135,6 +140,7 @@ async def send_message(ctx: discord.ApplicationContext, channel: discord.Option(
 async def send_message_error(ctx, error):
     if isinstance(error, commands.NotOwner):
         await ctx.send("Vous n'êtes pas propriétaire du bot !", ephemeral=True)
+
 
 def start(instance: Bot):
     # Charger les cogs
@@ -154,7 +160,8 @@ def start(instance: Bot):
     os.system("cls" if os.name == "nt" else "clear")
     start_time = datetime.datetime.now()
     logging.info(
-        f"Script started at {datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')} using python executable {sys.executable}")
+        f"Script started at {datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')} "
+        f"using python executable {sys.executable}")
     if len(list(dependencies_check.check_updates())) > 0:
         dependencies_check.update_requirements()
         logging.info("Requirements updated")

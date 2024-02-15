@@ -12,7 +12,7 @@ import discord.ext.pages
 from discord.ext import commands
 import requests
 import aiosqlite
-import pytube.exceptions as pytube_exce
+
 
 def download(url: str, file_format: str = "mp3"):
     """Download a video from a YouTube URL"""
@@ -33,10 +33,11 @@ def download(url: str, file_format: str = "mp3"):
         return None
     if os.path.exists(f"cache/{format_name(stream.title)}.{file_format}"):
         logging.info(
-            f"{stream.title} already in cache as cache/{format_name(stream.title)}.{file_format} (video id: {video_id})")
+            f"{stream.title} already in cache as cache/{format_name(stream.title)}.{file_format} "
+            f"(video id: {video_id})")
         return f"cache/{format_name(stream.title)}.{file_format}"
     stream = stream.streams.filter(only_audio=True).first()
-    stream.download(filename=f"cache/{format_name(stream.title)}.{file_format}")    
+    stream.download(filename=f"cache/{format_name(stream.title)}.{file_format}")
     logging.info(f"Downloaded {stream.title} to cache/{format_name(stream.title)}.{file_format} (video id: {video_id})")
     return f"cache/{format_name(stream.title)}.{file_format}"
 
@@ -131,7 +132,9 @@ class SelectVideo(discord.ui.Select):
             if pytube.YouTube(self.values[0]).length > 12000:
                 await queue.close()
                 return await interaction.message.edit(embed=discord.Embed(title="Error",
-                                                                          description=f"The video [{pytube.YouTube(self.values[0]).title}]({self.values[0]}) is too long",
+                                                                          description=f"The video "
+                                                                                      f"""[{pytube.YouTube(self.values[0])
+                                                                          .title}]({self.values[0]}) is too long""",
                                                                           color=0xff0000))
             stream.download(filename=f"cache/{format_name(stream.title)}.mp3")
             await queue.close()
@@ -152,12 +155,16 @@ class SelectVideo(discord.ui.Select):
             await interaction.user.voice.channel.connect()
         if not interaction.guild.voice_client.is_playing():
             await interaction.message.edit(embed=discord.Embed(title="Play",
-                                                               description=f"Playing song [{pytube.YouTube(self.values[0]).title}]({self.values[0]})",
+                                                               description=f"Playing song "
+                                                                           f"[{pytube.YouTube(self.values[0]).title}]"
+                                                                           f"({self.values[0]})",
                                                                color=0x00ff00))
             await play_song(self.ctx, queue.queue[queue.position]['url'])
         else:
             await interaction.message.edit(embed=discord.Embed(title="Queue",
-                                                               description=f"Song [{pytube.YouTube(self.values[0]).title}]({self.values[0]}) added to queue.",
+                                                               description=f"Song "
+                                                                           f"[{pytube.YouTube(self.values[0]).title}]"
+                                                                           f"({self.values[0]}) added to queue.",
                                                                color=0x00ff00))
 
 
@@ -258,8 +265,9 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
     try:
         video = pytube.YouTube(url)
         if not video.age_restricted:
-            return await ctx.respond(embed=discord.Embed(title="Error", description=f"The [video]({url}) is age restricted",
-                                                         color=0xff0000))
+            return await ctx.respond(
+                embed=discord.Embed(title="Error", description=f"The [video]({url}) is age restricted",
+                                    color=0xff0000))
         if video.length > 12000:
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description=f"The video [{video.title}]({url}) is too long",
@@ -272,7 +280,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
             logging.info(f"Playing song {video.title}")
             ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
                                         wait_finish=True)
-                                        
+
         except:
             while ctx.guild.voice_client.is_playing():
                 await asyncio.sleep(0.1)
@@ -456,7 +464,8 @@ class Config:
         self._volume = config[4]
         self._position = config[5]
         queue = await self.__cursor.execute(
-            "SELECT id, title, url, asker FROM SONG JOIN QUEUE ON SONG.id = QUEUE.song_id WHERE QUEUE.server_id = ? ORDER BY QUEUE.position",
+            "SELECT id, title, url, asker FROM SONG JOIN QUEUE ON SONG.id = QUEUE.song_id "
+            "WHERE QUEUE.server_id = ? ORDER BY QUEUE.position",
             (self.id,))
         queue = await queue.fetchall()
         if queue is None:
@@ -470,7 +479,8 @@ class Config:
         playlists_songs = []
         for playlist in playlists_name:
             await self.__cursor.execute(
-                "SELECT id, title, url, asker FROM SONG JOIN PLAYLIST ON SONG.id = PLAYLIST.song_id WHERE PLAYLIST.name = ? ORDER BY PLAYLIST.position",
+                "SELECT id, title, url, asker FROM SONG JOIN PLAYLIST ON"
+                " SONG.id = PLAYLIST.song_id WHERE PLAYLIST.name = ? ORDER BY PLAYLIST.position",
                 playlist)
             playlists_songs.append([sql_to_song(song) for song in await self.__cursor.fetchall() if
                                     await self.__cursor.fetchall() is not None])
@@ -550,7 +560,6 @@ class Config:
         await self.__cursor.execute("SELECT * FROM SONG WHERE title = ? AND url = ? AND asker = ?",
                                     (song["title"], song["url"], song["asker"]))
         if await self.__cursor.fetchone() is None:
-            # Si elle n'existe pas on l'ajoute, en ajoutant un id
             await self.__cursor.execute("SELECT COUNT(*) FROM SONG")
             song["id"] = await self.__cursor.fetchone()
             song["id"] = song["id"][0] + 1
@@ -656,7 +665,6 @@ class CustomFormatter(logging.Formatter):
         super().__init__(*args, **kwargs)
         self.source = source
 
-
     format = "[{asctime}] {source} {levelname} : {message} ({path}:{lineno})\033[0m"
 
     FORMATS = {
@@ -669,9 +677,12 @@ class CustomFormatter(logging.Formatter):
 
     def format(self, record):
         log_fmt = self.FORMATS.get(record.levelno)
-        path = record.pathname.lower().replace(os.getcwd().lower()+"\\", "").replace("\\", "/").replace("/", ".").replace(".py", "")
+        path = record.pathname.lower().replace(os.getcwd().lower() + "\\", "").replace("\\", "/").replace("/",
+                                                                                                          ".").replace(
+            ".py", "")
         path = path.replace(".venv.lib.site-packages.", "libs.")
-        formatter = logging.Formatter(log_fmt, "%d/%m/%Y %H:%M:%S", "{", True, defaults={"source": self.source, "path": path})
+        formatter = logging.Formatter(log_fmt, "%d/%m/%Y %H:%M:%S", "{", True,
+                                      defaults={"source": self.source, "path": path})
         return formatter.format(record)
 
 

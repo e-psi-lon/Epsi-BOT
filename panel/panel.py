@@ -81,7 +81,8 @@ async def panel():
         session['user'] = user
     if guilds.get(session["user_id"], None) is None:
         if session['user']['id'] == '708006478807695450':
-            # On demande a la connexion avec le bot de nous donner les guilds. Pour cela on lui envoie un message et on attend la reponse
+            # On demande a la connexion avec le bot de nous donner les guilds.
+            # Pour cela on lui envoie un message et on attend la reponse
             guilds[session['user_id']] = get_from_conn(app.conn, "guilds")
         else:
             guilds[session['user_id']] = [guild for guild in get_from_conn(app.conn, "guilds") if
@@ -137,7 +138,8 @@ async def add(server_id):
 @app.route('/login')
 async def login():
     return redirect(
-        f"{API_ENDPOINT}/oauth2/authorize?client_id={CLIENT_ID}&redirect_uri={to_url(REDIRECT_URI)}&response_type=code&scope=identify%20guilds")
+        f"{API_ENDPOINT}/oauth2/authorize?client_id={CLIENT_ID}&redirect_uri={to_url(REDIRECT_URI)}"
+        f"&response_type=code&scope=identify%20guilds")
 
 
 @app.route('/auth/discord/callback')
@@ -199,7 +201,8 @@ async def refresh_token(token):
     session['token'] = r.json()
     user_id = session['user']['id']
     session["user_id"] = user_id
-    timer = Timer(session['token']['expires_in'], asyncio.run(refresh_token()), [session['token']['refresh_token']]) \
+    timer = Timer(session['token']['expires_in'],
+                  lambda: asyncio.run(refresh_token(session['token']['refresh_token']))) \
         .start()
     timers[user_id] = timer
     return r.json()

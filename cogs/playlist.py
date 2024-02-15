@@ -105,7 +105,9 @@ class Playlists(commands.Cog):
         except:
             await queue.close()
             return await ctx.respond(embed=discord.Embed(title="Error",
-                                                         description="You must use an url of a youtube video (the research feature is not available for this command yet)",
+                                                         description="You must use an url of a youtube video "
+                                                                     "(the research feature is not available for "
+                                                                     "this command yet)",
                                                          color=0xff0000))
 
     @playlist.command(name="remove", description="Removes a song from a playlist")
@@ -158,7 +160,8 @@ class Playlists(commands.Cog):
                 continue
             if video.length > 12000:
                 await ctx.respond(embed=discord.Embed(title="Error",
-                                                      description=f"The video [{video.title}]({song['url']}) is too long",
+                                                      description=f"The video [{video.title}]({song['url']}) "
+                                                                  f"is too long",
                                                       color=0xff0000))
             else:
                 q.put(song['url'])
@@ -185,7 +188,8 @@ class Playlists(commands.Cog):
         embed = discord.Embed(title="Playlists", color=0x00ff00)
         for name in [playlist.name for playlist in queue.playlists]:
             embed.add_field(name=f"__{name}__ :",
-                            value=f"{len([playlist for playlist in queue.playlists][0].songs)} song{'s' if len([playlist for playlist in queue.playlists][0].songs) > 1 else ''}")
+                            value=f"{len([playlist for playlist in queue.playlists][0].songs)} song"
+                                  f"{'s' if len([playlist for playlist in queue.playlists][0].songs) > 1 else ''}")
         await ctx.respond(embed=embed)
 
     @playlist.command(name="show", description="Shows a playlist")

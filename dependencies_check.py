@@ -5,7 +5,8 @@ import os
 def check_version(package, version):
     try:
         if package.startswith("git+"):
-            # On split les / et on prend le dernier element pour avoir le nom du package et l'avant dernier pour le nom de l'auteur 
+            # On split les / et on prend le dernier element pour avoir le nom
+            # du package et l'avant dernier pour le nom de l'auteur
             package = package.split("/")[-2] + "/" + package.split("/")[-1].split(".git")[0]
             latest_version = get_git_latest_version(package)
         else:
