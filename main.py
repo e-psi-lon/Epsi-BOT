@@ -16,6 +16,8 @@ from panel.panel import *
 
 load_dotenv()
 
+start_time = datetime.datetime.now()
+
 
 @tasks.loop(seconds=18000)
 async def check_update():
@@ -158,9 +160,8 @@ def start(instance: Bot):
         "cogs.listeners"
     ]
     os.system("cls" if os.name == "nt" else "clear")
-    start_time = datetime.datetime.now()
     logging.info(
-        f"Script started at {datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')} "
+        f"Script started at {start_time.strftime('%d/%m/%Y %H:%M:%S')} "
         f"using python executable {sys.executable}")
     if len(list(dependencies_check.check_updates())) > 0:
         dependencies_check.update_requirements()

@@ -1,6 +1,6 @@
 import multiprocessing
 import sys
-from utils import *
+from utils.utils import *
 
 
 class Channel(commands.Cog):
@@ -15,10 +15,9 @@ class Channel(commands.Cog):
         await ctx.guild.voice_client.disconnect(force=True)
         await ctx.respond(embed=discord.Embed(title="Leave", description="Bot left the voice channel.",
                                               color=0x00ff00))
-        queue = await get_config(ctx.guild.id, False)
+        queue = await Config.get_config(ctx.guild.id, False)
         await queue.edit_queue([])
-        await queue.set_position(0)
-        await queue.close()
+        queue.position = 0
 
     @commands.slash_command(name='join', description='Join the voice channel you are in.')
     async def join(self, ctx: discord.ApplicationContext):
@@ -27,9 +26,8 @@ class Channel(commands.Cog):
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description="Bot is already connected to a voice "
                                                                "channel.", color=0xff0000))
-        queue = await get_config(ctx.guild.id, False)
+        queue = await Config.get_config(ctx.guild.id, False)
         if ctx.author.voice is None:
-            await queue.close()
             return await ctx.respond(embed=discord.Embed(title="Error", description="You must be in a voice channel.",
                                                          color=0xff0000))
         await ctx.author.voice.channel.connect()
@@ -37,27 +35,24 @@ class Channel(commands.Cog):
             embed=discord.Embed(title="Join", description="Bot joined the voice channel.", color=0x00ff00))
         if queue.queue:
             if queue.position > len(queue.queue) - 1:
-                await queue.set_position(0)
-            await queue.close()
+                queue.position = 0
             # Si il y a plus d'un élément dans la queue on les télécharge tous sur un thread séparé
-            await play_song(ctx, queue.queue[queue.position]['url'])
+            await play_song(ctx, queue.queue[queue.position].url)
             if len(queue.queue) > 1:
                 q = multiprocessing.Queue()
                 p = multiprocessing.Process(target=worker, args=(q,), name="Audio-Downloader")
                 p.start()
                 for song in queue.queue[1:]:
-                    if pytube.YouTube(song['url']).length > 12000:
+                    if pytube.YouTube(song.url).length > 12000:
                         await ctx.respond(embed=discord.Embed(title="Error",
                                                               description=f"The video "
-                                                                          f"[{pytube.YouTube(song['url']).title}]"
-                                                                          f"({song['url']}) is too long",
+                                                                          f"[{pytube.YouTube(song.url).title}]"
+                                                                          f"({song.url}) is too long",
                                                               color=0xff0000))
                     else:
-                        q.put(song['url'])
+                        q.put(song.url)
                 q.put(None)
                 p.join()
-        else:
-            await queue.close()
 
 
 def worker(q: multiprocessing.Queue):

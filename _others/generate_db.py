@@ -18,33 +18,65 @@ cursor.execute('''
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS SONG (
     id INT,
-    title VARCHAR(255),
+    name VARCHAR(255),
     url TEXT,
-    asker VARCHAR(255),
     PRIMARY KEY (id)
 );
 ''')
 
 cursor.execute('''
-CREATE TABLE IF NOT EXISTS QUEUE (
-    song_id INT,
-    server_id INT,
-    position INT,
-    FOREIGN KEY (song_id) REFERENCES SONG(id)
-    FOREIGN KEY (server_id) REFERENCES SERVER(id)
+CREATE TABLE IF NOT EXISTS ASKER (
+    id INT,
+    discord_id INT,
+    PRIMARY KEY (id)
 );
 ''')
 
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS PLAYLIST (
+    id INT,
     name VARCHAR(255),
+    PRIMARY KEY (id)
+);
+''')
+
+
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS QUEUE (
     server_id INT,
     song_id INT,
     position INT,
-    FOREIGN KEY (server_id) REFERENCES SERVER(id)
-    FOREIGN KEY (song_id) REFERENCES SONG(id)
+    asker INT,
+    FOREIGN KEY (server_id) REFERENCES SERVER(id),
+    FOREIGN KEY (song_id) REFERENCES SONG(id),
+    FOREIGN KEY (asker) REFERENCES ASKER(id)
 );
 ''')
+
+
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS PLAYLIST_SONG (
+    playlist_id INT,
+    song_id INT,
+    position INT,
+    asker INT,
+    PRIMARY KEY (playlist_id, song_id),
+    FOREIGN KEY (playlist_id) REFERENCES PLAYLIST(id),
+    FOREIGN KEY (song_id) REFERENCES SONG(id),
+    FOREIGN KEY (asker) REFERENCES ASKER(id)
+);
+''')
+
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS SERVER_PLAYLIST (
+    server_id INT,
+    playlist_id INT,
+    PRIMARY KEY (server_id, playlist_id),
+    FOREIGN KEY (server_id) REFERENCES SERVER(id),
+    FOREIGN KEY (playlist_id) REFERENCES PLAYLIST(id)
+);
+''')
+
 
 conn.commit()
 conn.close()

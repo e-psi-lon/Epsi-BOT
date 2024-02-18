@@ -1,4 +1,4 @@
-from utils import *
+from utils.utils import *
 
 removed_count = 0
 
@@ -13,18 +13,16 @@ class Admin(commands.Cog):
         if ctx.author.id != OWNER_ID:
             embed = discord.Embed(title="Error", description="You are not the owner of the bot.", color=0xff0000)
             return await ctx.respond(embed=embed, delete_after=30)
-        temp_queue = await get_config(ctx.guild.id, False)
-        temp_queue2 = await get_config(ctx.guild.id, False)
-        await temp_queue.edit_queue([])
-        await temp_queue.set_position(0)
-        await temp_queue.close()
+        temp_queue = await Config.get_config(ctx.guild.id, False)
+        temp_queue2 = await Config.get_config(ctx.guild.id, False)
+        await temp_queue.clear_queue()
+        temp_queue.position = 0
         if ctx.voice_client is not None:
             if ctx.voice_client.is_playing():
                 ctx.voice_client.stop()
         await asyncio.sleep(1)
-        await temp_queue2.edit_queue([])
-        await temp_queue2.set_position(0)
-        await temp_queue2.close()
+        await temp_queue2.clear_queue()
+        temp_queue.position = 0
         for file in os.listdir('cache/'):
             os.remove(f'cache/{file}')
         embed = discord.Embed(title="Cache removed", description="Removed the audio cache.", color=0x00ff00)

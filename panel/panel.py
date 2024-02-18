@@ -1,6 +1,6 @@
 import sys
 from threading import Timer
-from utils import *
+from utils.utils import *
 from quart import *
 import requests
 import pytube
@@ -30,7 +30,7 @@ CLIENT_SECRET = "kH848ueQ4RGF3cKBNRJ1W1bFHI0b9bfo"
 REDIRECT_URI = "http://86.196.98.254/auth/discord/callback"
 
 timers = {}
-guilds: dict[int, list[discord.Guild]] = {}
+guilds: dict[int, list[dict]] = {}
 
 
 def get_from_conn(conn: Connection, content: str, **kwargs):
@@ -81,8 +81,6 @@ async def panel():
         session['user'] = user
     if guilds.get(session["user_id"], None) is None:
         if session['user']['id'] == '708006478807695450':
-            # On demande a la connexion avec le bot de nous donner les guilds.
-            # Pour cela on lui envoie un message et on attend la reponse
             guilds[session['user_id']] = get_from_conn(app.conn, "guilds")
         else:
             guilds[session['user_id']] = [guild for guild in get_from_conn(app.conn, "guilds") if
@@ -92,26 +90,25 @@ async def panel():
 
 @app.route('/server/<int:server_id>', methods=['GET', 'POST'])
 async def server(server_id):
-    config = await get_config(server_id, request.method != 'POST')
+    config = await Config.get_config(server_id, request.method != 'POST')
     if server_id not in [guild["id"] for guild in
                          guilds.get(session['user_id'], [])] or 'token' not in session or config is None:
         return redirect(url_for('panel'))
     if request.method == 'POST':
-        values = request.form.to_dict()
+        values = (await request.form).to_dict()
         for key, value in values.items():
             if isinstance(getattr(config, key), bool):
-                value = value == 'on'
+                values[key] = value == "on"
         if config.loop_song != values['loop_song']:
-            await config.set_loop_song(values['loop_song'])
+            config.loop_song = values['loop_song']
         if config.loop_queue != values['loop_queue']:
-            await config.set_loop_queue(values['loop_queue'])
+            config.loop_queue = values['loop_queue']
         if config.random != values['random']:
-            await config.set_random(values['random'])
+            config.random = values['random']
         if config.position != values['position']:
-            await config.set_position(values['position'])
+            config.position = values['position']
         if config.queue != values['queue']:
             await config.edit_queue(values['queue'])
-        await config.close()
         return redirect(url_for('server', server_id=server_id))
     server_data = {"loop_song": config.loop_song, "loop_queue": config.loop_queue, "random": config.random,
                    "position": config.position, "queue": config.queue, "id": server_id,
@@ -121,17 +118,17 @@ async def server(server_id):
 
 @app.route('/server/<int:server_id>/clear')
 async def clear(server_id):
-    config = await get_config(server_id, False)
-    await config.edit_queue([])
+    config = await Config.get_config(server_id, False)
+    await config.clear_queue()
     return redirect(url_for('server', server_id=server_id))
 
 
 @app.route('/server/<int:server_id>/add', methods=['POST'])
 async def add(server_id):
-    config = await get_config(server_id, False)
-    await config.add_song_to_queue({"title": pytube.YouTube(request.form['url']).title, "url": request.form['url'],
-                                    "asker": session['user']['id']})
-    await config.close()
+    config = await Config.get_config(server_id, False)
+    await config.add_to_queue(await Song.create(pytube.YouTube((await request.form)['url']).title,
+                                                (await request.form)['url'],
+                                                await Asker.from_id(session['user']['id'])))
     return redirect(url_for('server', server_id=server_id))
 
 
@@ -156,7 +153,7 @@ async def callback():
         session['user_id'] = user['id']
         timers[user['id']] = timer
         return redirect(url_for('panel'))
-    except requests.HTTPError as e:
+    except requests.HTTPError:
         return redirect(url_for('index'))
 
 

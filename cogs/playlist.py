@@ -1,6 +1,9 @@
 import multiprocessing
 from discord.commands import SlashCommandGroup
-from utils import *
+from pytube.exceptions import RegexMatchError as PytubeRegexMatchError
+
+from utils.config import Playlist
+from utils.utils import *
 
 
 class Playlists(commands.Cog):
@@ -17,19 +20,15 @@ class Playlists(commands.Cog):
         await ctx.response.defer()
         if len(name) > 20:
             return await ctx.respond(embed=EMBED_ERROR_NAME_TOO_LONG)
-        queue = await get_config(ctx.interaction.guild.id, False)
+        queue = await Config.get_config(ctx.interaction.guild.id, False)
         if not queue.queue:
-            await queue.close()
             return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
         if name in [playlist.name for playlist in queue.playlists]:
-            await queue.close()
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description="A playlist with this name already exists.",
                                     color=0xff0000))
         playlist = await Playlist.create(name, queue.queue, ctx.guild.id)
         await queue.add_playlist(playlist)
-        await queue.close()
-        await playlist.close()
         await ctx.respond(
             embed=discord.Embed(title="Playlist", description=f"Playlist {name} created.", color=0x00ff00))
 
@@ -44,17 +43,16 @@ class Playlists(commands.Cog):
                 name = playlist.title
             if len(name) > 20:
                 return await ctx.respond(embed=EMBED_ERROR_NAME_TOO_LONG)
-            queue = await get_config(ctx.interaction.guild.id, False)
+            queue = await Config.get_config(ctx.interaction.guild.id, False)
             if name in [playlist.name for playlist in queue.playlists]:
-                await queue.close()
                 return await ctx.respond(
                     embed=discord.Embed(title="Error", description="A playlist with this name already exists.",
                                         color=0xff0000))
             playlist = await Playlist.create(name,
-                                             [{'title': video.title, 'url': video.watch_url, 'asker': ctx.user.id} for
-                                              video in playlist.videos])
+                                             [await Song.create(video.title, video.watch_url,
+                                                                await Asker.from_id(ctx.user.id)) for
+                                              video in playlist.videos], ctx.guild.id)
             await queue.add_playlist(playlist)
-            await queue.close()
             await ctx.respond(
                 embed=discord.Embed(title="Playlist", description=f"Playlist {name} created.", color=0x00ff00))
         except:
@@ -67,14 +65,12 @@ class Playlists(commands.Cog):
                      name: discord.Option(str, "The name of the playlist", required=True,
                                           autocomplete=discord.utils.basic_autocomplete(get_playlists))):
         await ctx.response.defer()
-        queue = await get_config(ctx.guild.id, False)
+        queue = await Config.get_config(ctx.guild.id, False)
         if name not in [playlist.name for playlist in queue.playlists]:
-            await queue.close()
             return await ctx.respond(embed=EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
                                      .add_field(name="Existing playlists:",
                                                 value="\n".join([playlist.name for playlist in queue.playlists])))
         await queue.remove_playlist([playlist for playlist in queue.playlists if playlist.name == name][0])
-        await queue.close()
         await ctx.respond(
             embed=discord.Embed(title="Playlist", description=f"Playlist {name} deleted.", color=0x00ff00))
 
@@ -84,9 +80,8 @@ class Playlists(commands.Cog):
                                        autocomplete=discord.utils.basic_autocomplete(get_playlists)),
                   query: discord.Option(str, "The YouTube video to add to the playlist", required=True)):
         await ctx.response.defer()
-        queue = await get_config(ctx.guild.id, False)
+        queue = await Config.get_config(ctx.guild.id, False)
         if name not in [playlist.name for playlist in queue.playlists]:
-            await queue.close()
             return await ctx.respond(embed=EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
                                      .add_field(name="Existing playlists:",
                                                 value="\n".join([playlist.name for playlist in queue.playlists])))
@@ -94,16 +89,13 @@ class Playlists(commands.Cog):
             url = pytube.YouTube(query).watch_url
             try:
                 await [playlist for playlist in queue.playlists if playlist.name == name][0].add_song(
-                    {'title': pytube.YouTube(query).title, 'url': url, 'asker': ctx.user.id})
-                await queue.close()
+                    await Song.create(pytube.YouTube(query).title, url, await Asker.from_id(ctx.user.id)))
                 await ctx.respond(embed=discord.Embed(title="Playlist", description=f"Song added to playlist {name}.",
                                                       color=0x00ff00))
-            except:
-                await queue.close()
+            except IndexError:
                 return await ctx.respond(
                     embed=discord.Embed(title="Error", description="Error while getting song.", color=0xff0000))
-        except:
-            await queue.close()
+        except PytubeRegexMatchError:
             return await ctx.respond(embed=discord.Embed(title="Error",
                                                          description="You must use an url of a youtube video "
                                                                      "(the research feature is not available for "
@@ -117,21 +109,20 @@ class Playlists(commands.Cog):
                      song: discord.Option(str, "The name of the song", required=True,
                                           autocomplete=discord.utils.basic_autocomplete(get_playlists_songs))):
         await ctx.response.defer()
-        queue = await get_config(ctx.guild.id, False)
+        queue = await Config.get_config(ctx.guild.id, False)
         if name not in [playlist.name for playlist in queue.playlists]:
-            await queue.close()
             return await ctx.respond(embed=EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
                                      .add_field(name="Existing playlists:",
                                                 value="\n".join([playlist.name for playlist in queue.playlists])))
-        if song not in [song['title'] for song in
+        if song not in [song.name for song in
                         [playlist for playlist in queue.playlists if playlist.name == name][0].songs]:
-            await queue.close()
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description="This song is not in the playlist.", color=0xff0000))
+        song = [song for song in [playlist for playlist in queue.playlists if playlist.name == name][0].songs if
+                song.name == song][0]
         await [playlist for playlist in queue.playlists if playlist.name == name][0].remove_song(song)
-        await queue.close()
         await ctx.respond(
-            embed=discord.Embed(title="Playlist", description=f"Song {song} removed from playlist {name}.",
+            embed=discord.Embed(title="Playlist", description=f"Song {song.name} removed from playlist {name}.",
                                 color=0x00ff00))
 
     @playlist.command(name="play", description="Plays a playlist")
@@ -139,41 +130,39 @@ class Playlists(commands.Cog):
                    name: discord.Option(str, "The name of the playlist", required=True,
                                         autocomplete=discord.utils.basic_autocomplete(get_playlists))):
         await ctx.response.defer()
-        queue = await get_config(ctx.guild.id, False)
+        queue = await Config.get_config(ctx.guild.id, False)
         if name not in [playlist.name for playlist in queue.playlists]:
-            await queue.close()
             return await ctx.respond(embed=EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
                                      .add_field(name="Existing playlists:",
                                                 value="\n".join([playlist.name for playlist in queue.playlists])))
         await queue.edit_queue([playlist for playlist in queue.playlists if playlist.name == name][0].songs)
-        await queue.set_position(0)
-        await queue.close()
+        queue.position = 0
         q = multiprocessing.Queue()
         p = multiprocessing.Process(target=worker, args=(q,), name="Audio-Downloader")
         p.start()
         for song in queue.queue:
-            video = pytube.YouTube(song['url'])
+            video = pytube.YouTube(song.url)
             if video.age_restricted:
                 await ctx.respond(embed=discord.Embed(title="Error",
-                                                      description=f"The [video]({song['url']}) is age restricted",
+                                                      description=f"The [video]({song.url}) is age restricted",
                                                       color=0xff0000))
                 continue
             if video.length > 12000:
                 await ctx.respond(embed=discord.Embed(title="Error",
-                                                      description=f"The video [{video.title}]({song['url']}) "
+                                                      description=f"The video [{video.title}]({song.url}) "
                                                                   f"is too long",
                                                       color=0xff0000))
             else:
-                q.put(song['url'])
+                q.put(song.url)
         q.put(None)
         p.join()
         if ctx.guild.voice_client is None:
             await ctx.user.voice.channel.connect()
         if not ctx.guild.voice_client.is_playing():
             await ctx.respond(
-                embed=discord.Embed(title="Play", description=f"Playing {queue.queue[queue.position]['title']}",
+                embed=discord.Embed(title="Play", description=f"Playing {queue.queue[queue.position].name}",
                                     color=0x00ff00))
-            await play_song(ctx, queue.queue[queue.position]['url'])
+            await play_song(ctx, queue.queue[queue.position].url)
         else:
             await ctx.respond(
                 embed=discord.Embed(title="Queue", description=f"Playlist {name} added to queue.", color=0x00ff00))
@@ -181,7 +170,7 @@ class Playlists(commands.Cog):
     @playlist.command(name="list", description="Lists all the playlists")
     async def list_playlist(self, ctx: discord.ApplicationContext):
         await ctx.response.defer()
-        queue = await get_config(ctx.guild.id, True)
+        queue = await Config.get_config(ctx.guild.id, True)
         if not queue.playlists:
             return await ctx.respond(
                 embed=discord.Embed(title="Playlists", description="No playlists.", color=0x00ff00))
@@ -197,14 +186,14 @@ class Playlists(commands.Cog):
                    name: discord.Option(str, "The name of the playlist", required=True,
                                         autocomplete=discord.utils.basic_autocomplete(get_playlists))):
         await ctx.response.defer()
-        queue = await get_config(ctx.guild.id, True)
+        queue = await Config.get_config(ctx.guild.id, True)
         if name not in [playlist.name for playlist in queue.playlists]:
             return await ctx.respond(embed=EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
                                      .add_field(name="Existing playlists:",
                                                 value="\n".join([playlist.name for playlist in queue.playlists])))
         embed = discord.Embed(title=name, color=0x00ff00)
         for index, song in enumerate([playlist for playlist in queue.playlists if playlist.name == name][0].songs):
-            embed.add_field(name=f"{index + 1}.", value=f"__[{song['title']}]({song['url']})__")
+            embed.add_field(name=f"{index + 1}.", value=f"__[{song.name}]({song.url})__")
             if index == 23 and len([playlist for playlist in queue.playlists if playlist.name == name][0].songs) > 24:
                 embed.add_field(name="...", value="...")
                 break
@@ -218,23 +207,20 @@ class Playlists(commands.Cog):
         await ctx.response.defer()
         if len(new_name) > 20:
             return await ctx.respond(embed=EMBED_ERROR_NAME_TOO_LONG)
-        queue = await get_config(ctx.guild.id, False)
+        queue = await Config.get_config(ctx.guild.id, False)
         if name not in [playlist.name for playlist in queue.playlists]:
-            await queue.close()
             return await ctx.respond(embed=EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
                                      .add_field(name="Existing playlists:",
                                                 value="\n".join([playlist.name for playlist in queue.playlists])))
         if new_name in [playlist.name for playlist in queue.playlists]:
-            await queue.close()
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description="A playlist with this name already exists.",
                                     color=0xff0000))
         new_playlist = await Playlist.create(new_name,
                                              [playlist for playlist in queue.playlists if playlist.name == name][
-                                                 0].songs)
+                                                 0].songs, ctx.guild.id)
         await queue.remove_playlist([playlist for playlist in queue.playlists if playlist.name == name][0])
         await queue.add_playlist(new_playlist)
-        await queue.close()
         await ctx.respond(embed=discord.Embed(title="Playlist", description=f"Playlist {name} renamed to {new_name}.",
                                               color=0x00ff00))
 
