@@ -144,8 +144,7 @@ class SelectVideo(discord.ui.Select):
             await queue.add_to_queue(await Song.create(pytube.YouTube(self.values[0]).title, self.values[0],
                                                        await Asker.from_id(interaction.user.id)))
         else:
-            await queue.add_to_queue( await
-                Song.create(pytube.YouTube(self.values[0]).title, self.values[0], await Asker.from_id(interaction.user.id)))
+            await queue.add_to_queue(await Song.create(pytube.YouTube(self.values[0]).title, self.values[0], await Asker.from_id(interaction.user.id)))
         if interaction.guild.voice_client is None:
             await interaction.user.voice.channel.connect()
         if not interaction.guild.voice_client.is_playing():
@@ -182,7 +181,6 @@ EMBED_ERROR_INDEX_TOO_HIGH = discord.Embed(title="Error", description="The index
 EMBED_ERROR_NAME_TOO_LONG = discord.Embed(title="Error", description="The name is too long.", color=0xff0000)
 EMBED_ERROR_NO_RESULTS_FOUND = discord.Embed(title="Error", description="No results found.", color=0xff0000)
 EMBED_ERROR_VIDEO_TOO_LONG = discord.Embed(title="Error", description="The video is too long.", color=0xff0000)
-DATABASE_FILE = "../database/database.db"
 
 
 async def get_playlists(ctx: discord.AutocompleteContext):

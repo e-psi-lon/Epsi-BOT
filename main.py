@@ -13,6 +13,7 @@ import discord.utils
 from discord.ext import tasks
 from dotenv import load_dotenv
 from panel.panel import *
+import utils.config as config
 
 load_dotenv()
 
@@ -47,16 +48,18 @@ class Bot(commands.Bot):
         global start_time
         await self.change_presence(
             activity=discord.Activity(type=discord.ActivityType.watching, name=f"/help | {len(self.guilds)} servers"))
-        # pour pouvoir lancer le serveur web
         parent_conn, child_conn = multiprocessing.Pipe()
         p = multiprocessing.Process(target=start_app, args=(child_conn,), name="Panel")
         p.start()
         self.conn = parent_conn
-        # On verifie si on est sur main ou sur dev ou une autre branche
         if os.popen("git branch --show-current").read().strip() == "main":
             check_update.start()
         threading.Thread(target=listen_to_conn, args=(self,), name="Connection-Listener").start()
         logging.info(f"Bot ready in {datetime.datetime.now() - start_time}")
+        for guild in self.guilds:
+            # Si la guilde n'existe pas dans la db on l'ajoute avec les paramètres par défaut
+            if not await config.Config.config_exists(guild.id):
+                await config.Config.create_config(guild.id)
         self.help_command = commands.DefaultHelpCommand()
 
 
@@ -185,7 +188,8 @@ if __name__ == "__main__":
     console_handler.setFormatter(CustomFormatter(source="Bot"))
     logging.basicConfig(level=logging.INFO, handlers=[console_handler])
     if not os.path.exists("database/database.db"):
-        os.mkdir("database/")
+        if not os.path.exists("database/"):
+            os.mkdir("database/")
         with open("database/database.db", "w") as f:
             f.write("")
         os.chdir("_others")

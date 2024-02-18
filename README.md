@@ -53,7 +53,7 @@ Il y a 7 tables :
   | Colonne           | Type |
   |-------------------|------|
   | # __server_id__   | INT  |
-  | # __playlist_id__ | INT  | 
+  | # __playlist_id__ | INT  |
 
 - `QUEUE` qui contient les informations de la file d'attente des chansons :
 
@@ -63,8 +63,6 @@ Il y a 7 tables :
   | # __song_id__   | INT          |
   | # asker_id      | INT          |
   | position        | INT          |
-
-
 
 ## Contributeurs
 

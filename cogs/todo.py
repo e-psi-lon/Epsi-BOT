@@ -4,7 +4,6 @@ from discord.commands import SlashCommandGroup
 import re
 
 
-# On créé une expression régulière qui récupère
 class Todo(commands.Cog):
     def __init__(self, bot):
         self.bot = bot

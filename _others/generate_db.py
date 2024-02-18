@@ -5,38 +5,38 @@ cursor = conn.cursor()
 
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS SERVER (
-        id INT,
+        server_id INT,
         loop_song BOOLEAN,
         loop_queue BOOLEAN,
         random BOOLEAN,
         volume INT,
         position INT,
-        PRIMARY KEY (id)
+        PRIMARY KEY (server_id)
     );
 ''')
 
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS SONG (
-    id INT,
+    song_id INT,
     name VARCHAR(255),
     url TEXT,
-    PRIMARY KEY (id)
+    PRIMARY KEY (song_id)
 );
 ''')
 
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS ASKER (
-    id INT,
+    asker_id INT,
     discord_id INT,
-    PRIMARY KEY (id)
+    PRIMARY KEY (asker_id)
 );
 ''')
 
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS PLAYLIST (
-    id INT,
+    playlist_id INT,
     name VARCHAR(255),
-    PRIMARY KEY (id)
+    PRIMARY KEY (playlist_id)
 );
 ''')
 
@@ -47,9 +47,9 @@ CREATE TABLE IF NOT EXISTS QUEUE (
     song_id INT,
     position INT,
     asker INT,
-    FOREIGN KEY (server_id) REFERENCES SERVER(id),
-    FOREIGN KEY (song_id) REFERENCES SONG(id),
-    FOREIGN KEY (asker) REFERENCES ASKER(id)
+    FOREIGN KEY (server_id) REFERENCES SERVER(server_id),
+    FOREIGN KEY (song_id) REFERENCES SONG(song_id),
+    FOREIGN KEY (asker) REFERENCES ASKER(asker_id)
 );
 ''')
 
@@ -61,9 +61,9 @@ CREATE TABLE IF NOT EXISTS PLAYLIST_SONG (
     position INT,
     asker INT,
     PRIMARY KEY (playlist_id, song_id),
-    FOREIGN KEY (playlist_id) REFERENCES PLAYLIST(id),
-    FOREIGN KEY (song_id) REFERENCES SONG(id),
-    FOREIGN KEY (asker) REFERENCES ASKER(id)
+    FOREIGN KEY (playlist_id) REFERENCES PLAYLIST(playlist_id),
+    FOREIGN KEY (song_id) REFERENCES SONG(song_id),
+    FOREIGN KEY (asker) REFERENCES ASKER(asker_id)
 );
 ''')
 
@@ -72,8 +72,8 @@ CREATE TABLE IF NOT EXISTS SERVER_PLAYLIST (
     server_id INT,
     playlist_id INT,
     PRIMARY KEY (server_id, playlist_id),
-    FOREIGN KEY (server_id) REFERENCES SERVER(id),
-    FOREIGN KEY (playlist_id) REFERENCES PLAYLIST(id)
+    FOREIGN KEY (server_id) REFERENCES SERVER(server_id),
+    FOREIGN KEY (playlist_id) REFERENCES PLAYLIST(playlist_id)
 );
 ''')
 
