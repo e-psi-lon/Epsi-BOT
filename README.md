@@ -4,9 +4,9 @@
 
 Tout est dans une base de données sqlite3, dans le fichier [`database/database.db`](database/database.db) (non présent
 sur le repo, mais créé automatiquement s'il n'existe pas).
-Il y a 4 tables:
+Il y a 7 tables :
 
-- `SERVER` qui contient les infos des guilds et qui se présente sous la forme suivante:
+- `SERVER` qui contient les infos des guilds et qui se présente sous la forme suivante :
 
   | Colonne    | Type    |
   |------------|---------|
@@ -22,26 +22,49 @@ Il y a 4 tables:
   | Colonne | Type         |
   |---------|--------------|
   | __id__  | INT          |
-  | title   | VARCHAR(255) |
+  | name    | VARCHAR(255) |
   | url     | TEXT         |
-  | asker   | VARCHAR(255) |
-
-- `QUEUE` qui contient les informations de la file d'attente des chansons :
-
-  | Colonne        | Type |
-  |----------------|------|
-  | # __song_id__  | INT  |
-  | # __server_id__| INT  |
-  | position       | INT  |
 
 - `PLAYLIST` qui contient les informations des playlists :
 
+  | Colonne       | Type         |
+  |---------------|--------------|
+  | __id__        | INT          |
+  | name          | VARCHAR(255) |
+
+- `ASKER` qui contient les informations des utilisateurs :
+
+  | Colonne    | Type |
+  |------------|------|
+  | __id__     | INT  |
+  | discord_id | INT  |
+
+- `PLAYLIST_SONG` qui contient les informations des chansons dans les playlists :
+
+  | Colonne           | Type |
+  |-------------------|------|
+  | # __playlist_id__ | INT  |
+  | # __song_id__     | INT  |
+  | position          | INT  |
+  | asker             | INT  |
+
+- `SERVER_PLAYLIST` qui contient les informations des playlists dans les guilds :
+
+  | Colonne           | Type |
+  |-------------------|------|
+  | # __server_id__   | INT  |
+  | # __playlist_id__ | INT  | 
+
+- `QUEUE` qui contient les informations de la file d'attente des chansons :
+
   | Colonne         | Type         |
   |-----------------|--------------|
-  | name            | VARCHAR(255) |
   | # __server_id__ | INT          |
   | # __song_id__   | INT          |
+  | # asker_id      | INT          |
   | position        | INT          |
+
+
 
 ## Contributeurs
 
