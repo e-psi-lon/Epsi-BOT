@@ -48,22 +48,23 @@ class Bot(commands.Bot):
         global start_time
         await self.change_presence(
             activity=discord.Activity(type=discord.ActivityType.watching, name=f"/help | {len(self.guilds)} servers"))
-        parent_conn, child_conn = multiprocessing.Pipe()
-        p = multiprocessing.Process(target=start_app, args=(child_conn,), name="Panel")
-        p.start()
-        self.conn = parent_conn
-        if os.popen("git branch --show-current").read().strip() == "main":
-            check_update.start()
-        threading.Thread(target=listen_to_conn, args=(self,), name="Connection-Listener").start()
+        if not self.conn:
+            parent_conn, child_conn = multiprocessing.Pipe()
+            p = multiprocessing.Process(target=start_app, args=(child_conn,), name="Panel")
+            p.start()
+            self.conn = parent_conn
+            if os.popen("git branch --show-current").read().strip() == "main":
+                check_update.start()
+            threading.Thread(target=listen_to_conn, args=(self,), name="Connection-Listener").start()
         logging.info(f"Bot ready in {datetime.datetime.now() - start_time}")
         for guild in self.guilds:
             # Si la guilde n'existe pas dans la db on l'ajoute avec les paramètres par défaut
             if not await config.Config.config_exists(guild.id):
                 await config.Config.create_config(guild.id)
-        self.help_command = commands.DefaultHelpCommand()
     
     async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
         logging.error(f"Error in {ctx.command}: {error}")
+        
         embed = discord.Embed(title="Une erreur est survenue", description=f"Erreur provoquée par {ctx.author.mention}",
                                 color=discord.Color.red())
         command = ctx.command
@@ -76,6 +77,39 @@ class Bot(commands.Bot):
         embed.add_field(name="Message d'erreur", value=f"`{error}`")
         embed.add_field(name="Traceback", value=f"```\n{error.__traceback__}```")
         await ctx.respond(embed=embed, ephemeral=True)
+
+    async def on_error(self, event_method: str, *args, **kwargs) -> None:
+        ctx = None
+        for arg in args:
+            if isinstance(arg, discord.ApplicationContext):
+                ctx = arg
+                break
+        if not ctx:
+            for arg in kwargs.values():
+                if isinstance(arg, discord.ApplicationContext):
+                    ctx = arg
+                    break
+        if ctx is not None:
+            logging.error(f"Error in {event_method}")
+            logging.error(f"Error message: {sys.exc_info()[1]}")
+            logging.error(f"Traceback: {sys.exc_info()[2]}")
+            logging.error(f"Args: {args}")
+            logging.error(f"Kwargs: {kwargs}")
+            embed = discord.Embed(title="Une erreur est survenue", description=f"Erreur provoquée par {ctx.author.mention}",
+                                  color=discord.Color.red())
+            embed.add_field(name="Commande", value=f"`{ctx.command}`")
+            embed.add_field(name="Module", value=f"`{ctx.command.cog.__class__.__name__}`")
+            embed.add_field(name="Message d'erreur", value=f"`{sys.exc_info()[1]}`")
+            embed.add_field(name="Traceback", value=f"```\n{sys.exc_info()[2]}```")
+            await ctx.respond(embed=embed, ephemeral=True)
+        else:
+            logging.error(f"Error in {event_method}")
+            logging.error(f"Error message: {sys.exc_info()[1]}")
+            logging.error(f"Traceback: {sys.exc_info()[2]}")
+            logging.error(f"Args: {args}")
+            logging.error(f"Kwargs: {kwargs}")
+            
+    
 
 
 def listen_to_conn(bot: Bot):
