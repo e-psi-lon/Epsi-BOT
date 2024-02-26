@@ -61,6 +61,21 @@ class Bot(commands.Bot):
             if not await config.Config.config_exists(guild.id):
                 await config.Config.create_config(guild.id)
         self.help_command = commands.DefaultHelpCommand()
+    
+    async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
+        logging.error(f"Error in {ctx.command}: {error}")
+        embed = discord.Embed(title="Une erreur est survenue", description=f"Erreur provoquée par {ctx.author.mention}",
+                                color=discord.Color.red())
+        command = ctx.command
+        command_path = []
+        while command.parent:
+            command_path.append(command.name)
+            command = command.parent
+        embed.add_field(name="Commande", value=f"`/{''.join(reversed(command_path))}`")
+        embed.add_field(name="Module", value=f"`{ctx.command.cog.__class__.__name__!r}`")
+        embed.add_field(name="Message d'erreur", value=f"`{error}`")
+        embed.add_field(name="Traceback", value=f"```\n{error.__traceback__}```")
+        await ctx.respond(embed=embed, ephemeral=True)
 
 
 def listen_to_conn(bot: Bot):
@@ -131,8 +146,8 @@ async def _help(ctx):
 
 @bot.slash_command(name="send", description="Envoie un message dans un salon")
 async def send_message(ctx: discord.ApplicationContext,
-                       channel: discord.Option(discord.TextChannel, description="Le salon où envoyer le message"),
-                       message: discord.Option(str, description="Le message à envoyer")):
+                       channel: discord.Option(discord.TextChannel, description="Le salon où envoyer le message"), # type: ignore
+                       message: discord.Option(str, description="Le message à envoyer")): # type: ignore
     if ctx.author.id != bot.owner_id:
         raise commands.NotOwner
     await ctx.response.defer()
