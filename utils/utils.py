@@ -314,16 +314,6 @@ def convert(audio, file_format):
     return f"{audio.split('/')[1][:-4]}.{file_format}"
 
 
-def sql_to_song(sql):
-    """Convert a song from the database to a dict"""
-    return {"id": sql[0], "title": sql[1], "url": sql[2], "asker": sql[3]}
-
-
-def song_to_sql(song):
-    """Convert a song to a tuple to insert it in the database"""
-    return song["id"], song["title"], song["url"], song["asker"]
-
-
 class CustomFormatter(logging.Formatter):
     def __init__(self, source, *args, **kwargs):
         super().__init__(*args, **kwargs)

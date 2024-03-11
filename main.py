@@ -4,6 +4,7 @@ import os
 import sys
 import dependencies_check
 import threading
+import traceback
 
 if __name__ == "__main__":
     if len(list(dependencies_check.check_libs())) > 0 and list(dependencies_check.check_libs())[0][0] != "pynacl":
@@ -18,6 +19,7 @@ import utils.config as config
 load_dotenv()
 
 start_time = datetime.datetime.now()
+
 
 
 @tasks.loop(seconds=18000)
@@ -89,26 +91,19 @@ class Bot(commands.Bot):
                 if isinstance(arg, discord.ApplicationContext):
                     ctx = arg
                     break
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        traceback_str = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
         if ctx is not None:
-            logging.error(f"Error in {event_method}")
-            logging.error(f"Error message: {sys.exc_info()[1]}")
-            logging.error(f"Traceback: {sys.exc_info()[2]}")
-            logging.error(f"Args: {args}")
-            logging.error(f"Kwargs: {kwargs}")
+            logging.error(f"Error in {event_method}\n Error message: {exc_value}\n Traceback: {traceback_str}\n Args: {args}\n Kwargs: {kwargs}")
             embed = discord.Embed(title="Une erreur est survenue", description=f"Erreur provoquée par {ctx.author.mention}",
                                   color=discord.Color.red())
             embed.add_field(name="Commande", value=f"`{ctx.command}`")
             embed.add_field(name="Module", value=f"`{ctx.command.cog.__class__.__name__}`")
-            embed.add_field(name="Message d'erreur", value=f"`{sys.exc_info()[1]}`")
-            embed.add_field(name="Traceback", value=f"```\n{sys.exc_info()[2]}```")
+            embed.add_field(name="Message d'erreur", value=f"`{exc_value}`")
+            embed.add_field(name="Traceback", value=f"```\n{traceback_str}```")
             await ctx.respond(embed=embed, ephemeral=True)
         else:
-            logging.error(f"Error in {event_method}")
-            logging.error(f"Error message: {sys.exc_info()[1]}")
-            logging.error(f"Traceback: {sys.exc_info()[2]}")
-            logging.error(f"Args: {args}")
-            logging.error(f"Kwargs: {kwargs}")
-            
+            logging.error(f"Error in {event_method}\n Error message: {exc_value}\n Traceback: {traceback_str}\n Args: {args}\n Kwargs: {kwargs}")
     
 
 

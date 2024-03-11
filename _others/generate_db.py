@@ -17,7 +17,7 @@ cursor.execute('''
 
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS SONG (
-    song_id INT,
+    song_id INT AUTO_INCREMENT,
     name VARCHAR(255),
     url TEXT,
     PRIMARY KEY (song_id)
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS SONG (
 
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS ASKER (
-    asker_id INT,
+    asker_id INT AUTO_INCREMENT,
     discord_id INT,
     PRIMARY KEY (asker_id)
 );
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS ASKER (
 
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS PLAYLIST (
-    playlist_id INT,
+    playlist_id INT AUTO_INCREMENT,
     name VARCHAR(255),
     PRIMARY KEY (playlist_id)
 );
