@@ -36,7 +36,7 @@ class Channel(commands.Cog):
         if queue.queue:
             if queue.position > len(queue.queue) - 1:
                 queue.position = 0
-            # Si il y a plus d'un élément dans la queue on les télécharge tous sur un thread séparé
+            # S'il y a plus d'un élément dans la queue, on les télécharge tous sur un thread séparé
             await play_song(ctx, queue.queue[queue.position].url)
             if len(queue.queue) > 1:
                 q = multiprocessing.Queue()

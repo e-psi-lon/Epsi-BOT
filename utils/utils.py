@@ -13,32 +13,33 @@ from discord.ext import commands
 import requests
 from utils.config import Config, Song, Asker
 
+logger = logging.getLogger("__main__")
 
-def download(url: str, file_format: str = "mp3"):
+
+def download(url: str, file_format: str = "mp3", download_logger=logger):
     """Download a video from a YouTube URL"""
     if not url.startswith("https://youtube.com/watch?v="):
         if os.path.exists(f"cache/{format_name(url.split('/')[-1])}"):
-            logging.info(f"{url.split('/')[-1]} already in cache as cache/{format_name(url.split('/')[-1])}")
+            download_logger.info(f"{url.split('/')[-1]} already in cache as cache/{format_name(url.split('/')[-1])}")
             return f"cache/{format_name(url.split('/')[-1])}"
         r = requests.get(url)
         with open(f"cache/{format_name(url.split('/')[-1])}", "wb") as f:
             f.write(r.content)
-        logging.info(f"Downloaded {url.split('/')[-1]} to cache/{format_name(url.split('/')[-1])}")
+        download_logger.info(f"Downloaded {url.split('/')[-1]} to cache/{format_name(url.split('/main')[-1])}")
         return f"cache/{format_name(url.split('/')[-1])}"
     stream = pytube.YouTube(url)
     video_id = stream.video_id
-    logging.info(f'The video is age restricted (video id: {video_id}) : {not stream.age_restricted} ')
-    if not stream.age_restricted:
-        logging.warning(f"Video {stream.title} is age restricted (video id: {video_id})")
+    if stream.age_restricted:
+        download_logger.warning(f"Video {stream.title} is age restricted (video id: {video_id})")
         return None
     if os.path.exists(f"cache/{format_name(stream.title)}.{file_format}"):
-        logging.info(
+        download_logger.info(
             f"{stream.title} already in cache as cache/{format_name(stream.title)}.{file_format} "
             f"(video id: {video_id})")
         return f"cache/{format_name(stream.title)}.{file_format}"
     stream = stream.streams.filter(only_audio=True).first()
     stream.download(filename=f"cache/{format_name(stream.title)}.{file_format}")
-    logging.info(f"Downloaded {stream.title} to cache/{format_name(stream.title)}.{file_format} (video id: {video_id})")
+    download_logger.info(f"Downloaded {stream.title} to cache/{format_name(stream.title)}.{file_format} (video id: {video_id})")
     return f"cache/{format_name(stream.title)}.{file_format}"
 
 
@@ -153,7 +154,7 @@ class SelectVideo(discord.ui.Select):
                                                                            f"[{pytube.YouTube(self.values[0]).title}]"
                                                                            f"({self.values[0]})",
                                                                color=0x00ff00))
-            await play_song(self.ctx, queue.queue[queue.position]['url'])
+            await play_song(self.ctx, queue.queue[queue.position].url)
         else:
             await interaction.message.edit(embed=discord.Embed(title="Queue",
                                                                description=f"Song "
@@ -190,7 +191,7 @@ async def get_playlists(ctx: discord.AutocompleteContext):
 
 async def get_playlists_songs(ctx: discord.AutocompleteContext):
     config = await Config.get_config(ctx.interaction.guild.id, True)
-    return [song['title'] for song in
+    return [song.name for song in
             [playlist for playlist in config.playlists if playlist.name == ctx.options['playlist']][0].songs]
 
 
@@ -200,7 +201,7 @@ async def get_queue_songs(ctx: discord.AutocompleteContext):
         return []
     queue_ = queue.queue.copy()
     queue_.pop(queue.position)
-    return [song['title'] for song in queue_]
+    return [song.name for song in queue_]
 
 
 def format_name(name: str):
@@ -242,9 +243,9 @@ async def change_song(ctx: discord.ApplicationContext):
             queue = queue.position + 1
     await queue.close()
     try:
-        await play_song(ctx, queue.queue[queue.position]['url'])
+        await play_song(ctx, queue.queue[queue.position].url)
     except Exception as e:
-        logging.error(f"Erreur : {e}")
+        logger.error(f"Erreur : {e}")
 
 
 async def play_song(ctx: discord.ApplicationContext, url: str):
@@ -255,7 +256,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
     config = await Config.get_config(ctx.guild.id, True)
     try:
         video = pytube.YouTube(url)
-        if not video.age_restricted:
+        if video.age_restricted:
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description=f"The [video]({url}) is age restricted",
                                     color=0xff0000))
@@ -268,14 +269,14 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
             discord.FFmpegPCMAudio(file, executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"),
             config.volume / 100)
         try:
-            logging.info(f"Playing song {video.title}")
+            logger.info(f"Playing song {video.title}")
             ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
                                         wait_finish=True)
 
         except:
             while ctx.guild.voice_client.is_playing():
                 await asyncio.sleep(0.1)
-            logging.info(f"Playing song {video.title}")
+            logger.info(f"Playing song {video.title}")
             ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
                                         wait_finish=True)
     except:
@@ -284,7 +285,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
             discord.FFmpegPCMAudio(file, executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"),
             config.volume / 100)
         try:
-            logging.info(f"Playing song {url}")
+            logger.info(f"Playing song {url}")
             ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
                                         wait_finish=True)
         except:
@@ -293,17 +294,17 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
             except:
                 pass
             await ctx.author.voice.channel.connect()
-            logging.info(f"Playing song {url}")
+            logger.info(f"Playing song {url}")
             ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
                                         wait_finish=True)
 
 
 async def on_play_song_finished(ctx: discord.ApplicationContext, error=None):
     if error is not None and error:
-        logging.error("Error:", error)
+        logger.error("Error:", error)
         await ctx.respond(
             embed=discord.Embed(title="Error", description="An error occured while playing the song.", color=0xff0000))
-    logging.info("Song finished")
+    logger.info("Song finished")
     await change_song(ctx)
 
 

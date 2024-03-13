@@ -1,4 +1,3 @@
-import logging
 import sqlite3
 from typing import Optional
 import aiosqlite
@@ -20,7 +19,7 @@ class DatabaseAccess:
                       create_if_none: bool = False, **where):
         async with aiosqlite.connect("database/database.db") as conn:
             cursor = await conn.cursor()
-            where_str = " " + ' AND '.join([f'{key} = {value}' for key, value in where.items()])
+            where_str = " " + ' AND '.join([f'{key} = \'{value}\'' for key, value in where.items()])
             if joins is not None:
                 joins = " " + ' '.join([f'JOIN {table} ON {condition}' for table, condition in joins])
             else:
@@ -45,15 +44,14 @@ class DatabaseAccess:
             cursor = await conn.cursor()
             columns = [f'{key} = ?' for key in columns_values.keys()]
             values = tuple(columns_values.values())
-            where = ' AND '.join([f'{key} = {value}' for key, value in where.items()])
-            print(f'UPDATE {table} SET {", ".join(columns)} WHERE {where};')
+            where = ' AND '.join([f'{key} = \'{value}\'' for key, value in where.items()])
             await cursor.execute(
                 f'UPDATE {table} SET {", ".join(columns)} WHERE {where};', values)
             await conn.commit()
 
     async def _create_db(self, table, **columns_values):
         if self._copy:
-            return
+            return await self._get_db(table, "*", **columns_values)
         async with aiosqlite.connect("database/database.db") as conn:
             cursor = await conn.cursor()
             columns = ', '.join(columns_values.keys())
@@ -68,7 +66,7 @@ class DatabaseAccess:
             return
         async with aiosqlite.connect("database/database.db") as conn:
             cursor = await conn.cursor()
-            where = ' AND '.join([f'{key} = {value}' for key, value in where.items()])
+            where = ' AND '.join([f'{key} = \'{value}\'' for key, value in where.items()])
             await cursor.execute(f'DELETE FROM {table} WHERE {where};')
             await conn.commit()
 
@@ -120,8 +118,7 @@ class Song(DatabaseAccess):
         self._name = name
         self._url = url
         self._asker = asker
-        await self._create_db('SONG', name=name, url=url)
-        self._id = (await self._get_db('SONG', 'song_id', name=name, url=url))[0]
+        self._id = (await self._create_db('SONG', name=name, url=url))[0]
         return self
 
     @property
@@ -134,6 +131,10 @@ class Song(DatabaseAccess):
 
     @property
     def name(self) -> str:
+        return self._name
+
+    @property
+    def title(self) -> str:
         return self._name
 
     @property

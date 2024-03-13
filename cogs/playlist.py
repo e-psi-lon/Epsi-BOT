@@ -226,13 +226,14 @@ class Playlists(commands.Cog):
 
 
 def worker(queue: multiprocessing.Queue):
+    worker_logger = logging.getLogger("Audio-Downloader")
     while True:
         song_url = queue.get()
         if song_url is None:
             break
-        download(song_url)
+        download(song_url, download_logger=worker_logger)
     queue.close()
-    logging.info("Audio-Downloader process ended")
+    worker_logger.info("Audio-Downloader process ended")
 
 
 def setup(bot):

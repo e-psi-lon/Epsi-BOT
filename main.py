@@ -21,7 +21,6 @@ load_dotenv()
 start_time = datetime.datetime.now()
 
 
-
 @tasks.loop(seconds=18000)
 async def check_update():
     current_hash = os.popen("git rev-parse HEAD").read().strip()
@@ -43,7 +42,7 @@ def start_app(conn: Connection):
 
 class Bot(commands.Bot):
     def __init__(self, *args, **options):
-        super().__init__(*args, options)
+        super().__init__(*args, **options)
         self.conn = None
 
     async def on_ready(self):
@@ -63,12 +62,12 @@ class Bot(commands.Bot):
             # Si la guilde n'existe pas dans la db on l'ajoute avec les paramètres par défaut
             if not await config.Config.config_exists(guild.id):
                 await config.Config.create_config(guild.id)
-    
+
     async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
         logging.error(f"Error in {ctx.command}: {error}")
-        
+
         embed = discord.Embed(title="Une erreur est survenue", description=f"Erreur provoquée par {ctx.author.mention}",
-                                color=discord.Color.red())
+                              color=discord.Color.red())
         command = ctx.command
         command_path = []
         while command.parent:
@@ -78,7 +77,7 @@ class Bot(commands.Bot):
         embed.add_field(name="Module", value=f"`{ctx.command.cog.__class__.__name__!r}`")
         embed.add_field(name="Message d'erreur", value=f"`{error}`")
         embed.add_field(name="Traceback", value=f"```\n{error.__traceback__}```")
-        await ctx.respond(embed=embed, ephemeral=True)
+        await ctx.channel.send("Ce message se supprimera d'ici 60s", embed=embed, delete_after=60)
 
     async def on_error(self, event_method: str, *args, **kwargs) -> None:
         ctx = None
@@ -94,8 +93,10 @@ class Bot(commands.Bot):
         exc_type, exc_value, exc_traceback = sys.exc_info()
         traceback_str = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
         if ctx is not None:
-            logging.error(f"Error in {event_method}\n Error message: {exc_value}\n Traceback: {traceback_str}\n Args: {args}\n Kwargs: {kwargs}")
-            embed = discord.Embed(title="Une erreur est survenue", description=f"Erreur provoquée par {ctx.author.mention}",
+            logging.error(
+                f"Error in {event_method}\n Error message: {exc_value}\n Traceback: {traceback_str}\n Args: {args}\n Kwargs: {kwargs}")
+            embed = discord.Embed(title="Une erreur est survenue",
+                                  description=f"Erreur provoquée par {ctx.author.mention}",
                                   color=discord.Color.red())
             embed.add_field(name="Commande", value=f"`{ctx.command}`")
             embed.add_field(name="Module", value=f"`{ctx.command.cog.__class__.__name__}`")
@@ -103,8 +104,8 @@ class Bot(commands.Bot):
             embed.add_field(name="Traceback", value=f"```\n{traceback_str}```")
             await ctx.respond(embed=embed, ephemeral=True)
         else:
-            logging.error(f"Error in {event_method}\n Error message: {exc_value}\n Traceback: {traceback_str}\n Args: {args}\n Kwargs: {kwargs}")
-    
+            logging.error(
+                f"Error in {event_method}\n Error message: {exc_value}\n Traceback: {traceback_str}\n Args: {args}\n Kwargs: {kwargs}")
 
 
 def listen_to_conn(bot: Bot):
@@ -175,8 +176,9 @@ async def _help(ctx):
 
 @bot.slash_command(name="send", description="Envoie un message dans un salon")
 async def send_message(ctx: discord.ApplicationContext,
-                       channel: discord.Option(discord.TextChannel, description="Le salon où envoyer le message"), # type: ignore
-                       message: discord.Option(str, description="Le message à envoyer")): # type: ignore
+                       channel: discord.Option(discord.TextChannel, description="Le salon où envoyer le message"),
+                       # type: ignore
+                       message: discord.Option(str, description="Le message à envoyer")):  # type: ignore
     if ctx.author.id != bot.owner_id:
         raise commands.NotOwner
     await ctx.response.defer()

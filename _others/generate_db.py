@@ -5,48 +5,45 @@ cursor = conn.cursor()
 
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS SERVER (
-        server_id INT,
+        server_id INTEGER,
         loop_song BOOLEAN,
         loop_queue BOOLEAN,
         random BOOLEAN,
-        volume INT,
-        position INT,
+        volume INTEGER,
+        position INTEGER,
         PRIMARY KEY (server_id)
     );
 ''')
 
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS SONG (
-    song_id INT AUTO_INCREMENT,
+    song_id INTEGER PRIMARY KEY AUTOINCREMENT,
     name VARCHAR(255),
-    url TEXT,
-    PRIMARY KEY (song_id)
+    url TEXT
 );
 ''')
 
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS ASKER (
-    asker_id INT AUTO_INCREMENT,
-    discord_id INT,
-    PRIMARY KEY (asker_id)
+    asker_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    discord_id INTEGER
 );
 ''')
 
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS PLAYLIST (
-    playlist_id INT AUTO_INCREMENT,
-    name VARCHAR(255),
-    PRIMARY KEY (playlist_id)
+    playlist_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(255)
 );
 ''')
 
 
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS QUEUE (
-    server_id INT,
-    song_id INT,
-    position INT,
-    asker INT,
+    server_id INTEGER,
+    song_id INTEGER,
+    position INTEGER,
+    asker INTEGER,
     FOREIGN KEY (server_id) REFERENCES SERVER(server_id),
     FOREIGN KEY (song_id) REFERENCES SONG(song_id),
     FOREIGN KEY (asker) REFERENCES ASKER(asker_id)
@@ -56,22 +53,21 @@ CREATE TABLE IF NOT EXISTS QUEUE (
 
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS PLAYLIST_SONG (
-    playlist_id INT,
-    song_id INT,
-    position INT,
-    asker INT,
-    PRIMARY KEY (playlist_id, song_id),
+    playlist_id INTEGER,
+    song_id INTEGER,
+    position INTEGER,
+    asker INTEGER,
+    FOREIGN KEY (asker) REFERENCES ASKER(asker_id),
     FOREIGN KEY (playlist_id) REFERENCES PLAYLIST(playlist_id),
-    FOREIGN KEY (song_id) REFERENCES SONG(song_id),
-    FOREIGN KEY (asker) REFERENCES ASKER(asker_id)
+    FOREIGN KEY (song_id) REFERENCES SONG(song_id)
+    
 );
 ''')
 
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS SERVER_PLAYLIST (
-    server_id INT,
-    playlist_id INT,
-    PRIMARY KEY (server_id, playlist_id),
+    server_id INTEGER,
+    playlist_id INTEGER,
     FOREIGN KEY (server_id) REFERENCES SERVER(server_id),
     FOREIGN KEY (playlist_id) REFERENCES PLAYLIST(playlist_id)
 );
