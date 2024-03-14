@@ -212,6 +212,43 @@ class Playlist(DatabaseAccess):
         await self._delete_db('PLAYLIST_SONG', playlist_id=self._id, song_id=song.id)
 
 
+class UserPlaylistAccess(DatabaseAccess):
+    def __init__(self, copy):
+        super().__init__(copy)
+        self._user_id: int | None = None
+        self._playlists: set[Playlist] | None = None
+
+    @classmethod
+    async def from_id(cls, user_id, is_copy=False) -> 'UserPlaylistAccess':
+        self = cls(is_copy)
+        self._user_id = user_id
+        playlists = await self._get_db('USER_PLAYLIST', 'playlist_id', all_results=True)
+        self._playlists = {Playlist.from_id(playlist_id, is_copy=self._copy) for playlist_id in playlists}
+        return self
+
+    @property
+    def user_id(self) -> int:
+        return self._user_id
+
+    @property
+    def playlists(self) -> set[Playlist]:
+        return self._playlists
+
+    async def add_playlist(self, playlist: Playlist):
+        self._playlists.add(playlist)
+        await self._create_db('USER_PLAYLIST', user_id=self._user_id, playlist_id=playlist.id)
+
+    async def remove_playlist(self, playlist: Playlist):
+        self._playlists.remove(playlist)
+        await self._delete_db('USER_PLAYLIST', user_id=self._user_id, playlist_id=playlist.id)
+
+    async def get_playlist(self, playlist_id):
+        for playlist in self._playlists:
+            if playlist.id == playlist_id:
+                return playlist
+        return await Playlist.from_id(playlist_id, is_copy=self._copy)
+
+
 class Config(DatabaseAccess):
     def __init__(self, copy):
         super().__init__(copy)

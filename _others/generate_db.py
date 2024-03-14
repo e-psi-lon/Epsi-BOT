@@ -73,6 +73,15 @@ CREATE TABLE IF NOT EXISTS SERVER_PLAYLIST (
 );
 ''')
 
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS USER_PLAYLIST (
+    user_id INTEGER,
+    playlist_id INTEGER,
+    FOREIGN KEY (user_id) REFERENCES ASKER(asker_id),
+    FOREIGN KEY (playlist_id) REFERENCES PLAYLIST(playlist_id)
+);
+''')
+
 
 conn.commit()
 conn.close()

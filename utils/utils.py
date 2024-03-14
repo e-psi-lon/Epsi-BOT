@@ -11,7 +11,7 @@ import asyncio
 import discord.ext.pages
 from discord.ext import commands
 import requests
-from utils.config import Config, Song, Asker
+from utils.config import Config, Song, Asker, UserPlaylistAccess
 
 logger = logging.getLogger("__main__")
 
@@ -146,7 +146,8 @@ class SelectVideo(discord.ui.Select):
             await queue.add_to_queue(await Song.create(pytube.YouTube(self.values[0]).title, self.values[0],
                                                        await Asker.from_id(interaction.user.id)))
         else:
-            await queue.add_to_queue(await Song.create(pytube.YouTube(self.values[0]).title, self.values[0], await Asker.from_id(interaction.user.id)))
+            await queue.add_to_queue(await Song.create(pytube.YouTube(self.values[0]).title, self.values[0],
+                                                       await Asker.from_id(interaction.user.id)))
         if interaction.guild.voice_client is None:
             await interaction.user.voice.channel.connect()
         if not interaction.guild.voice_client.is_playing():
@@ -187,13 +188,24 @@ EMBED_ERROR_VIDEO_TOO_LONG = discord.Embed(title="Error", description="The video
 
 async def get_playlists(ctx: discord.AutocompleteContext):
     config = await Config.get_config(ctx.interaction.guild.id, True)
-    return [playlist.name for playlist in config.playlists]
+    user_playlists = await UserPlaylistAccess.from_id(ctx.interaction.user.id, True)
+    return ([playlist.name + " - SERVER" for playlist in config.playlists] +
+            [playlist.name + " - USER" for playlist in user_playlists.playlists])
 
 
 async def get_playlists_songs(ctx: discord.AutocompleteContext):
-    config = await Config.get_config(ctx.interaction.guild.id, True)
-    return [song.name for song in
-            [playlist for playlist in config.playlists if playlist.name == ctx.options['playlist']][0].songs]
+    # Si le nom finit par " - SERVER", on cherche dans les playlists du serveur
+    if ctx.options['playlist'].endswith(" - SERVER"):
+        config = await Config.get_config(ctx.interaction.guild.id, True)
+        playlist = await config.get_playlist(ctx.options['playlist'][:-8])
+        return [song.name for song in playlist.songs]
+    elif ctx.options['playlist'].endswith(" - USER"):
+        user_playlists = await UserPlaylistAccess.from_id(ctx.interaction.user.id, True)
+        playlist = await user_playlists.get_playlist(ctx.options['playlist'][:-6])
+        return [song.name for song in playlist.songs]
+    else:
+        return []
+
 
 
 async def get_queue_songs(ctx: discord.AutocompleteContext):
