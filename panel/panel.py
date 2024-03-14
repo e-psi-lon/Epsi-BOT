@@ -1,10 +1,10 @@
 import sys
+from multiprocessing.connection import Connection, PipeConnection
 from threading import Timer
 from utils.utils import *
 from quart import *
 import requests
 import pytube
-from multiprocessing.connection import Connection, PipeConnection
 import logging
 
 
@@ -12,25 +12,23 @@ class Panel(Quart):
     def __init__(self, secret_key, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.conn: Connection | None = None
+        self.secret_key = secret_key
+        self.logger.handlers.clear()
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setFormatter(CustomFormatter(source="Panel"))
-        console_handler.setLevel(logging.INFO)
-        self.logger.removeHandler(self.logger.handlers[0])
         self.logger.addHandler(console_handler)
-        self.secret_key = secret_key
+        self.API_ENDPOINT = "https://discord.com/api/v10"
+        self.CLIENT_ID = 1167171085343666216
+        self.CLIENT_SECRET = "kH848ueQ4RGF3cKBNRJ1W1bFHI0b9bfo"
+        self.REDIRECT_URI = "http://86.196.98.254/auth/discord/callback"
+        self.timers = {}
+        self.guilds: dict[int, list[dict]] = {}
 
     def set_connection(self, conn: Connection):
         self.conn = conn
 
 
 app = Panel("121515145141464146EFG", __name__)
-API_ENDPOINT = "https://discord.com/api/v10"
-CLIENT_ID = 1167171085343666216
-CLIENT_SECRET = "kH848ueQ4RGF3cKBNRJ1W1bFHI0b9bfo"
-REDIRECT_URI = "http://86.196.98.254/auth/discord/callback"
-
-timers = {}
-guilds: dict[int, list[dict]] = {}
 
 
 def get_from_conn(conn: Connection, content: str, **kwargs):
@@ -68,31 +66,32 @@ async def panel():
         return redirect(url_for('login'))
     token = session['token']
     if 'user' not in session:
-        user = requests.get(f"{API_ENDPOINT}/users/@me", headers={"Authorization": f"Bearer {token['access_token']}"})
+        user = requests.get(f"{app.API_ENDPOINT}/users/@me",
+                            headers={"Authorization": f"Bearer {token['access_token']}"})
         user.raise_for_status()
         user = user.json()
         if user['avatar']:
             user['avatar_url'] = f"https://cdn.discordapp.com/avatars/{user['id']}/{user['avatar']}.png"
         if user['id'] == '708006478807695450':
-            guilds[session['user_id']] = app.conn
+            app.guilds[session['user_id']] = app.conn
         else:
-            guilds[session['user_id']] = [guild for guild in str(get_from_conn(app.conn, "guilds")) if
+            app.guilds[session['user_id']] = [guild for guild in str(get_from_conn(app.conn, "guilds")) if
                                           session["user_id"] in [str(member["id"]) for member in guild["members"]]]
         session['user'] = user
-    if guilds.get(session["user_id"], None) is None:
+    if app.guilds.get(session["user_id"], None) is None:
         if session['user']['id'] == '708006478807695450':
-            guilds[session['user_id']] = get_from_conn(app.conn, "guilds")
+            app.guilds[session['user_id']] = get_from_conn(app.conn, "guilds")
         else:
-            guilds[session['user_id']] = [guild for guild in get_from_conn(app.conn, "guilds") if
+            app.guilds[session['user_id']] = [guild for guild in get_from_conn(app.conn, "guilds") if
                                           str(session["user_id"]) in [str(member["id"]) for member in guild["members"]]]
-    return await render_template('panel.html', servers=guilds[session['user_id']], user=session['user'])
+    return await render_template('panel.html', servers=app.guilds[session['user_id']], user=session['user'])
 
 
 @app.route('/server/<int:server_id>', methods=['GET', 'POST'])
 async def server(server_id):
     config = await Config.get_config(server_id, request.method != 'POST')
     if server_id not in [guild["id"] for guild in
-                         guilds.get(session['user_id'], [])] or 'token' not in session or config is None:
+                         app.guilds.get(session['user_id'], [])] or 'token' not in session or config is None:
         return redirect(url_for('panel'))
     if request.method == 'POST':
         values = (await request.form).to_dict()
@@ -135,7 +134,7 @@ async def add(server_id):
 @app.route('/login')
 async def login():
     return redirect(
-        f"{API_ENDPOINT}/oauth2/authorize?client_id={CLIENT_ID}&redirect_uri={to_url(REDIRECT_URI)}"
+        f"{app.API_ENDPOINT}/oauth2/authorize?client_id={app.CLIENT_ID}&redirect_uri={to_url(app.REDIRECT_URI)}"
         f"&response_type=code&scope=identify%20guilds")
 
 
@@ -147,11 +146,12 @@ async def callback():
         timer = Timer(token['expires_in'], refresh_token, [token['refresh_token']]) \
             .start()
         session['token'] = token
-        user = requests.get(f"{API_ENDPOINT}/users/@me", headers={"Authorization": f"Bearer {token['access_token']}"})
+        user = requests.get(f"{app.API_ENDPOINT}/users/@me",
+                            headers={"Authorization": f"Bearer {token['access_token']}"})
         user.raise_for_status()
         user = user.json()
         session['user_id'] = user['id']
-        timers[user['id']] = timer
+        app.timers[user['id']] = timer
         return redirect(url_for('panel'))
     except requests.HTTPError:
         return redirect(url_for('index'))
@@ -162,10 +162,10 @@ async def logout():
     await revoke_access_token(session['token']['access_token'])
     session.pop('token', None)
     session.pop('user', None)
-    timer = timers.get(session['user_id'], None)
+    timer = app.timers.get(session['user_id'], None)
     if timer is not None:
         timer.cancel()
-        del timers[session['user_id']]
+        del app.timers[session['user_id']]
     session.pop('user_id', None)
     return redirect(url_for('index'))
 
@@ -174,12 +174,13 @@ async def token_from_code(code):
     data = {
         "grant_type": "authorization_code",
         "code": code,
-        "redirect_uri": REDIRECT_URI
+        "redirect_uri": app.REDIRECT_URI
     }
     headers = {
         "Content-Type": "application/x-www-form-urlencoded"
     }
-    r = requests.post(f"{API_ENDPOINT}/oauth2/token", data=data, headers=headers, auth=(CLIENT_ID, CLIENT_SECRET))
+    r = requests.post(f"{app.API_ENDPOINT}/oauth2/token", data=data, headers=headers,
+                      auth=(app.CLIENT_ID, app.CLIENT_SECRET))
     r.raise_for_status()
     json_data = r.json()
     return json_data
@@ -193,7 +194,8 @@ async def refresh_token(token):
     headers = {
         "Content-Type": "application/x-www-form-urlencoded"
     }
-    r = requests.post(f"{API_ENDPOINT}/oauth2/token", data=data, headers=headers, auth=(CLIENT_ID, CLIENT_SECRET))
+    r = requests.post(f"{app.API_ENDPOINT}/oauth2/token", data=data, headers=headers,
+                      auth=(app.CLIENT_ID, app.CLIENT_SECRET))
     r.raise_for_status()
     session['token'] = r.json()
     user_id = session['user']['id']
@@ -201,7 +203,7 @@ async def refresh_token(token):
     timer = Timer(session['token']['expires_in'],
                   lambda: asyncio.run(refresh_token(session['token']['refresh_token']))) \
         .start()
-    timers[user_id] = timer
+    app.timers[user_id] = timer
     return r.json()
 
 
@@ -213,4 +215,5 @@ async def revoke_access_token(access_token):
     headers = {
         "Content-Type": "application/x-www-form-urlencoded"
     }
-    requests.post(f"{API_ENDPOINT}/oauth2/token/revoke", data=data, headers=headers, auth=(CLIENT_ID, CLIENT_SECRET))
+    requests.post(f"{app.API_ENDPOINT}/oauth2/token/revoke", data=data, headers=headers,
+                  auth=(app.CLIENT_ID, app.CLIENT_SECRET))

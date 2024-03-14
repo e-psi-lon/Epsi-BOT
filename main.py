@@ -37,7 +37,6 @@ def start_app(conn: Connection):
     from panel.panel import app
     app.set_connection(conn)
     app.run(host="0.0.0.0")
-    conn.close()
 
 
 class Bot(commands.Bot):
@@ -59,7 +58,7 @@ class Bot(commands.Bot):
             threading.Thread(target=listen_to_conn, args=(self,), name="Connection-Listener").start()
         logging.info(f"Bot ready in {datetime.datetime.now() - start_time}")
         for guild in self.guilds:
-            # Si la guilde n'existe pas dans la db on l'ajoute avec les paramètres par défaut
+            # Si la guilde n'existe pas dans la db, on l'ajoute avec les paramètres par défaut
             if not await config.Config.config_exists(guild.id):
                 await config.Config.create_config(guild.id)
 

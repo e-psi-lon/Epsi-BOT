@@ -138,7 +138,7 @@ class Playlists(commands.Cog):
         await queue.edit_queue([playlist for playlist in queue.playlists if playlist.name == name][0].songs)
         queue.position = 0
         q = multiprocessing.Queue()
-        p = multiprocessing.Process(target=worker, args=(q,), name="Audio-Downloader")
+        p = multiprocessing.Process(target=worker, args=(q,), name="Playlist-Downloader")
         p.start()
         for song in queue.queue:
             video = pytube.YouTube(song.url)
@@ -226,14 +226,14 @@ class Playlists(commands.Cog):
 
 
 def worker(queue: multiprocessing.Queue):
-    worker_logger = logging.getLogger("Audio-Downloader")
+    worker_logger = logging.getLogger("Playlist-Downloader")
     while True:
         song_url = queue.get()
         if song_url is None:
             break
         download(song_url, download_logger=worker_logger)
     queue.close()
-    worker_logger.info("Audio-Downloader process ended")
+    worker_logger.info("Playlist-Downloader process ended")
 
 
 def setup(bot):

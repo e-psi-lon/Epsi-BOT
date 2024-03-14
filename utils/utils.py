@@ -39,7 +39,8 @@ def download(url: str, file_format: str = "mp3", download_logger=logger):
         return f"cache/{format_name(stream.title)}.{file_format}"
     stream = stream.streams.filter(only_audio=True).first()
     stream.download(filename=f"cache/{format_name(stream.title)}.{file_format}")
-    download_logger.info(f"Downloaded {stream.title} to cache/{format_name(stream.title)}.{file_format} (video id: {video_id})")
+    download_logger.info(f"Downloaded {stream.title} to cache/{format_name(stream.title)}.{file_format}"
+                         f" (video id: {video_id})")
     return f"cache/{format_name(stream.title)}.{file_format}"
 
 
@@ -120,7 +121,7 @@ class SelectVideo(discord.ui.Select):
         self.options = options
 
     async def callback(self, interaction: discord.Interaction):
-        # Si l'utilisateur a l'origine du select n'est pas l'utilisateur à l'origine de l'interaction, on ignore
+        # Si l'utilisateur à l'origine du select n'est pas l'utilisateur à l'origine de l'interaction, on ignore
         if interaction.user.id != self.ctx.author.id:
             return await interaction.response.send_message("You are not the author of the command.", ephemeral=True)
         await interaction.message.edit(
@@ -303,7 +304,7 @@ async def on_play_song_finished(ctx: discord.ApplicationContext, error=None):
     if error is not None and error:
         logger.error("Error:", error)
         await ctx.respond(
-            embed=discord.Embed(title="Error", description="An error occured while playing the song.", color=0xff0000))
+            embed=discord.Embed(title="Error", description="An error occurred while playing the song.", color=0xff0000))
     logger.info("Song finished")
     await change_song(ctx)
 
