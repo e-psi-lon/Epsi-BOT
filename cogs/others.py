@@ -1,5 +1,6 @@
 from utils.utils import *
 import pytube
+import pytube.exceptions
 
 
 class Others(commands.Cog):
@@ -28,10 +29,10 @@ class Others(commands.Cog):
                 buffer.close()
                 os.remove(f"cache/{video.title}.{file_format}")
                 os.remove(f"cache/{video.title}.mp3")
-            except:
+            except pytube.exceptions.PytubeError:
                 return await ctx.respond(
                     embed=discord.Embed(title="Error", description="Error while downloading song.", color=0xff0000))
-        except:
+        except pytube.exceptions.RegexMatchError:
             videos = pytube.Search(query).results
             if not videos:
                 return await ctx.respond(
@@ -43,17 +44,17 @@ class Others(commands.Cog):
     @commands.slash_command(name="lyrics", description="Shows the lyrics of the current song")
     async def lyrics(self, ctx: discord.ApplicationContext):
         await ctx.response.defer()
-        queue = await Config.get_config(ctx.guild.id, True)
+        config = await Config.get_config(ctx.guild.id, True)
         if ctx.guild.voice_client is None:
             return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
-        if not queue.queue:
+        if not config.queue:
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description="No song is currently playing.", color=0xff0000))
-        if not queue.queue[queue.position].url.startswith("https://www.youtube.com/watch?v="):
+        if not config.queue[config.position].url.startswith("https://www.youtube.com/watch?v="):
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description="This command is only available for youtube videos.",
                                     color=0xff0000))
-        video = pytube.YouTube(queue.queue[queue.position].url)
+        video = pytube.YouTube(config.queue[config.position].url)
         lyrics = get_lyrics(video.title)
         if not lyrics:
             return await ctx.respond(embed=discord.Embed(title="Error", description="No lyrics found.", color=0xff0000))

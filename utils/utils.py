@@ -12,6 +12,7 @@ import discord.ext.pages
 from discord.ext import commands
 import requests
 from utils.config import Config, Song, Asker, UserPlaylistAccess
+from pytube.exceptions import RegexMatchError as PytubeRegexMatchError
 
 logger = logging.getLogger("__main__")
 
@@ -207,7 +208,6 @@ async def get_playlists_songs(ctx: discord.AutocompleteContext):
         return []
 
 
-
 async def get_queue_songs(ctx: discord.AutocompleteContext):
     queue = await Config.get_config(ctx.interaction.guild.id, True)
     if len(queue.queue) < 1:
@@ -246,15 +246,14 @@ async def change_song(ctx: discord.ApplicationContext):
         queue.position = 0
         await queue.clear_queue()
     if queue.position >= len(queue.queue) - 1 and queue.loop_queue:
-        queue = -1
+        queue.position = -1
     if not queue.loop_song:
         if queue.random and len(queue.queue) > 1:
             queue.position = random.choice(list(set(range(0, len(queue.queue))) - {queue.position}))
         elif len(queue.queue) < 1:
             queue.position = 0
         else:
-            queue = queue.position + 1
-    await queue.close()
+            queue.position = queue.position + 1
     try:
         await play_song(ctx, queue.queue[queue.position].url)
     except Exception as e:
@@ -286,13 +285,13 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
             ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
                                         wait_finish=True)
 
-        except:
+        except discord.errors.ClientException:
             while ctx.guild.voice_client.is_playing():
                 await asyncio.sleep(0.1)
             logger.info(f"Playing song {video.title}")
             ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
                                         wait_finish=True)
-    except:
+    except PytubeRegexMatchError:
         file = download(url)
         player = discord.PCMVolumeTransformer(
             discord.FFmpegPCMAudio(file, executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"),
@@ -301,10 +300,10 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
             logger.info(f"Playing song {url}")
             ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
                                         wait_finish=True)
-        except:
+        except discord.errors.ClientException:
             try:
                 await ctx.guild.voice_client.disconnect(force=True)
-            except:
+            except discord.errors.ClientException:
                 pass
             await ctx.author.voice.channel.connect()
             logger.info(f"Playing song {url}")

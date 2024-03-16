@@ -3,6 +3,7 @@ from datetime import datetime
 from discord.commands import SlashCommandGroup
 from utils.utils import *
 import pytube
+from pytube.exceptions import RegexMatchError as PytubeRegexMatchError
 import asyncio
 
 connections = {}
@@ -31,9 +32,9 @@ class State(commands.Cog):
             return await ctx.respond(embed=discord.Embed(title="Error", description="Invalid URL.", color=0xff0000))
         if url.split('/')[-1].split('.')[-1].split("?")[0] not in ['mp3', 'wav', 'ogg', 'mp4']:
             return await ctx.respond(embed=discord.Embed(title="Error", description="Invalid URL.", color=0xff0000))
-        queue = await Config.get_config(ctx.guild.id, False)
-        if not queue.queue:
-            await queue.add_to_queue(
+        config = await Config.get_config(ctx.guild.id, False)
+        if not config.queue:
+            await config.add_to_queue(
                 await Song.create(url.split('/')[-1].split('?')[0], url, await Asker.from_id(ctx.author.id)))
             await ctx.respond(embed=discord.Embed(title="Play",
                                                   description=f"Playing song "
@@ -41,7 +42,7 @@ class State(commands.Cog):
                                                   color=0x00ff00))
             await play_song(ctx, url)
             return await asyncio.sleep(1)
-        await queue.add_to_queue(
+        await config.add_to_queue(
             await Song.create(url.split('/')[-1].split('?')[0], url, await Asker.from_id(ctx.author.id)))
         await ctx.respond(embed=discord.Embed(title="Queue",
                                               description=f"Song [{url.split('/')[-1].split('?')[0]}]({url})"
@@ -60,15 +61,15 @@ class State(commands.Cog):
         if file.size > 10000000:
             return await ctx.respond(embed=discord.Embed(title="Error", description="File is too big.", color=0xff0000))
         url = file.url
-        queue = await Config.get_config(ctx.guild.id, False)
-        if not queue.queue:
-            await queue.add_to_queue(await Song.create(file.filename, url, await Asker.from_id(ctx.author.id)))
+        config = await Config.get_config(ctx.guild.id, False)
+        if not config.queue:
+            await config.add_to_queue(await Song.create(file.filename, url, await Asker.from_id(ctx.author.id)))
             await ctx.respond(embed=discord.Embed(title="Play",
                                                   description=f"Playing song [{file.filename}]({url})",
                                                   color=0x00ff00))
             await play_song(ctx, url)
             return await asyncio.sleep(1)
-        await queue.add_to_queue(await Song.create(file.filename, url, await Asker.from_id(ctx.author.id)))
+        await config.add_to_queue(await Song.create(file.filename, url, await Asker.from_id(ctx.author.id)))
         await ctx.respond(embed=discord.Embed(title="Queue",
                                               description=f"Song [{file.filename}]({url}) added to queue.",
                                               color=0x00ff00))
@@ -82,18 +83,18 @@ class State(commands.Cog):
         try:
             url = pytube.YouTube(query).watch_url
             try:
-                queue = await Config.get_config(ctx.guild.id, False)
-                if not queue.queue:
-                    await queue.add_to_queue(await Song.create(pytube.YouTube(query).title, url,
-                                                               await Asker.from_id(ctx.author.id)))
+                config = await Config.get_config(ctx.guild.id, False)
+                if not config.queue:
+                    await config.add_to_queue(await Song.create(pytube.YouTube(query).title, url,
+                                                                await Asker.from_id(ctx.author.id)))
                     await ctx.respond(embed=discord.Embed(title="Play",
                                                           description=f"Playing song "
                                                                       f"[{pytube.YouTube(url).title}]({url})",
                                                           color=0x00ff00))
                     await play_song(ctx, url)
                     return await asyncio.sleep(1)
-                await queue.add_to_queue(await Song.create(pytube.YouTube(query).title, url,
-                                                           await Asker.from_id(ctx.author.id)))
+                await config.add_to_queue(await Song.create(pytube.YouTube(query).title, url,
+                                                            await Asker.from_id(ctx.author.id)))
                 video = pytube.YouTube(url)
                 if video.length > 12000:
                     return await ctx.respond(
@@ -109,7 +110,7 @@ class State(commands.Cog):
                 return await ctx.respond(
                     embed=discord.Embed(title="Error", description=f"Error while adding song to queue. "
                                                                    f"(Error: {e})", color=0xff0000))
-        except:
+        except PytubeRegexMatchError:
             videos = pytube.Search(query).results
             if not videos:
                 return await ctx.respond(
@@ -153,9 +154,9 @@ class State(commands.Cog):
         if not ctx.guild.voice_client.is_playing():
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description="There is no song playing.", color=0xff0000))
-        queue = await Config.get_config(ctx.guild.id, False)
-        queue.position = 0
-        await queue.clear_queue()
+        config = await Config.get_config(ctx.guild.id, False)
+        config.position = 0
+        await config.clear_queue()
         ctx.guild.voice_client.stop()
         await ctx.respond(embed=discord.Embed(title="Stop", description="Song stopped.", color=0x00ff00))
 
@@ -174,10 +175,10 @@ class State(commands.Cog):
                     embed=discord.Embed(title="Error", description="Volume is too low.", color=0xff0000))
             try:
                 ctx.guild.voice_client.source.volume = volume / 100
-            except:
+            except AttributeError:
                 pass
-            queue = await Config.get_config(ctx.guild.id, False)
-            queue.volume = volume * 100
+            config = await Config.get_config(ctx.guild.id, False)
+            config.volume = volume * 100
             return await ctx.respond(embed=discord.Embed(title="Volume", description=f"Volume set to {volume}%",
                                                          color=0x00ff00))
 
@@ -186,13 +187,13 @@ class State(commands.Cog):
                                                   description=f"Volume is "
                                                               f"{ctx.guild.voice_client.source.volume * 100}%",
                                                   color=0x00ff00))
-        except:
+        except AttributeError:
             try:
-                queue = await Config.get_config(ctx.guild.id, True)
+                config = await Config.get_config(ctx.guild.id, True)
                 await ctx.respond(embed=discord.Embed(title="Volume",
-                                                      description=f"Volume is {queue.volume}%",
+                                                      description=f"Volume is {config.volume}%",
                                                       color=0x00ff00))
-            except:
+            except Exception:
                 await ctx.respond(
                     embed=discord.Embed(title="Error", description="Error while getting volume.", color=0xff0000))
 
@@ -201,7 +202,7 @@ class State(commands.Cog):
                                         "(c'est Rignchen qui m'as dit de laisser ça)")
     async def record(self, ctx: discord.ApplicationContext,
                      time: discord.Option(int, "Le temps d'enregistrement en secondes (de 1s à 260s)", required=True),
-                     format: discord.Option(Sinks, "Le format d'enregistrement", required=True)):
+                     file_format: discord.Option(Sinks, "Le format d'enregistrement", required=True)):
         await ctx.response.defer()
         if ctx.guild.voice_client is None:
             return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
@@ -225,9 +226,9 @@ class State(commands.Cog):
 
         if vc.channel.voice_states[vc.client.user.id].self_deaf:
             return await ctx.respond(embed=discord.Embed(title="Error", description="Bot is deafened.", color=0xff0000))
-        timer = asyncio.TimerHandle(time, finished_record, args=[])
+        timer = asyncio.TimerHandle(time, finished_record, args=[], loop=self.bot.loop)
         vc.start_recording(
-            format.value,
+            file_format.value,
             finished_record_callback,
             ctx.channel,
             sync_start=True
