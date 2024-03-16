@@ -16,7 +16,7 @@ class DatabaseAccess:
         return await self._get_db('ASKER', 'asker_id', asker_id=asker_id) is not None
 
     async def _get_db(self, table: str, *columns: str, all_results: bool = False, joins: list[tuple[str, str]] = None,
-                      create_if_none: bool = False, **where):
+                      create_if_none: bool = False, order_by: str = None, **where):
         async with aiosqlite.connect("database/database.db") as conn:
             cursor = await conn.cursor()
             where_str = " " + ' AND '.join([f'{key} = \'{value}\'' for key, value in where.items()])
@@ -26,8 +26,8 @@ class DatabaseAccess:
                 joins = ''
             try:
                 await cursor.execute(
-                    f'SELECT {", ".join([f"{table}.{column}" for column in columns])} FROM {table}{joins}'
-                    f'{" WHERE" if where else ""}{where_str};')
+                    f'SELECT {", ".join([f"{table}.{column}" for column in columns])} FROM {table}{joins} ORDER BY'
+                    f'{order_by}{" WHERE" if where else ""}{where_str};')
             except sqlite3.OperationalError:
                 pass
             results = await cursor.fetchall() if all_results else await cursor.fetchone()
@@ -166,12 +166,12 @@ class Playlist(DatabaseAccess):
         playlist = await self._get_db('PLAYLIST', 'name', playlist_id=playlist_id)
         if playlist is not None:
             self._name = playlist[0]
-        songs = await self._get_db('SONG', 'song_id', 'name', 'url', 'discord_id', all_results=True,
+        songs = await self._get_db('SONG', 'name', 'url', 'discord_id', all_results=True,
                                    joins=[('PLAYLIST_SONG', 'SONG.song_id = PLAYLIST_SONG.song_id'),
                                           ('ASKER', 'PLAYLIST_SONG.asker = ASKER.asker_id')],
-                                   playlist_id=playlist_id)
+                                   order_by="PLAYLIST_SONG.position", playlist_id=playlist_id)
 
-        self._songs = [Song.create(name, url, asker, song_id) for song_id, name, url, asker in songs]
+        self._songs = [Song.create(name, url, asker) for _, name, url, asker in songs]
         return self
 
     @classmethod
@@ -205,7 +205,8 @@ class Playlist(DatabaseAccess):
 
     async def add_song(self, song: Song):
         self._songs.append(song)
-        await self._create_db('PLAYLIST_SONG', playlist_id=self._id, song_id=song.id, asker=song.asker)
+        await self._create_db('PLAYLIST_SONG', playlist_id=self._id, song_id=song.id, asker=song.asker,
+                              position=len(self._songs))
 
     async def remove_song(self, song: Song):
         self._songs.remove(song)
@@ -277,11 +278,12 @@ class Config(DatabaseAccess):
             self._random = server[3]
             self._volume = server[4]
             self._position = server[5]
-        songs = await self._get_db('SONG', 'song_id', 'name', 'url', 'discord_id', all_results=True,
+        songs = await self._get_db('SONG', 'name', 'url', 'discord_id', all_results=True,
                                    joins=[('QUEUE', 'SONG.song_id = QUEUE.song_id'),
-                                          ('ASKER', 'QUEUE.asker = ASKER.asker_id')],
+                                          ('ASKER', 'QUEUE.asker = ASKER.asker_id')], order_by="QUEUE.position",
                                    server_id=guild_id)
-        self._queue = [Song.create(name, url, asker, song_id) for song_id, name, url, asker in songs]
+        print(songs)
+        self._queue = [Song.create(name, url, asker) for _, name, url, asker in songs]
         playlists = await self._get_db('PLAYLIST', 'playlist_id', all_results=True)
         self._playlists = {Playlist.from_id(playlist_id, is_copy=self._copy) for playlist_id in playlists}
         return self
@@ -358,7 +360,8 @@ class Config(DatabaseAccess):
 
     async def add_to_queue(self, song: Song):
         self._queue.append(song)
-        await self._create_db('QUEUE', song_id=song.id, server_id=self.guild_id, asker=song.asker.id)
+        await self._create_db('QUEUE', song_id=song.id, server_id=self.guild_id, asker=song.asker.id,
+                              position=len(self._queue))
 
     async def remove_from_queue(self, song: Song):
         self._queue.remove(song)

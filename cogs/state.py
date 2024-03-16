@@ -84,27 +84,31 @@ class State(commands.Cog):
             url = pytube.YouTube(query).watch_url
             try:
                 config = await Config.get_config(ctx.guild.id, False)
+                if pytube.YouTube(url).length > 12000:
+                    return await ctx.respond(
+                        discord.Embed(title="Error",
+                                      description=f"The video [{pytube.YouTube(url).title}]({url}) is too long",
+                                      color=0xff0000))
                 if not config.queue:
+                    config.position = 0
                     await config.add_to_queue(await Song.create(pytube.YouTube(query).title, url,
                                                                 await Asker.from_id(ctx.author.id)))
+                else:
+                    await config.add_to_queue(await Song.create(pytube.YouTube(query).title, url,
+                                                                await Asker.from_id(ctx.author.id)))
+                if not ctx.guild.voice_client.is_playing():
                     await ctx.respond(embed=discord.Embed(title="Play",
                                                           description=f"Playing song "
                                                                       f"[{pytube.YouTube(url).title}]({url})",
                                                           color=0x00ff00))
                     await play_song(ctx, url)
-                    return await asyncio.sleep(1)
-                await config.add_to_queue(await Song.create(pytube.YouTube(query).title, url,
-                                                            await Asker.from_id(ctx.author.id)))
-                video = pytube.YouTube(url)
-                if video.length > 12000:
-                    return await ctx.respond(
-                        discord.Embed(title="Error", description=f"The video [{video.title}]({url}) is too long",
-                                      color=0xff0000))
-                threading.Thread(target=download, args=(url,), name=f"Download-{video.video_id}").start()
-                await ctx.respond(embed=discord.Embed(title="Queue",
-                                                      description=f"Song [{pytube.YouTube(url).title}]({url})"
-                                                                  f" added to queue.",
-                                                      color=0x00ff00))
+                else:
+                    video = pytube.YouTube(url)
+                    threading.Thread(target=download, args=(url,), name=f"Download-{video.video_id}").start()
+                    await ctx.respond(embed=discord.Embed(title="Queue",
+                                                          description=f"Song [{pytube.YouTube(url).title}]({url})"
+                                                                      f" added to queue.",
+                                                          color=0x00ff00))
             except Exception as e:
                 logging.error(f"Error while adding song to queue: {e}")
                 return await ctx.respond(

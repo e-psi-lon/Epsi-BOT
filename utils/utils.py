@@ -96,9 +96,9 @@ async def disconnect_from_channel(state: discord.VoiceState, bot: commands.Bot):
         for guild in client.client.guilds:
             if guild.id == state.channel.guild.id:
                 await client.disconnect(force=True)
-                queue = await Config.get_config(guild.id, False)
-                await queue.clear_queue()
-                queue.position = 0
+                config = await Config.get_config(guild.id, False)
+                await config.clear_queue()
+                config.position = 0
                 ok = True
             if ok:
                 break
@@ -128,7 +128,7 @@ class SelectVideo(discord.ui.Select):
         await interaction.message.edit(
             embed=discord.Embed(title="Select audio", description=f"You selected : {self.options[0].label}",
                                 color=0x00ff00), view=None)
-        queue = await Config.get_config(interaction.guild.id, False)
+        config = await Config.get_config(interaction.guild.id, False)
         if self.download:
             stream = pytube.YouTube(self.values[0]).streams.filter(only_audio=True).first()
             if pytube.YouTube(self.values[0]).length > 12000:
@@ -142,22 +142,22 @@ class SelectVideo(discord.ui.Select):
                 embed=discord.Embed(title="Download", description="Song downloaded.", color=0x00ff00),
                 file=discord.File(f"cache/{format_name(stream.title)}", filename=f"{format_name(stream.title)}.mp3"),
                 view=None)
-        if not queue.queue:
-            queue.position = 0
-            await queue.add_to_queue(await Song.create(pytube.YouTube(self.values[0]).title, self.values[0],
-                                                       await Asker.from_id(interaction.user.id)))
+        if not config.queue:
+            config.position = 0
+            await config.add_to_queue(await Song.create(pytube.YouTube(self.values[0]).title, self.values[0],
+                                                        await Asker.from_id(interaction.user.id)))
         else:
-            await queue.add_to_queue(await Song.create(pytube.YouTube(self.values[0]).title, self.values[0],
-                                                       await Asker.from_id(interaction.user.id)))
+            await config.add_to_queue(await Song.create(pytube.YouTube(self.values[0]).title, self.values[0],
+                                                        await Asker.from_id(interaction.user.id)))
         if interaction.guild.voice_client is None:
-            await interaction.user.voice.channel.connect()
+            return await interaction.message.edit(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
         if not interaction.guild.voice_client.is_playing():
             await interaction.message.edit(embed=discord.Embed(title="Play",
                                                                description=f"Playing song "
                                                                            f"[{pytube.YouTube(self.values[0]).title}]"
                                                                            f"({self.values[0]})",
                                                                color=0x00ff00))
-            await play_song(self.ctx, queue.queue[queue.position].url)
+            await play_song(self.ctx, config.queue[config.position].url)
         else:
             await interaction.message.edit(embed=discord.Embed(title="Queue",
                                                                description=f"Song "
@@ -209,11 +209,11 @@ async def get_playlists_songs(ctx: discord.AutocompleteContext):
 
 
 async def get_queue_songs(ctx: discord.AutocompleteContext):
-    queue = await Config.get_config(ctx.interaction.guild.id, True)
-    if len(queue.queue) < 1:
+    config = await Config.get_config(ctx.interaction.guild.id, True)
+    if len(config.queue) < 1:
         return []
-    queue_ = queue.queue.copy()
-    queue_.pop(queue.position)
+    queue_ = config.queue.copy()
+    queue_.pop(config.position)
     return [song.name for song in queue_]
 
 
@@ -239,23 +239,23 @@ def get_index_from_title(title, list_to_check):
 
 
 async def change_song(ctx: discord.ApplicationContext):
-    queue = await Config.get_config(ctx.guild.id, False)
-    if not queue.queue:
+    config = await Config.get_config(ctx.guild.id, False)
+    if not config.queue:
         return
-    if queue.position >= len(queue.queue) - 1 and not queue.loop_queue:
-        queue.position = 0
-        await queue.clear_queue()
-    if queue.position >= len(queue.queue) - 1 and queue.loop_queue:
-        queue.position = -1
-    if not queue.loop_song:
-        if queue.random and len(queue.queue) > 1:
-            queue.position = random.choice(list(set(range(0, len(queue.queue))) - {queue.position}))
-        elif len(queue.queue) < 1:
-            queue.position = 0
+    if config.position >= len(config.queue) - 1 and not config.loop_queue:
+        config.position = 0
+        await config.clear_queue()
+    if config.position >= len(config.queue) - 1 and config.loop_queue:
+        config.position = -1
+    if not config.loop_song:
+        if config.random and len(config.queue) > 1:
+            config.position = random.choice(list(set(range(0, len(config.queue))) - {config.position}))
+        elif len(config.queue) < 1:
+            config.position = 0
         else:
-            queue.position = queue.position + 1
+            config.position = config.position + 1
     try:
-        await play_song(ctx, queue.queue[queue.position].url)
+        await play_song(ctx, config.queue[config.position].url)
     except Exception as e:
         logger.error(f"Erreur : {e}")
 
