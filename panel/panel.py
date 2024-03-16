@@ -1,4 +1,5 @@
 import sys
+# noinspection PyProtectedMember
 from multiprocessing.connection import Connection, PipeConnection
 from threading import Timer
 from utils.utils import *
@@ -76,14 +77,15 @@ async def panel():
             app.guilds[session['user_id']] = app.conn
         else:
             app.guilds[session['user_id']] = [guild for guild in str(get_from_conn(app.conn, "guilds")) if
-                                          session["user_id"] in [str(member["id"]) for member in guild["members"]]]
+                                              session["user_id"] in [str(member["id"]) for member in guild["members"]]]
         session['user'] = user
     if app.guilds.get(session["user_id"], None) is None:
         if session['user']['id'] == '708006478807695450':
             app.guilds[session['user_id']] = get_from_conn(app.conn, "guilds")
         else:
             app.guilds[session['user_id']] = [guild for guild in get_from_conn(app.conn, "guilds") if
-                                          str(session["user_id"]) in [str(member["id"]) for member in guild["members"]]]
+                                              str(session["user_id"]) in [str(member["id"]) for member in
+                                                                          guild["members"]]]
     return await render_template('panel.html', servers=app.guilds[session['user_id']], user=session['user'])
 
 

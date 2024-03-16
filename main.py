@@ -79,32 +79,34 @@ class Bot(commands.Bot):
         await ctx.channel.send("Ce message se supprimera d'ici 60s", embed=embed, delete_after=60)
 
     async def on_error(self, event_method: str, *args, **kwargs) -> None:
-        ctx = None
+        context = None
         for arg in args:
             if isinstance(arg, discord.ApplicationContext):
-                ctx = arg
+                context = arg
                 break
-        if not ctx:
+        if not context:
             for arg in kwargs.values():
                 if isinstance(arg, discord.ApplicationContext):
-                    ctx = arg
+                    context = arg
                     break
         exc_type, exc_value, exc_traceback = sys.exc_info()
         traceback_str = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
-        if ctx is not None:
+        if context is not None:
             logging.error(
-                f"Error in {event_method}\n Error message: {exc_value}\n Traceback: {traceback_str}\n Args: {args}\n Kwargs: {kwargs}")
+                f"Error in {event_method}\n Error message: {exc_value}\n Traceback: {traceback_str}\n Args: {args}"
+                f"\n Kwargs: {kwargs}")
             embed = discord.Embed(title="Une erreur est survenue",
-                                  description=f"Erreur provoquée par {ctx.author.mention}",
+                                  description=f"Erreur provoquée par {context.author.mention}",
                                   color=discord.Color.red())
-            embed.add_field(name="Commande", value=f"`{ctx.command}`")
-            embed.add_field(name="Module", value=f"`{ctx.command.cog.__class__.__name__}`")
+            embed.add_field(name="Commande", value=f"`{context.command}`")
+            embed.add_field(name="Module", value=f"`{context.command.cog.__class__.__name__}`")
             embed.add_field(name="Message d'erreur", value=f"`{exc_value}`")
             embed.add_field(name="Traceback", value=f"```\n{traceback_str}```")
-            await ctx.respond(embed=embed, ephemeral=True)
+            await context.respond(embed=embed, ephemeral=True)
         else:
             logging.error(
-                f"Error in {event_method}\n Error message: {exc_value}\n Traceback: {traceback_str}\n Args: {args}\n Kwargs: {kwargs}")
+                f"Error in {event_method}\n Error message: {exc_value}\n Traceback: {traceback_str}\n Args: {args}"
+                f"\n Kwargs: {kwargs}")
 
 
 def listen_to_conn(bot: Bot):
@@ -161,27 +163,27 @@ def listen_to_conn(bot: Bot):
                 pass
 
 
-bot = Bot(intents=discord.Intents.all())
-bot.owner_id = 708006478807695450
+bot_instance = Bot(intents=discord.Intents.all())
+bot_instance.owner_id = 708006478807695450
 
 
-@bot.slash_command(name="help", description="Affiche l'aide du bot", guild_ids=[812807444698549862])
+@bot_instance.slash_command(name="help", description="Affiche l'aide du bot", guild_ids=[812807444698549862])
 async def _help(ctx):
     await ctx.response.defer()
-    mapping = bot.get_bot_mapping()
-    embeds = bot.send_bot_help(mapping)
+    mapping = bot_instance.get_bot_mapping()
+    embeds = bot_instance.send_bot_help(mapping)
     await ctx.respond(embeds=embeds)
 
 
-@bot.slash_command(name="send", description="Envoie un message dans un salon")
+@bot_instance.slash_command(name="send", description="Envoie un message dans un salon")
 async def send_message(ctx: discord.ApplicationContext,
                        channel: discord.Option(discord.TextChannel, description="Le salon où envoyer le message"),
                        # type: ignore
                        message: discord.Option(str, description="Le message à envoyer")):  # type: ignore
-    if ctx.author.id != bot.owner_id:
+    if ctx.author.id != bot_instance.owner_id:
         raise commands.NotOwner
     await ctx.response.defer()
-    channel = bot.get_channel(channel)
+    channel = bot_instance.get_channel(channel)
     await channel.send(message)
     await ctx.respond(content="Message envoyé !", ephemeral=True)
 
@@ -240,4 +242,4 @@ if __name__ == "__main__":
         os.chdir("_others")
         os.system("python generate_db.py")
         os.chdir("..")
-    start(bot)
+    start(bot_instance)

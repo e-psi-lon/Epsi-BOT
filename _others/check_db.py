@@ -50,7 +50,7 @@ def check_db():
         cursor.execute(f"SELECT * FROM {table[0]};")
         data = cursor.fetchall()
         print(f"\nTable {table[0]} :")
-        # On prends les noms des clés
+        # On prend les noms des clés
         cursor.execute(f"PRAGMA table_info({table[0]});")
         keys = cursor.fetchall()
         keys = [key[1] for key in keys]

@@ -1,3 +1,4 @@
+# noinspection PyDeprecation
 import pkg_resources
 import os
 
@@ -5,13 +6,13 @@ import os
 def check_version(package, version):
     try:
         if package.startswith("git+"):
-            # On split les / et on prend le dernier element pour avoir le nom
-            # du package et l'avant dernier pour le nom de l'auteur
+            # On sépare les / et on prend le dernier element pour avoir le nom
+            # du package et l'avant-dernier pour le nom de l'auteur
             package = package.split("/")[-2] + "/" + package.split("/")[-1].split(".git")[0]
             latest_version = get_git_latest_version(package)
         else:
             latest_version = get_pip_latest_version(package)
-    except:
+    except Exception:
         return version, version
     return latest_version, version
 
@@ -26,12 +27,16 @@ def get_git_latest_version(package):
     return requests.get(f"https://api.github.com/repos/{package}/releases/latest").json()["tag_name"]
 
 
-def check_updates():
+def read_requirements():
     with open("requirements.txt") as f:
-        # Sachant que les requirements c'est des == mais aussi des ~=
+        # Sachant que les requirements ce sont des == mais aussi des ~=
         packages = [line.strip().split("==" if not line.startswith("git+") else "@") for line in f.readlines() if
                     line.strip() and not line.startswith("#")]
-        packages = [[package[0], "latest"] if len(package) == 1 else package for package in packages]
+        return [[package[0], "latest"] if len(package) == 1 else package for package in packages]
+
+
+def check_updates():
+    packages = read_requirements()
     for package, version in packages:
         latest_version, version = check_version(package, version)
         if latest_version != version and version != "latest":
@@ -39,17 +44,14 @@ def check_updates():
 
 
 def update_requirements():
-    with open("requirements.txt") as f:
-        # On split les == pour les libs normales et les @ pour les libs git
-        packages = [line.strip().split("==" if not line.startswith("git+") else "@") for line in f.readlines() if
-                    line.strip() and not line.startswith("#")]
-        packages = [[package[0], "latest"] if len(package) == 1 else package for package in packages]
+    packages = read_requirements()
     with open("requirements.txt", "w") as f:
         for package, version in packages:
             latest_version, version = check_version(package, version)
             f.write(f"{package}=={latest_version}\n")
 
 
+# noinspection PyProtectedMember,PyDeprecation
 def get_installed_packages():
     installed_packages = []
     for dist in pkg_resources.working_set:
@@ -57,6 +59,7 @@ def get_installed_packages():
         package_version = dist.version
 
         # Gérer les cas spéciaux
+        # noinspection PyProtectedMember
         extras = dist._dep_map.keys()
         if "async" in extras:
             package_name += "[async]"

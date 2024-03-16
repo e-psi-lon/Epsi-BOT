@@ -8,7 +8,7 @@
 <h1>Configuration du Serveur - {{ server['name'] }}</h1>
 <div class="dialog" hidden id="add-song">
     <form action="/server/{{ server['id'] }}/add" method="POST">
-        <label for="url">URL: </label>
+        <label for="url">URL : </label>
         <input id="url" name="url" placeholder="URL de la chanson" type="text">
         <br>
         <input type="submit" value="Ajouter">
@@ -16,17 +16,17 @@
     </form>
 </div>
 <form method="POST">
-    <label for="loop_song">Loop Song: </label>
+    <label for="loop_song">Loop Song : </label>
 
     <input id="loop_song" {% if server["loop_song"] %} checked {% endif %} name="loop_song" type="checkbox">
     <br>
-    <label for="loop_queue">Loop Queue: </label>
+    <label for="loop_queue">Loop Queue : </label>
     <input id="loop_queue" {% if server["loop_queue"] %} checked {% endif %} name="loop_queue" type="checkbox">
     <br>
-    <label for="random">Random: </label>
+    <label for="random">Random : </label>
     <input id="random"  {% if server["random"] %} checked {% endif %} name="random" type="checkbox">
     <br>
-    <label for="position">Position: </label>
+    <label for="position">Position : </label>
     <input id="position" name="position" position type="number" value="{{ server[""] }}">
     <br>
     <div class="queue">
@@ -41,7 +41,7 @@
             pytube.YouTube(song['url']).title}} frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope;
             picture-in-picture; web-share" allowfullscreen></iframe>
             {% else %}
-            <img class="preview" src="{{ url_for('static', filename='default_thumbnail.png') }}">
+            <img alt="Video Thumbnail" class="preview" src="{{ url_for('static', filename='default_thumbnail.png') }}">
             {% endif %}
         </div>
         <div class="song_info">

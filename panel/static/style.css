@@ -38,7 +38,7 @@ input[type="checkbox"] {
     background-color: #eee;
 }
 
-/* Quand on passe la souris sur un serveur, les angles de l'icone deviennent moins ronds mais avec un effet de transition */
+/* Quand on passe la souris sur un serveur, les angles de l'icône deviennent moins ronds mais avec un effet de transition */
 .server:hover .icon {
     border-radius: 35%;
     transition: border-radius 0.5s;

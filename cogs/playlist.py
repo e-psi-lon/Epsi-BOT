@@ -257,8 +257,8 @@ class Playlists(commands.Cog):
                                               color=0x00ff00))
 
 
-async def get_config(ctx: discord.ApplicationContext, playlist_name: str) -> Optional[tuple[Union[Config, UserPlaylistAccess], str]]:
-    config: Optional[Union[Config, UserPlaylistAccess]] = None
+async def get_config(ctx: discord.ApplicationContext, playlist_name: str) ->\
+        Optional[tuple[Union[Config, UserPlaylistAccess], str]]:
     if playlist_name.endswith(" - SERVER"):
         config = await Config.get_config(ctx.guild.id, False)
         playlist_name = playlist_name[:-8]
@@ -277,7 +277,7 @@ async def get_config(ctx: discord.ApplicationContext, playlist_name: str) -> Opt
     if playlist_name not in [playlist.name for playlist in config.playlists]:
         await ctx.respond(embed=EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
                           .add_field(name="Existing playlists:",
-                                     value="\n".join([playlist.name for playlist in config.playlists]))
+                                     value="\n".join([playlist.name for playlist in config.playlists])))
         return None
 
 

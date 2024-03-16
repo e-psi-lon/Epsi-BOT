@@ -355,4 +355,4 @@ class CustomFormatter(logging.Formatter):
 
 def get_lyrics(title):
     """Get the lyrics of a song"""
-    return None
+    return title

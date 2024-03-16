@@ -17,9 +17,8 @@ class Admin(commands.Cog):
         temp_config2 = await Config.get_config(ctx.guild.id, False)
         await temp_config.clear_queue()
         temp_config.position = 0
-        if ctx.voice_client is not None:
-            if ctx.voice_client.is_playing():
-                ctx.voice_client.stop()
+        if ctx.voice_client is not None and ctx.voice_client.is_playing():
+            ctx.voice_client.stop()
         await asyncio.sleep(1)
         await temp_config2.clear_queue()
         temp_config.position = 0
