@@ -63,20 +63,20 @@ class Bot(commands.Bot):
                 await config.Config.create_config(guild.id)
 
     async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
-        logging.error(f"Error in {ctx.command}: {error}")
-
+        exc_type, exc_value, exc_traceback = type(error), error, error.__traceback__
+        traceback_str = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+        logging.error(f"Error in {ctx.command} from module {ctx.command.cog.__class__.__name__}"
+                      f"\n Error message: {exc_value}\n Traceback: {traceback_str}")
         embed = discord.Embed(title="Une erreur est survenue", description=f"Erreur provoquée par {ctx.author.mention}",
                               color=discord.Color.red())
-        command = ctx.command
-        command_path = []
-        while command.parent:
-            command_path.append(command.name)
-            command = command.parent
-        embed.add_field(name="Commande", value=f"`/{''.join(reversed(command_path))}`")
+        embed.add_field(name="Commande", value=f"`/{ctx.command}`")
         embed.add_field(name="Module", value=f"`{ctx.command.cog.__class__.__name__!r}`")
-        embed.add_field(name="Message d'erreur", value=f"`{error}`")
-        embed.add_field(name="Traceback", value=f"```\n{error.__traceback__}```")
-        await ctx.channel.send("Ce message se supprimera d'ici 60s", embed=embed, delete_after=60)
+        embed.add_field(name="Message d'erreur", value=f"`{exc_value}`")
+        embed.add_field(name="Traceback", value=f"```\n{traceback_str[:1014]}...```")
+        try:
+            await ctx.respond(embed=embed, ephemeral=True)
+        except Exception:
+            await ctx.channel.send("Ce message se supprimera d'ici 60s", embed=embed, delete_after=60)
 
     async def on_error(self, event_method: str, *args, **kwargs) -> None:
         context = None
@@ -102,7 +102,10 @@ class Bot(commands.Bot):
             embed.add_field(name="Module", value=f"`{context.command.cog.__class__.__name__}`")
             embed.add_field(name="Message d'erreur", value=f"`{exc_value}`")
             embed.add_field(name="Traceback", value=f"```\n{traceback_str}```")
-            await context.respond(embed=embed, ephemeral=True)
+            try:
+                await context.respond(embed=embed, ephemeral=True)
+            except Exception:
+                await context.send("Ce message se supprimera d'ici 60s", embed=embed, delete_after=60)
         else:
             logging.error(
                 f"Error in {event_method}\n Error message: {exc_value}\n Traceback: {traceback_str}\n Args: {args}"
