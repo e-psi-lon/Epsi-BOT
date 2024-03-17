@@ -1,7 +1,44 @@
-import sqlite3
-from typing import Optional
+from typing import Optional, Union
 import aiosqlite
 import asyncio
+from pypika import Table, Query, Field
+import logging
+
+
+logger = logging.getLogger("__main__")
+
+def format_name(name: str):
+    """Replace |, /, backslash, <, >, :, *, ?, ", and ' with a character with their unicode"""
+    return name.replace("|", "u01C0") \
+        .replace("/", "u2215") \
+        .replace("\\", "u2216") \
+        .replace("<", "u003C") \
+        .replace(">", "u003E") \
+        .replace(":", "u02D0") \
+        .replace("*", "u2217") \
+        .replace("?", "u003F") \
+        .replace('"', "u0022") \
+        .replace("'", "u0027")
+
+def unformat_name(name: str):
+    """Replace unicode characters with |, /, backslash, <, >, :, *, ?, ", and '"""
+    return name.replace("u01C0", "|") \
+        .replace("u2215", "/") \
+        .replace("u2216", "\\") \
+        .replace("u003C", "<") \
+        .replace("u003E", ">") \
+        .replace("u02D0", ":") \
+        .replace("u2217", "*") \
+        .replace("u003F", "?") \
+        .replace("u0022", '"') \
+        .replace("u0027", "'")
+
+class JoinCondition:
+    def __init__(self, first_table: str, second_table: str, first_column: str, second_column: str):
+        self.first_table = first_table
+        self.second_table = second_table
+        self.first_column = first_column
+        self.second_column = second_column
 
 
 class DatabaseAccess:
@@ -9,27 +46,46 @@ class DatabaseAccess:
         self._copy = copy
         self._loop = asyncio.get_event_loop()
 
-    async def _song_exists(self, **song_data):
+    async def _song_exists(self, **song_data) -> bool:
         return await self._get_db('SONG', 'song_id', **song_data) is not None
 
-    async def _asker_exists_wrap(self, asker_id: int):
+    async def _asker_exists(self, asker_id: int) -> bool:
         return await self._get_db('ASKER', 'asker_id', asker_id=asker_id) is not None
 
-    async def _get_db(self, table: str, *columns: str, all_results: bool = False, joins: list[tuple[str, str]] = None,
-                      create_if_none: bool = False, order_by: str = None, **where):
+    async def _get_db(self, table: str, *columns: str, all_results: bool = False, joins: Optional[list[JoinCondition]] = None,
+                    create_if_none: bool = False, order_by: Optional[str] = None, **where) -> Optional[Union[list[tuple], tuple]]:
         async with aiosqlite.connect("database/database.db") as conn:
             cursor = await conn.cursor()
-            where_str = " " + ' AND '.join([f'{key} = \'{value}\'' for key, value in where.items()])
+            table = Table(table)
+            query = Query.from_(table)
+            for key, value in where.items():
+                if len(key.split('.')) > 1:
+                    table_name, column = key.split('.')
+                    query = query.where(getattr(Table(table_name), column) == value)
+                else:
+                    query = query.where(getattr(table, key) == value)
             if joins is not None:
-                joins = " " + ' '.join([f'JOIN {table} ON {condition}' for table, condition in joins])
+                for join in joins:
+                    table1 = Table(join.first_table)
+                    table2 = Table(join.second_table)
+                    query = query.join(table2).on(getattr(table1, join.first_column) == getattr(table2, join.second_column))
+            if order_by is not None:
+                query = query.orderby(order_by)
+            if columns[0] != '*':
+                for column in columns:
+                    column = column.split('.')
+                    if len(column) > 1:
+                        if column[1] != '*':
+                            query = query.select(getattr(Table(column[0]), column[1]))
+                        else:
+                            query = query.select(Field('*', table=column[0]))
+                    else:
+                        query = query.select(getattr(table, column[0]))
             else:
-                joins = ''
-            try:
-                await cursor.execute(
-                    f'SELECT {", ".join([f"{table}.{column}" for column in columns])} FROM {table}{joins} ORDER BY'
-                    f'{order_by}{" WHERE" if where else ""}{where_str};')
-            except sqlite3.OperationalError:
-                pass
+                query = query.select("*")
+            query = str(query)
+            logger.info(f"Executing query: {query}")
+            await cursor.execute(query)
             results = await cursor.fetchall() if all_results else await cursor.fetchone()
             if results is None and create_if_none:
                 await self._create_db(table, **where)
@@ -37,37 +93,51 @@ class DatabaseAccess:
             return results
 
     async def _update_db(self, table: str, columns_values: dict[str, str],
-                         **where):
+                         **where) -> None:
         if self._copy:
             return
         async with aiosqlite.connect("database/database.db") as conn:
             cursor = await conn.cursor()
-            columns = [f'{key} = ?' for key in columns_values.keys()]
-            values = tuple(columns_values.values())
-            where = ' AND '.join([f'{key} = \'{value}\'' for key, value in where.items()])
-            await cursor.execute(
-                f'UPDATE {table} SET {", ".join(columns)} WHERE {where};', values)
+            table = Table(table)
+            query = Query.update(table).set(columns_values)
+            for key, value in where.items():
+                if len(key.split('.')) > 1:
+                    table_name, column = key.split('.')
+                    query = query.where(getattr(Table(table_name), column) == value)
+            query = str(query)
+            logger.info(f"Executing query: {query}")
+            await cursor.execute(query)
             await conn.commit()
 
-    async def _create_db(self, table, **columns_values):
+    async def _create_db(self, table, **columns_values) -> Optional[Union[list[tuple], tuple]]:
         if self._copy:
-            return await self._get_db(table, "*", **columns_values)
+            return await self._get_db(table, f"{table}.*", **columns_values)
         async with aiosqlite.connect("database/database.db") as conn:
             cursor = await conn.cursor()
-            columns = ', '.join(columns_values.keys())
-            values = tuple(columns_values.values())
-            await cursor.execute(f'INSERT INTO {table} ({columns}) VALUES ({("?, " * len(columns_values))[:-2]});',
-                                 values)
+            table_ = Table(table)
+            query = Query.into(table_).columns(*columns_values.keys()).insert(*columns_values.values())
+            query = str(query)
+            logger.info(f"Executing query: {query}")
+            await cursor.execute(query)
             await conn.commit()
-        return await self._get_db(table, "*", **columns_values)
+        return await self._get_db(table, f"*", **columns_values)
 
-    async def _delete_db(self, table: str, **where):
+    async def _delete_db(self, table: str, **where) -> None:
         if self._copy:
             return
         async with aiosqlite.connect("database/database.db") as conn:
             cursor = await conn.cursor()
-            where = ' AND '.join([f'{key} = \'{value}\'' for key, value in where.items()])
-            await cursor.execute(f'DELETE FROM {table} WHERE {where};')
+            table = Table(table)
+            query = Query.from_(table).delete()
+            for key, value in where.items():
+                if len(key.split('.')) > 1:
+                    table_name, column = key.split('.')
+                    query = query.where(getattr(Table(table_name), column) == value)
+                else:
+                    query = query.where(getattr(table, key) == value)
+            query = str(query)
+            logger.info(f"Executing query: {query}")
+            await cursor.execute(query)
             await conn.commit()
 
 
@@ -97,6 +167,9 @@ class Asker(DatabaseAccess):
     @property
     def discord_id(self) -> int:
         return self._discord_id
+    
+    def __str__(self) -> str:
+        return f"Asker: {self.discord_id}"
 
 
 class Song(DatabaseAccess):
@@ -111,14 +184,15 @@ class Song(DatabaseAccess):
     async def create(cls, name: str, url: str, asker: Asker, is_copy=False) -> 'Song':
         self = cls(is_copy)
         if await self._song_exists(url=url):
-            song = await self._get_db('SONG', 'song_id', 'name', 'url', name=name, url=url)
+            song = await self._get_db('SONG', 'song_id', 'name', 'url', name=format_name(name), url=url)
             self._id, self._name, self._url = song
+            self._name = unformat_name(self._name)
             self._asker = asker
             return self
         self._name = name
         self._url = url
         self._asker = asker
-        self._id = (await self._create_db('SONG', name=name, url=url))[0]
+        self._id = (await self._create_db('SONG', name=format_name(name), url=url))[0]
         return self
 
     @property
@@ -150,6 +224,9 @@ class Song(DatabaseAccess):
 
     def __hash__(self) -> int:
         return hash(self.id)
+    
+    def __str__(self) -> str:
+        return f"Song: {self.name} - {self.url}"
 
 
 class Playlist(DatabaseAccess):
@@ -160,29 +237,30 @@ class Playlist(DatabaseAccess):
         self._songs: list[Song] | None = None
 
     @classmethod
-    async def from_id(cls, playlist_id, is_copy=False) -> 'Playlist':
+    async def from_id(cls, playlist_id: int, is_copy=False) -> 'Playlist':
         self = cls(is_copy)
         self._id = playlist_id
         playlist = await self._get_db('PLAYLIST', 'name', playlist_id=playlist_id)
         if playlist is not None:
-            self._name = playlist[0]
-        songs = await self._get_db('SONG', 'name', 'url', 'discord_id', all_results=True,
-                                   joins=[('PLAYLIST_SONG', 'SONG.song_id = PLAYLIST_SONG.song_id'),
-                                          ('ASKER', 'PLAYLIST_SONG.asker = ASKER.asker_id')],
-                                   order_by="PLAYLIST_SONG.position", playlist_id=playlist_id)
+            self._name = format_name(playlist[0])
+        songs = await self._get_db('PLAYLIST_SONG', 'SONG.name', 'SONG.url', 'ASKER.discord_id', all_results=True,
+                                   joins=[JoinCondition('PLAYLIST_SONG', 'SONG', 'song_id', 'song_id'),
+                                          JoinCondition('PLAYLIST_SONG', 'ASKER', 'asker', 'asker_id')],
+                                   order_by="PLAYLIST_SONG.position", **{"PLAYLIST_SONG.playlist_id": playlist_id})
 
-        self._songs = [Song.create(name, url, asker) for _, name, url, asker in songs]
+        self._songs = [await Song.create(name, url, asker) for name, url, asker in songs]
         return self
 
     @classmethod
     async def create(cls, name: str, songs: list[Song], guild_id) -> 'Playlist':
         self = cls(False)
         self._name = name
-        self._songs = songs
-        await self._create_db('PLAYLIST', name=name)
-        self._id = (await self._get_db('PLAYLIST', 'playlist_id', name=name))[0]
+        await self._create_db('PLAYLIST', name=format_name(name))
+        self._id = (await self._get_db('PLAYLIST', 'playlist_id', name=format_name(name)))[0]
         for song in songs:
-            await self._create_db('PLAYLIST_SONG', playlist_id=self._id, song_id=song.id, asker=song.asker)
+            self._songs.append(song)
+            await self._create_db('PLAYLIST_SONG', playlist_id=self._id, song_id=song.id, asker=song.asker.id,
+                                  position=len(self._songs))
         await self._create_db('SERVER_PLAYLIST', server_id=guild_id, playlist_id=self._id)
         return self
 
@@ -197,7 +275,7 @@ class Playlist(DatabaseAccess):
     @name.setter
     def name(self, value):
         self._name = value
-        self._loop.create_task(self._update_db('PLAYLIST', {"name": value}, playlist_id=self._id))
+        self._loop.create_task(self._update_db('PLAYLIST', {"name": format_name(value)}, playlist_id=self._id))
 
     @property
     def songs(self) -> list[Song]:
@@ -212,6 +290,9 @@ class Playlist(DatabaseAccess):
         self._songs.remove(song)
         await self._delete_db('PLAYLIST_SONG', playlist_id=self._id, song_id=song.id)
 
+    def __str__(self) -> str:
+        return f"Playlist {self.name}: {', '.join([str(song) for song in self.songs])}"
+
 
 class UserPlaylistAccess(DatabaseAccess):
     def __init__(self, copy):
@@ -224,7 +305,7 @@ class UserPlaylistAccess(DatabaseAccess):
         self = cls(is_copy)
         self._user_id = user_id
         playlists = await self._get_db('USER_PLAYLIST', 'playlist_id', all_results=True)
-        self._playlists = {Playlist.from_id(playlist_id, is_copy=self._copy) for playlist_id in playlists}
+        self._playlists = {await Playlist.from_id(playlist_id, is_copy=self._copy) for playlist_id in playlists}
         return self
 
     @property
@@ -248,6 +329,9 @@ class UserPlaylistAccess(DatabaseAccess):
             if playlist.id == playlist_id:
                 return playlist
         return await Playlist.from_id(playlist_id, is_copy=self._copy)
+    
+    def __str__(self) -> str:
+        return f"UserPlaylistAccess of {self.user_id}: {', '.join([str(playlist) for playlist in self.playlists])}"
 
 
 class Config(DatabaseAccess):
@@ -263,7 +347,7 @@ class Config(DatabaseAccess):
         self._playlists: set[Playlist] | None = None
 
     @classmethod
-    async def get_config(cls, guild_id, is_copy=False) -> 'Config':
+    async def get_config(cls, guild_id: int, is_copy=False) -> 'Config':
         self = cls(is_copy)
         self.guild_id = guild_id
         server = await self._get_db('SERVER', '*', server_id=guild_id)
@@ -278,14 +362,13 @@ class Config(DatabaseAccess):
             self._random = server[3]
             self._volume = server[4]
             self._position = server[5]
-        songs = await self._get_db('SONG', 'name', 'url', 'discord_id', all_results=True,
-                                   joins=[('QUEUE', 'SONG.song_id = QUEUE.song_id'),
-                                          ('ASKER', 'QUEUE.asker = ASKER.asker_id')], order_by="QUEUE.position",
-                                   server_id=guild_id)
-        print(songs)
-        self._queue = [Song.create(name, url, asker) for _, name, url, asker in songs]
+        songs = await self._get_db('QUEUE', 'SONG.name', 'SONG.url', 'ASKER.discord_id', all_results=True,
+                                   joins=[JoinCondition('QUEUE', 'SONG', 'song_id', 'song_id'),
+                                            JoinCondition('QUEUE', 'ASKER', 'asker', 'asker_id')],
+                                   **{"QUEUE.server_id": guild_id})
+        self._queue = [await Song.create(name, url, asker) for name, url, asker in songs]
         playlists = await self._get_db('PLAYLIST', 'playlist_id', all_results=True)
-        self._playlists = {Playlist.from_id(playlist_id, is_copy=self._copy) for playlist_id in playlists}
+        self._playlists = {await Playlist.from_id(playlist_id, is_copy=self._copy) for playlist_id in playlists}
         return self
 
     @staticmethod
@@ -374,7 +457,7 @@ class Config(DatabaseAccess):
 
     async def add_playlist(self, playlist: Playlist):
         self._playlists.add(playlist)
-        await self._create_db('PLAYLIST', playlst_id=playlist.id, name=playlist.name)
+        await self._create_db('PLAYLIST', playlist_id=playlist.id, name=playlist.name)
         for song in playlist.songs:
             await self._create_db('PLAYLIST_SONG', playlist_id=playlist.id, song_id=song.id, asker=song.asker)
 
@@ -388,3 +471,7 @@ class Config(DatabaseAccess):
             if playlist.id == playlist_id:
                 return playlist
         return await Playlist.from_id(playlist_id, is_copy=self._copy)
+
+    def __str__(self) -> str:
+        return f"Config of {self.guild_id}: {self.loop_song}, {self.loop_queue}, {self.random}, {self.volume}, "\
+        f"{self.position},\n{', '.join([str(song) for song in self.queue])},\n{', '.join([str(playlist) for playlist in self.playlists])}"

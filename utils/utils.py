@@ -11,7 +11,7 @@ import asyncio
 import discord.ext.pages
 from discord.ext import commands
 import requests
-from utils.config import Config, Song, Asker, UserPlaylistAccess
+from utils.config import Config, Song, Asker, UserPlaylistAccess, format_name, unformat_name
 from pytube.exceptions import RegexMatchError as PytubeRegexMatchError
 
 logger = logging.getLogger("__main__")
@@ -215,20 +215,6 @@ async def get_queue_songs(ctx: discord.AutocompleteContext):
     queue_ = config.queue.copy()
     queue_.pop(config.position)
     return [song.name for song in queue_]
-
-
-def format_name(name: str):
-    """Replace |, /, backslash, <, >, :, *, ?, ", and ' with a character with their unicode"""
-    return name.replace("|", "u01C0") \
-        .replace("/", "u2215") \
-        .replace("\\", "u2216") \
-        .replace("<", "u003C") \
-        .replace(">", "u003E") \
-        .replace(":", "u02D0") \
-        .replace("*", "u2217") \
-        .replace("?", "u003F") \
-        .replace('"', "u0022") \
-        .replace("'", "u0027")
 
 
 def get_index_from_title(title, list_to_check):
