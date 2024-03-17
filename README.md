@@ -10,18 +10,18 @@ Il y a 7 tables :
 
   | Colonne    | Type    |
   |------------|---------|
-  | __id__     | INT     |
+  | __id__     | INTEGER |
   | loop_song  | BOOLEAN |
   | loop_queue | BOOLEAN |
   | random     | BOOLEAN |
-  | volume     | INT     |
-  | position   | INT     |
+  | volume     | INTEGER |
+  | position   | INTEGER |
 
 - `SONG` qui contient les informations des chansons :
 
   | Colonne | Type         |
   |---------|--------------|
-  | __id__  | INT          |
+  | __id__  | INTEGER      |
   | name    | VARCHAR(255) |
   | url     | TEXT         |
 
@@ -29,40 +29,47 @@ Il y a 7 tables :
 
   | Colonne       | Type         |
   |---------------|--------------|
-  | __id__        | INT          |
+  | __id__        | INTEGER      |
   | name          | VARCHAR(255) |
 
 - `ASKER` qui contient les informations des utilisateurs :
 
-  | Colonne    | Type |
-  |------------|------|
-  | __id__     | INT  |
-  | discord_id | INT  |
+  | Colonne    | Type    |
+  |------------|---------|
+  | __id__     | INTEGER |
+  | discord_id | INTEGER |
 
 - `PLAYLIST_SONG` qui contient les informations des chansons dans les playlists :
 
-  | Colonne           | Type |
-  |-------------------|------|
-  | # __playlist_id__ | INT  |
-  | # __song_id__     | INT  |
-  | position          | INT  |
-  | asker             | INT  |
+  | Colonne           | Type     |
+  |-------------------|----------|
+  | # __playlist_id__ | INTEGER  |
+  | # __song_id__     | INTEGER  |
+  | position          | INTEGER  |
+  | asker             | INTEGER  |
 
 - `SERVER_PLAYLIST` qui contient les informations des playlists dans les guilds :
 
-  | Colonne           | Type |
-  |-------------------|------|
-  | # __server_id__   | INT  |
-  | # __playlist_id__ | INT  |
+  | Colonne           | Type     |
+  |-------------------|----------|
+  | # __server_id__   | INTEGER  |
+  | # __playlist_id__ | INTEGER  |
+
+- `USER_PLAYLIST` qui contient les informations des playlists dans les guilds :
+
+  | Colonne           | Type     |
+  |-------------------|----------|
+  | # __user_id__     | INTEGER  |
+  | # __playlist_id__ | INTEGER  |
 
 - `QUEUE` qui contient les informations de la file d'attente des chansons :
 
   | Colonne         | Type         |
   |-----------------|--------------|
-  | # __server_id__ | INT          |
-  | # __song_id__   | INT          |
-  | # asker_id      | INT          |
-  | position        | INT          |
+  | # __server_id__ | INTEGER      |
+  | # __song_id__   | INTEGER      |
+  | # asker_id      | INTEGER      |
+  | position        | INTEGER      |
 
 ## Contributeurs
 
