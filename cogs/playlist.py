@@ -4,7 +4,7 @@ from typing import Union, Optional
 from discord.commands import SlashCommandGroup
 from pytube.exceptions import RegexMatchError as PytubeRegexMatchError
 
-from utils.config import Playlist
+from utils.config import Playlist, PlaylistType
 from utils.utils import *
 
 
@@ -32,7 +32,9 @@ class Playlists(commands.Cog):
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description="A playlist with this name already exists.",
                                     color=0xff0000))
-        playlist = await Playlist.create(name, config.queue, ctx.guild.id)
+        playlist = await Playlist.create(name, config.queue, 
+                                         ctx.guild.id if playlist_type == "server" else ctx.user.id, 
+                                         PlaylistType.SERVER if playlist_type == "server" else PlaylistType.USER)
         await config.add_playlist(playlist)
         await ctx.respond(
             embed=discord.Embed(title="Playlist", description=f"Playlist {name} created.", color=0x00ff00))
@@ -57,9 +59,12 @@ class Playlists(commands.Cog):
                     embed=discord.Embed(title="Error", description="A playlist with this name already exists.",
                                         color=0xff0000))
             playlist = await Playlist.create(name,
-                                             [await Song.create(video.title, video.watch_url,
-                                                                await Asker.from_id(ctx.user.id)) for
-                                              video in playlist.videos], ctx.guild.id)
+                                            [await 
+                                                Song.create(video.title, video.watch_url, 
+                                                        await Asker.from_id(ctx.user.id)) for video in playlist.videos], 
+                                                ctx.guild.id if playlist_type == "server" else ctx.user.id,
+                                                PlaylistType.SERVER if playlist_type == "server" else PlaylistType.USER
+                                            )
             await config.add_playlist(playlist)
             await ctx.respond(
                 embed=discord.Embed(title="Playlist", description=f"Playlist {name} created.", color=0x00ff00))
@@ -250,7 +255,7 @@ class Playlists(commands.Cog):
                                     color=0xff0000))
         new_playlist = await Playlist.create(new_name,
                                              [playlist for playlist in config.playlists if playlist.name == name][
-                                                 0].songs, ctx.guild.id)
+                                                 0].songs, ctx.guild.id if isinstance(config, Config) else ctx.user.id, PlaylistType.SERVER if isinstance(config, Config) else PlaylistType.USER)
         await config.remove_playlist([playlist for playlist in config.playlists if playlist.name == name][0])
         await config.add_playlist(new_playlist)
         await ctx.respond(embed=discord.Embed(title="Playlist", description=f"Playlist {name} renamed to {new_name}.",
