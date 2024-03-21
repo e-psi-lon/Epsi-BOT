@@ -13,6 +13,7 @@ from discord.ext import commands
 import requests
 from utils.config import Config, Song, Asker, UserPlaylistAccess, format_name, unformat_name
 from pytube.exceptions import RegexMatchError as PytubeRegexMatchError
+from queue import Queue
 
 logger = logging.getLogger("__main__")
 
@@ -331,8 +332,7 @@ class CustomFormatter(logging.Formatter):
     def format(self, record):
         log_fmt = self.FORMATS.get(record.levelno)
         path = record.pathname.lower().replace(os.getcwd().lower() + "\\", "").replace("\\", "/").replace("/",
-                                                                                                          ".").replace(
-            ".py", "")
+                                                                                                          ".")[:-3]
         path = path.replace(".venv.lib.site-packages.", "libs.")
         formatter = logging.Formatter(log_fmt, "%d/%m/%Y %H:%M:%S", "{", True,
                                       defaults={"source": self.source, "path": path})
@@ -342,3 +342,13 @@ class CustomFormatter(logging.Formatter):
 def get_lyrics(title):
     """Get the lyrics of a song"""
     return title
+
+
+def audio_downloader(queue: Queue):
+    worker_logger = logging.getLogger("Audio-Downloader")
+    while True:
+        song_url = queue.get()
+        if song_url is None:
+            break
+        download(song_url, download_logger=worker_logger)
+    worker_logger.info("Audio-Downloader process ended")

@@ -129,7 +129,21 @@ class DatabaseAccess:
                     table2 = Table(join.second_table)
                     query = query.join(table2).on(getattr(table1, join.first_column) == getattr(table2, join.second_column))
             if order_by is not None:
-                query = query.orderby(order_by)
+                if isinstance(order_by, str):
+                    if len(order_by.split('.')) > 1:
+                        table_name, column = order_by.split('.')
+                        query = query.orderby(Field(column, table=Table(table_name)))
+                    else:
+                        query = query.orderby(Field(order_by))
+                elif isinstance(order_by, list):
+                    for column in order_by:
+                        if len(column.split('.')) > 1:
+                            table_name, column = column.split('.')
+                            query = query.orderby(Field(column, table=Table(table_name)))
+                        else:
+                            query = query.orderby(Field(column))
+                else:
+                    raise ValueError("order_by must be a string or a list of strings")
             if columns[0] != '*':
                 for column in columns:
                     column = column.split('.')
@@ -137,7 +151,7 @@ class DatabaseAccess:
                         if column[1] != '*':
                             query = query.select(getattr(Table(column[0]), column[1]))
                         else:
-                            query = query.select(Field('*', table=column[0]))
+                            query = query.select(Field('*', table=Table(column[0])))
                     else:
                         query = query.select(getattr(table, column[0]))
             else:
@@ -175,11 +189,17 @@ class DatabaseAccess:
         async with aiosqlite.connect("database/database.db") as conn:
             cursor = await conn.cursor()
             table = Table(table)
-            query = Query.update(table).set(columns_values)
+            query = Query.update(table)
+            for key, value in columns_values.items():
+                if len(key.split('.')) > 1:
+                    table_name, column = key.split('.')
+                    query = query.set(Field(column, table=table_name), value)
+                else:
+                    query = query.set(Field(key, table=table), value)
             for key, value in where.items():
                 if len(key.split('.')) > 1:
                     table_name, column = key.split('.')
-                    query = query.where(getattr(Table(table_name), column) == value)
+                    query = query.where(Field(column, table=table_name) == value)
             query = str(query)
             logger.debug(f"Executing query: {query}")
             await cursor.execute(query)
@@ -578,7 +598,7 @@ class Playlist(DatabaseAccess):
     async def add_song(self, song: Song):
         """Add a song to the playlist."""
         self._songs.append(song)
-        await self._create_db('PLAYLIST_SONG', playlist_id=self._id, song_id=song.id, asker=song.asker,
+        await self._create_db('PLAYLIST_SONG', playlist_id=self._id, song_id=song.id, asker=song.asker.id,
                               position=len(self._songs))
 
     async def remove_song(self, song: Song):
@@ -594,7 +614,7 @@ class Playlist(DatabaseAccess):
     async def insert_song(self, song: Song, index: int):
         """Insert a song to the playlist at a specific index."""
         self._songs.insert(index, song)
-        await self._create_db('PLAYLIST_SONG', playlist_id=self._id, song_id=song.id, asker=song.asker,
+        await self._create_db('PLAYLIST_SONG', playlist_id=self._id, song_id=song.id, asker=song.asker.id,
                               position=index)
         table = Table('PLAYLIST_SONG')
         query = Query.update(table).set("position", table.position + 1).where((table.playlist_id == self._id) &
@@ -671,7 +691,7 @@ class UserPlaylistAccess(DatabaseAccess):
         self._playlists.add(playlist)
         await self._create_db('PLAYLIST', playlist_id=playlist.id, name=playlist.name)
         for song in playlist.songs:
-            await self._create_db('PLAYLIST_SONG', playlist_id=playlist.id, song_id=song.id, asker=song.asker)
+            await self._create_db('PLAYLIST_SONG', playlist_id=playlist.id, song_id=song.id, asker=song.asker.id)
         
 
     async def remove_playlist(self, playlist: Playlist):
@@ -909,9 +929,6 @@ class Config(DatabaseAccess):
     async def add_playlist(self, playlist: Playlist):
         """Add a playlist to the guild's playlists."""
         self._playlists.add(playlist)
-        await self._create_db('PLAYLIST', playlist_id=playlist.id, name=playlist.name)
-        for song in playlist.songs:
-            await self._create_db('PLAYLIST_SONG', playlist_id=playlist.id, song_id=song.id, asker=song.asker)
 
     async def remove_playlist(self, playlist: Playlist):
         """Remove a playlist from the guild's playlists."""

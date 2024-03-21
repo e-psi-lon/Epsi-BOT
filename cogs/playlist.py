@@ -1,4 +1,4 @@
-import multiprocessing
+from queue import Queue
 from typing import Union, Optional
 
 from discord.commands import SlashCommandGroup
@@ -6,6 +6,7 @@ from pytube.exceptions import RegexMatchError as PytubeRegexMatchError
 
 from utils.config import Playlist, PlaylistType
 from utils.utils import *
+from concurrent.futures import ThreadPoolExecutor
 
 
 class Playlists(commands.Cog):
@@ -171,9 +172,10 @@ class Playlists(commands.Cog):
 
         await config.edit_queue(playlist[0].songs)
         config.position = 0
-        q = multiprocessing.Queue()
-        p = multiprocessing.Process(target=worker, args=(q,), name="Playlist-Downloader")
-        p.start()
+        q = Queue()
+        # On utilise threadPoolExecutor pour télécharger les vidéos en parallèle
+        pool = ThreadPoolExecutor()
+        pool.submit(audio_downloader, q)
         for song in config.queue:
             video = pytube.YouTube(song.url)
             if video.age_restricted:
@@ -189,7 +191,7 @@ class Playlists(commands.Cog):
             else:
                 q.put(song.url)
         q.put(None)
-        p.join()
+        pool.shutdown(wait=True)
         if ctx.guild.voice_client is None:
             await ctx.user.voice.channel.connect()
         if not ctx.guild.voice_client.is_playing():
@@ -284,18 +286,6 @@ async def get_config(ctx: discord.ApplicationContext, playlist_name: str) ->\
                           .add_field(name="Existing playlists:",
                                      value="\n".join([playlist.name for playlist in config.playlists])))
         return None
-
-
-def worker(queue: multiprocessing.Queue):
-    worker_logger = logging.getLogger("Playlist-Downloader")
-    while True:
-        song_url = queue.get()
-        if song_url is None:
-            break
-        download(song_url, download_logger=worker_logger)
-    queue.close()
-    worker_logger.info("Playlist-Downloader process ended")
-
 
 def setup(bot):
     bot.add_cog(Playlists(bot))

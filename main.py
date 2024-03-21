@@ -6,6 +6,8 @@ import dependencies_check
 import threading
 import traceback
 
+from utils.info_extractor import *
+
 if __name__ == "__main__":
     if len(list(dependencies_check.check_libs())) > 0 and list(dependencies_check.check_libs())[0][0] != "pynacl":
         dependencies_check.update_libs([lib for lib, _, _ in dependencies_check.check_libs()])
@@ -15,6 +17,7 @@ from discord.ext import tasks
 from dotenv import load_dotenv
 from panel.panel import *
 import utils.config as config
+import asyncio
 
 load_dotenv()
 
@@ -33,26 +36,24 @@ async def check_update():
         logging.info("Bot is already up to date")
 
 
-def start_app(conn: Connection):
+def start_app(queue: asyncio.Queue):
     from panel.panel import app
-    app.set_connection(conn)
+    app.set_queue(queue)
     app.run(host="0.0.0.0")
 
 
 class Bot(commands.Bot):
     def __init__(self, *args, **options):
         super().__init__(*args, **options)
-        self.conn = None
+        self.queue: asyncio.Queue = asyncio.Queue()
 
     async def on_ready(self):
         global start_time
         await self.change_presence(
             activity=discord.Activity(type=discord.ActivityType.watching, name=f"/help | {len(self.guilds)} servers"))
         if not self.conn:
-            parent_conn, child_conn = multiprocessing.Pipe()
-            p = multiprocessing.Process(target=start_app, args=(child_conn,), name="Panel")
+            p = multiprocessing.Process(target=start_app, args=(self.queue,), name="Panel")
             p.start()
-            self.conn = parent_conn
             if os.popen("git branch --show-current").read().strip() == "main":
                 check_update.start()
             threading.Thread(target=listen_to_conn, args=(self,), name="Connection-Listener").start()
@@ -62,6 +63,28 @@ class Bot(commands.Bot):
             if not await config.Config.config_exists(guild.id):
                 await config.Config.create_config(guild.id)
 
+    async def listen_to_conn(self):
+        while True:
+            message = await self.queue.get()
+            match message.get("type"):
+                case "get":
+                    match message.get("content"):
+                        case "guilds":
+                            logging.info("Got a request for all guilds")
+                            await self.queue.put([get_guild_info(guild) for guild in self.guilds])
+                        case "guild":
+                            logging.info(f"Got a request for a specific guild : {message}")
+                            guild = self.get_guild(message["server_id"])
+                            await self.queue.put(get_guild_info(guild))
+                        case "user":
+                            logging.info(f"Got a request for a specific user : {message}")
+                            user = self.get_user(message["user_id"])
+                            await self.queue.put(get_user_info(user))
+                        case _:
+                            pass
+                case _:
+                    pass
+    
     async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
         exc_type, exc_value, exc_traceback = type(error), error, error.__traceback__
         traceback_str = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
@@ -111,71 +134,12 @@ class Bot(commands.Bot):
                 f"Error in {event_method}\n Error message: {exc_value}\n Traceback: {traceback_str}\n Args: {args}"
                 f"\n Kwargs: {kwargs}")
 
-
-def listen_to_conn(bot: Bot):
-    while True:
-        message = bot.conn.recv()
-        match message:
-            case {"type": "get", "content": "guilds"}:
-                logging.info("Got a request for all guilds")
-                bot.conn.send([{
-                    "name": guild.name,
-                    "id": guild.id,
-                    "icon": "" if not hasattr(guild.icon, "url") else guild.icon.url,
-                    "members": [{
-                        "name": member.name,
-                        "global_name": member.global_name,
-                        "id": member.id,
-                        "avatar": "" if not hasattr(member.avatar, "url") else member.avatar.url
-                    } for member in guild.members],
-                    "channels": [{
-                        "name": channel.name,
-                        "id": channel.id,
-                        "type": channel.type.name
-                    } for channel in guild.channels]
-                } for guild in bot.guilds])
-            case {"type": "get", "content": "guild"}:
-                logging.info(f"Got a request for a specific guild : {message}")
-                guild = bot.get_guild(message["server_id"])
-                bot.conn.send({
-                    "name": guild.name,
-                    "id": guild.id,
-                    "icon": "" if not hasattr(guild.icon, "url") else guild.icon.url,
-                    "members": [{
-                        "name": member.name,
-                        "global_name": member.global_name,
-                        "id": member.id,
-                        "avatar": "" if not hasattr(member.avatar, "url") else member.avatar.url
-                    } for member in guild.members],
-                    "channels": [{
-                        "name": channel.name,
-                        "id": channel.id,
-                        "type": channel.type.name
-                    } for channel in guild.channels]
-                })
-            case {"type": "get", "content": "user"}:
-                logging.info(f"Got a request for a specific user : {message}")
-                user = bot.get_user(message["user_id"])
-                bot.conn.send({
-                    "name": user.name,
-                    "global_name": user.global_name,
-                    "id": user.id,
-                    "avatar": "" if not hasattr(user.avatar, "url") else user.avatar.url
-                })
-            case _:
-                pass
+    
 
 
 bot_instance = Bot(intents=discord.Intents.all())
 bot_instance.owner_id = 708006478807695450
 
-
-@bot_instance.slash_command(name="help", description="Affiche l'aide du bot", guild_ids=[812807444698549862])
-async def _help(ctx):
-    await ctx.response.defer()
-    mapping = bot_instance.get_bot_mapping()
-    embeds = bot_instance.send_bot_help(mapping)
-    await ctx.respond(embeds=embeds)
 
 
 @bot_instance.slash_command(name="send", description="Envoie un message dans un salon")

@@ -17,9 +17,9 @@ class Queue(commands.Cog):
         for i, song in enumerate(config.queue):
             if i == config.position:
                 embed.add_field(name=f"{i + 1}. {song.name} - __**Now Playing**__",
-                                value=f"{song.url} asked by <@{song.asker}>", inline=False)
+                                value=f"{song.url} asked by <@{song.asker.discord_id}>", inline=False)
             else:
-                embed.add_field(name=f"{i + 1}. {song.name}", value=f"{song.url} asked by <@{song.asker}>",
+                embed.add_field(name=f"{i + 1}. {song.name}", value=f"{song.url} asked by <@{song.asker.discord_id}>",
                                 inline=False)
         await ctx.respond(embed=embed)
 
@@ -79,7 +79,7 @@ class Queue(commands.Cog):
             return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
         song = config.queue[config.position]
         embed = discord.Embed(title="Now Playing",
-                              description=f"[{song.name}]({song.url}) asked by <@{song.asker}>",
+                              description=f"[{song.name}]({song.url}) asked by <@{song.asker.discord_id}>",
                               color=0x00ff00)
         await ctx.respond(embed=embed)
 

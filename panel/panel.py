@@ -2,6 +2,7 @@ import sys
 # noinspection PyProtectedMember
 from multiprocessing.connection import Connection, PipeConnection
 from threading import Timer
+from typing import Optional
 from utils.utils import *
 from quart import *
 import requests
@@ -24,20 +25,20 @@ class Panel(Quart):
         self.REDIRECT_URI = "http://86.196.98.254/auth/discord/callback"
         self.timers = {}
         self.guilds: dict[int, list[dict]] = {}
+        self.queue: Optional[asyncio.Queue] = None
 
-    def set_connection(self, conn: Connection):
-        self.conn = conn
+    def set_queue(self, conn: asyncio.Queue):
+        self.queue = conn
+
+    async def get_from_conn(self, content: str, **kwargs):
+        await self.queue.put({"type": "get", "content": content, **kwargs})
+        return await self.queue.get()
 
 
 app = Panel("121515145141464146EFG", __name__)
 
 
-def get_from_conn(conn: Connection, content: str, **kwargs):
-    conn.send({"type": "get", "content": content, **kwargs})
-    data = conn.recv()
-    if isinstance(data, PipeConnection):
-        data = data.recv()
-    return data
+
 
 
 def to_url(url: str) -> str:
@@ -76,14 +77,14 @@ async def panel():
         if user['id'] == '708006478807695450':
             app.guilds[session['user_id']] = app.conn
         else:
-            app.guilds[session['user_id']] = [guild for guild in str(get_from_conn(app.conn, "guilds")) if
+            app.guilds[session['user_id']] = [guild for guild in str(await app.get_from_conn("guilds")) if
                                               session["user_id"] in [str(member["id"]) for member in guild["members"]]]
         session['user'] = user
     if app.guilds.get(session["user_id"], None) is None:
         if session['user']['id'] == '708006478807695450':
-            app.guilds[session['user_id']] = get_from_conn(app.conn, "guilds")
+            app.guilds[session['user_id']] = await app.get_from_conn("guilds")
         else:
-            app.guilds[session['user_id']] = [guild for guild in get_from_conn(app.conn, "guilds") if
+            app.guilds[session['user_id']] = [guild for guild in await app.get_from_conn("guilds") if
                                               str(session["user_id"]) in [str(member["id"]) for member in
                                                                           guild["members"]]]
     return await render_template('panel.html', servers=app.guilds[session['user_id']], user=session['user'])
@@ -113,7 +114,7 @@ async def server(server_id):
         return redirect(url_for('server', server_id=server_id))
     server_data = {"loop_song": config.loop_song, "loop_queue": config.loop_queue, "random": config.random,
                    "position": config.position, "queue": config.queue, "id": server_id,
-                   "name": get_from_conn(app.conn, "guild", server_id=server_id)["name"]}
+                   "name": await app.get_from_conn("guild", server_id=server_id)["name"]}
     return await render_template('server.html', server=server_data, app=app, pytube=pytube)
 
 
