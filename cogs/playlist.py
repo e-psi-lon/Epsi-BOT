@@ -109,7 +109,7 @@ class Playlists(commands.Cog):
                                        autocomplete=discord.utils.basic_autocomplete(get_playlists)),
                   query: discord.Option(str, "The YouTube video to add to the playlist", required=True)):
         await ctx.response.defer()
-        config = get_config(ctx, name)
+        config, name = await get_config(ctx, name)
         if config is None:
             return
         try:
@@ -136,10 +136,10 @@ class Playlists(commands.Cog):
                      song: discord.Option(str, "The name of the song", required=True,
                                           autocomplete=discord.utils.basic_autocomplete(get_playlists_songs))):
         await ctx.response.defer()
-        config = get_config(ctx, name)
+        config, name = await get_config(ctx, name)
         if config is None:
             return
-        if song not in [song.name for song in
+        if song not in [songs.name for songs in
                         [playlist for playlist in config.playlists if playlist.name == name][0].songs]:
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description="This song is not in the playlist.", color=0xff0000))
@@ -172,10 +172,8 @@ class Playlists(commands.Cog):
 
         await config.edit_queue(playlist[0].songs)
         config.position = 0
-        q = Queue()
         # On utilise threadPoolExecutor pour télécharger les vidéos en parallèle
-        pool = ThreadPoolExecutor()
-        pool.submit(audio_downloader, q)
+        pool = ThreadPoolExecutor(max_workers=len(config.queue))
         for song in config.queue:
             video = pytube.YouTube(song.url)
             if video.age_restricted:
@@ -189,8 +187,7 @@ class Playlists(commands.Cog):
                                                                   f"is too long",
                                                       color=0xff0000))
             else:
-                q.put(song.url)
-        q.put(None)
+                pool.submit(download, song.url, download_logger=logging.getLogger("Audio-Downloader"))
         pool.shutdown(wait=True)
         if ctx.guild.voice_client is None:
             await ctx.user.voice.channel.connect()
@@ -225,7 +222,7 @@ class Playlists(commands.Cog):
                    name: discord.Option(str, "The name of the playlist", required=True,
                                         autocomplete=discord.utils.basic_autocomplete(get_playlists))):
         await ctx.response.defer()
-        config = get_config(ctx, name)
+        config, name = await get_config(ctx, name)
         if config is None:
             return
         embed = discord.Embed(title=name, color=0x00ff00)
@@ -244,7 +241,7 @@ class Playlists(commands.Cog):
         await ctx.response.defer()
         if len(new_name) > 20:
             return await ctx.respond(embed=EMBED_ERROR_NAME_TOO_LONG)
-        config = get_config(ctx, name)
+        config, name = await get_config(ctx, name)
         if config is None:
             return
         if name not in [playlist.name for playlist in config.playlists]:
@@ -269,9 +266,11 @@ async def get_config(ctx: discord.ApplicationContext, playlist_name: str) ->\
     if playlist_name.endswith(" - SERVER"):
         config = await Config.get_config(ctx.guild.id, False)
         playlist_name = playlist_name[:-8]
+        return config, playlist_name
     elif playlist_name.endswith(" - USER"):
         config = await UserPlaylistAccess.from_id(ctx.user.id)
         playlist_name = playlist_name[:-6]
+        return config, playlist_name
     else:
         config = await Config.get_config(ctx.guild.id, False)
         user_config = await UserPlaylistAccess.from_id(ctx.user.id)

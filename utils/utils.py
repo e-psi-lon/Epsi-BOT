@@ -40,7 +40,7 @@ def download(url: str, file_format: str = "mp3", download_logger=logger):
             f"(video id: {video_id})")
         return f"cache/{format_name(stream.title)}.{file_format}"
     stream = stream.streams.filter(only_audio=True).first()
-    stream.download(filename=f"cache/{format_name(stream.title)}.{file_format}")
+    stream.download(filename=f"cache\{format_name(stream.title)}.{file_format}")
     download_logger.info(f"Downloaded {stream.title} to cache/{format_name(stream.title)}.{file_format}"
                          f" (video id: {video_id})")
     return f"cache/{format_name(stream.title)}.{file_format}"
@@ -344,11 +344,3 @@ def get_lyrics(title):
     return title
 
 
-def audio_downloader(queue: Queue):
-    worker_logger = logging.getLogger("Audio-Downloader")
-    while True:
-        song_url = queue.get()
-        if song_url is None:
-            break
-        download(song_url, download_logger=worker_logger)
-    worker_logger.info("Audio-Downloader process ended")

@@ -1,4 +1,3 @@
-from queue import Queue
 from concurrent.futures import ThreadPoolExecutor
 from utils.utils import *
 
@@ -39,22 +38,16 @@ class Channel(commands.Cog):
             if config.position > len(config.queue) - 1:
                 config.position = 0
 
-            # S'il y a plus d'un élément dans la queue, on les télécharge tous sur un ThreadPoolExecutor
             await play_song(ctx, config.queue[config.position].url)
             if len(config.queue) > 1:
-                queue = Queue()
-                pool = ThreadPoolExecutor()
-                pool.submit(audio_downloader, queue)
-                for song in config.queue[1:]:
-                    if pytube.YouTube(song.url).length > 12000:
-                        await ctx.respond(embed=discord.Embed(title="Error",
-                                                                description=f"The video [{pytube.YouTube(song.url).title}]({song.url}) is too long",
-                                                                color=0xff0000))
-                    else:
-                        queue.put(song.url)
-
-                queue.put(None)
-                pool.shutdown(wait=True)
+                with ThreadPoolExecutor(max_workers=len(config.queue)) as pool:
+                    for song in config.queue[1:]:
+                        if pytube.YouTube(song.url).length > 12000:
+                            await ctx.respond(embed=discord.Embed(title="Error",
+                                                                    description=f"The video [{pytube.YouTube(song.url).title}]({song.url}) is too long",
+                                                                    color=0xff0000))
+                        else:
+                            pool.submit(download, song.url, download_logger=logging.getLogger("Audio-Downloader"))
 
 
 def setup(bot):
