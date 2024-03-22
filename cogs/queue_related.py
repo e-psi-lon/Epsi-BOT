@@ -13,7 +13,11 @@ class Queue(commands.Cog):
         config = await Config.get_config(ctx.guild.id, True)
         if not config.queue:
             return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
-        embed = discord.Embed(title="Queue", color=0x00ff00)
+        embed = discord.Embed(title="Queue",
+                                description=f"- Queue length: {len(config.queue)}\n- Current position: {config.position + 1}\n"
+                                f"- Loop song: {'`on`' if config.loop_song else '`off`'}\n- Loop queue: {'`on`' if config.loop_queue else '`off`'}"
+                                f"\n- Random: {'`on`' if config.random else '`off`'}\n- Volume: {config.volume}",
+                               color=0x00ff00)
         for i, song in enumerate(config.queue):
             if i == config.position:
                 embed.add_field(name=f"{i + 1}. {song.name} - __**Now Playing**__",
