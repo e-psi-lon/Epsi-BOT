@@ -1,6 +1,4 @@
 import sys
-# noinspection PyProtectedMember
-from multiprocessing.connection import Connection, PipeConnection
 from threading import Timer
 from typing import Optional
 from utils.utils import *
@@ -8,12 +6,12 @@ from quart import *
 import requests
 import pytube
 import logging
-
+import asyncio
+import multiprocessing
 
 class Panel(Quart):
     def __init__(self, secret_key, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.conn: Connection | None = None
         self.secret_key = secret_key
         self.logger.handlers.clear()
         console_handler = logging.StreamHandler(sys.stdout)
@@ -25,14 +23,16 @@ class Panel(Quart):
         self.REDIRECT_URI = "http://86.196.98.254/auth/discord/callback"
         self.timers = {}
         self.guilds: dict[int, list[dict]] = {}
-        self.queue: Optional[asyncio.Queue] = None
+        self.queue: Optional[multiprocessing.Queue] = None
 
-    def set_queue(self, conn: asyncio.Queue):
-        self.queue = conn
+    def set_queue(self, queue: multiprocessing.Queue):
+        self.queue = queue
 
     async def get_from_conn(self, content: str, **kwargs):
-        await self.queue.put({"type": "get", "content": content, **kwargs})
-        return await self.queue.get()
+        data = {"type": "get", "content": content, **kwargs}
+        self.queue.put(data)
+        print(f"Getting {data} from conn")
+        return self.queue.get()
 
 
 app = Panel("121515145141464146EFG", __name__)

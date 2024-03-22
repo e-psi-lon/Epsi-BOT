@@ -3,7 +3,6 @@ import multiprocessing
 import os
 import sys
 import dependencies_check
-import threading
 import traceback
 
 from utils.info_extractor import *
@@ -18,6 +17,7 @@ from dotenv import load_dotenv
 from panel.panel import *
 import utils.config as config
 import asyncio
+import multiprocessing
 
 load_dotenv()
 
@@ -36,7 +36,7 @@ async def check_update():
         logging.info("Bot is already up to date")
 
 
-def start_app(queue: asyncio.Queue):
+def start_app(queue: multiprocessing.Queue):
     from panel.panel import app
     app.set_queue(queue)
     app.run(host="0.0.0.0")
@@ -45,41 +45,46 @@ def start_app(queue: asyncio.Queue):
 class Bot(commands.Bot):
     def __init__(self, *args, **options):
         super().__init__(*args, **options)
-        self.queue: asyncio.Queue = asyncio.Queue()
+        self.queue: multiprocessing.Queue = multiprocessing.Queue()
 
     async def on_ready(self):
         global start_time
         await self.change_presence(
             activity=discord.Activity(type=discord.ActivityType.watching, name=f"/help | {len(self.guilds)} servers"))
-        if not self.conn:
-            p = multiprocessing.Process(target=start_app, args=(self.queue,), name="Panel")
-            p.start()
-            if os.popen("git branch --show-current").read().strip() == "main":
-                check_update.start()
-            threading.Thread(target=listen_to_conn, args=(self,), name="Connection-Listener").start()
+        p = multiprocessing.Process(target=start_app, args=(self.queue,), name="Panel")
+        p.start()
+        if os.popen("git branch --show-current").read().strip() == "main":
+            check_update.start()
+        asyncio.create_task(self.listen_to_queue())
         logging.info(f"Bot ready in {datetime.datetime.now() - start_time}")
         for guild in self.guilds:
             # Si la guilde n'existe pas dans la db, on l'ajoute avec les paramètres par défaut
             if not await config.Config.config_exists(guild.id):
                 await config.Config.create_config(guild.id)
 
-    async def listen_to_conn(self):
+    async def listen_to_queue(self):
         while True:
-            message = await self.queue.get()
+            message = None
+            if self.queue.empty():
+                await asyncio.sleep(1)
+                continue
+            else:
+                message = self.queue.get()
+            logging.info(f"Got a message from the queue : {message}")
             match message.get("type"):
                 case "get":
                     match message.get("content"):
                         case "guilds":
                             logging.info("Got a request for all guilds")
-                            await self.queue.put([get_guild_info(guild) for guild in self.guilds])
+                            self.queue.put([get_guild_info(guild) for guild in self.guilds])
                         case "guild":
                             logging.info(f"Got a request for a specific guild : {message}")
                             guild = self.get_guild(message["server_id"])
-                            await self.queue.put(get_guild_info(guild))
+                            self.queue.put(get_guild_info(guild))
                         case "user":
                             logging.info(f"Got a request for a specific user : {message}")
                             user = self.get_user(message["user_id"])
-                            await self.queue.put(get_user_info(user))
+                            self.queue.put(get_user_info(user))
                         case _:
                             pass
                 case _:
