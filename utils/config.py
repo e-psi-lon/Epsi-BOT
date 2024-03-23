@@ -5,8 +5,8 @@ from pypika import Table, Query, Field
 import logging
 from enum import Enum
 
-
 logger = logging.getLogger("__main__")
+
 
 def format_name(name: str):
     """Replace |, /, backslash, <, >, :, ;, *, ?, ", and ' with a character with their unicode"""
@@ -22,6 +22,7 @@ def format_name(name: str):
         .replace('"', "u0022") \
         .replace("'", "u0027")
 
+
 def unformat_name(name: str):
     """Replace unicode characters with |, /, backslash, <, >, :, ;, *, ?, ", and '"""
     return name.replace("u01C0", "|") \
@@ -36,12 +37,14 @@ def unformat_name(name: str):
         .replace("u0022", '"') \
         .replace("u0027", "'")
 
+
 class PlaylistType(Enum):
     """
-    A class to represent the type of a playlist.
+    A class to represent the type of playlist.
     """
     USER = "User"
     SERVER = "Server"
+
 
 class JoinCondition:
     """
@@ -58,6 +61,7 @@ class JoinCondition:
     second_column : str
         The name of the column of the second table to use to join.
     """
+
     def __init__(self, first_table: str, second_table: str, first_column: str, second_column: str):
         self.first_table = first_table
         self.second_table = second_table
@@ -69,6 +73,7 @@ class DatabaseAccess:
     """
     An abstract class to access the database.
     """
+
     def __init__(self, copy: bool):
         self._copy = copy
         self._loop = asyncio.get_event_loop()
@@ -81,8 +86,10 @@ class DatabaseAccess:
         """Check if an asker exists in the database."""
         return await self._get_db('ASKER', 'asker_id', asker_id=asker_id) is not None
 
-    async def _get_db(self, table: str, *columns: str, all_results: bool = False, joins: Optional[list[JoinCondition]] = None,
-                    create_if_none: bool = False, order_by: Optional[str] = None, **where: Any) -> Optional[Union[list[tuple], tuple]]:
+    async def _get_db(self, table: str, *columns: str, all_results: bool = False,
+                      joins: Optional[list[JoinCondition]] = None,
+                      create_if_none: bool = False, order_by: Optional[str] = None, **where: Any) \
+            -> Optional[Union[list[tuple], tuple]]:
         """
         Get data from the database.
 
@@ -106,7 +113,8 @@ class DatabaseAccess:
         Returns
         -------
         Optional[Union[list[tuple], tuple]]
-            The results of the query. If all_results is True, return a list of tuples. If all_results is False, return a tuple.
+            The results of the query. If all_results is True, return a list of tuples. If all_results is False,
+             return a tuple.
         
         Raises
         ------
@@ -115,19 +123,20 @@ class DatabaseAccess:
         """
         async with aiosqlite.connect("database/database.db") as conn:
             cursor = await conn.cursor()
-            table = Table(table)
-            query = Query.from_(table)
+            new_table = Table(table)
+            query = Query.from_(new_table)
             for key, value in where.items():
                 if len(key.split('.')) > 1:
                     table_name, column = key.split('.')
                     query = query.where(getattr(Table(table_name), column) == value)
                 else:
-                    query = query.where(getattr(table, key) == value)
+                    query = query.where(getattr(new_table, key) == value)
             if joins is not None:
                 for join in joins:
                     table1 = Table(join.first_table)
                     table2 = Table(join.second_table)
-                    query = query.join(table2).on(getattr(table1, join.first_column) == getattr(table2, join.second_column))
+                    query = query.join(table2).on(
+                        getattr(table1, join.first_column) == getattr(table2, join.second_column))
             if order_by is not None:
                 if isinstance(order_by, str):
                     if len(order_by.split('.')) > 1:
@@ -153,7 +162,7 @@ class DatabaseAccess:
                         else:
                             query = query.select(Field('*', table=Table(column[0])))
                     else:
-                        query = query.select(getattr(table, column[0]))
+                        query = query.select(getattr(new_table, column[0]))
             else:
                 query = query.select("*")
             query = str(query)
@@ -205,7 +214,7 @@ class DatabaseAccess:
             await cursor.execute(query)
             await conn.commit()
 
-    async def _create_db(self, table, **columns_values) -> Optional[Union[list[tuple], tuple]]:
+    async def _create_db(self, table, **columns_values: Any) -> Optional[Union[list[tuple], tuple]]:
         """
         Create data in the database.
 
@@ -219,7 +228,8 @@ class DatabaseAccess:
         Returns
         -------
         Optional[Union[list[tuple], tuple]]
-            The results of the query. If all_results is True, return a list of tuples. If all_results is False, return a tuple.
+            The results of the query. If all_results is True,
+            return a list of tuples. If all_results is False, return a tuple.
 
         Raises
         ------
@@ -271,7 +281,8 @@ class DatabaseAccess:
             await cursor.execute(query)
             await conn.commit()
 
-    async def _custom_query(self, query: str, commit: bool = False, return_results: bool = False, return_all: bool = False):
+    async def _custom_query(self, query: str, commit: bool = False, return_results: bool = False,
+                            return_all: bool = False):
         """
         Execute a custom query which is not a simple select, update, insert, or delete query.
 
@@ -280,16 +291,18 @@ class DatabaseAccess:
         query : str
             The query to execute.
         commit : bool
-            If True, commit the changes. Default is False.
+            If True, commit the changes. Default is  False.
         return_results : bool
             If True, return the results of the query. Default is False.
-        return_all : bool
-            If True, return all the results. If False, return only the first result. Useless if return_results is False. Default is False.
+        return_all: bool
+            If True, return all the results. If False, return only the first result. Useless if return_results is False.
+            Default is False.
 
         Returns
         -------
         Any
-            The results of the query. If return_results is True, return the results of the query. If return_results is False, return None.
+            The results of the query. If return_results is True, return the results of the query.
+            If return_results is False, return None.
     
         Raises
         ------
@@ -300,7 +313,7 @@ class DatabaseAccess:
             cursor = await conn.cursor()
             logger.debug(f"Executing query: {query}")
             await cursor.execute(query)
-            if commit:
+            if not self._copy and commit:
                 await conn.commit()
             if return_results:
                 return await cursor.fetchall() if return_all else await cursor.fetchone()
@@ -308,9 +321,9 @@ class DatabaseAccess:
 
 class Asker(DatabaseAccess):
     """
-    A class to represent an user who asked for a song.
+    A class to represent a user who asked for a song.
     
-    Attributes
+    Properties
     ----------
     id : int
         The database id of the asker.
@@ -322,6 +335,7 @@ class Asker(DatabaseAccess):
     from_id(discord_id: int, is_copy: bool = False) -> Asker (classmethod)
         Get an Asker object from the database.
     """
+
     def __init__(self, copy=False):
         super().__init__(copy)
         self._id: Optional[int] = None
@@ -364,7 +378,7 @@ class Asker(DatabaseAccess):
     def discord_id(self) -> int:
         """The discord id of the asker."""
         return self._discord_id
-    
+
     def __str__(self) -> str:
         return f"Asker: {self.discord_id}"
 
@@ -373,7 +387,7 @@ class Song(DatabaseAccess):
     """
     A class to represent a song.
 
-    Attributes
+    Properties
     ----------
     id : int
         The database id of the song.
@@ -384,13 +398,14 @@ class Song(DatabaseAccess):
     url : str
         The url of the song.
     asker : Optional[Asker]
-        The user who asked for the song. May be None.
+        The user who asked for the song. Can be None.
     
     Methods
     -------
     create(name: str, url: str, asker: Asker, is_copy: bool = False) -> Song (classmethod)
         Create a Song object.
     """
+
     def __init__(self, copy=False):
         super().__init__(copy)
         self._id: Optional[int] = None
@@ -458,7 +473,7 @@ class Song(DatabaseAccess):
 
     @property
     def asker(self) -> Optional[Asker]:
-        """The user who asked for the song. May be None."""
+        """The user who asked for the song. Can be None."""
         return self._asker
 
     def __eq__(self, other) -> bool:
@@ -466,7 +481,7 @@ class Song(DatabaseAccess):
 
     def __hash__(self) -> int:
         return hash(self.id)
-    
+
     def __str__(self) -> str:
         return f"Song: {self.name} - {self.url}"
 
@@ -475,7 +490,7 @@ class Playlist(DatabaseAccess):
     """
     A class to represent a playlist.
 
-    Attributes
+    Properties
     ----------
     id : int
         The database id of the playlist.
@@ -497,6 +512,7 @@ class Playlist(DatabaseAccess):
     insert_song(song: Song, index: int) -> None
         Insert a song to the playlist at a specific index.
     """
+
     def __init__(self, copy: bool):
         super().__init__(copy)
         self._id: Optional[int] = None
@@ -534,7 +550,7 @@ class Playlist(DatabaseAccess):
         return self
 
     @classmethod
-    async def create(cls, name: str, songs: list[Song], id: int, type: PlaylistType) -> 'Playlist':
+    async def create(cls, name: str, songs: list[Song], where_id: int, playlist_type: PlaylistType) -> 'Playlist':
         """
         Create a Playlist object.
 
@@ -544,9 +560,9 @@ class Playlist(DatabaseAccess):
             The name of the playlist.
         songs : list[Song]
             The songs in the playlist.
-        id : int
+        where_id : int
             The id of the user or the server.
-        type : PlaylistType
+        playlist_type : PlaylistType
             The type of the playlist. Must be PlaylistType.USER or PlaylistType.SERVER.
         
         Returns
@@ -567,10 +583,10 @@ class Playlist(DatabaseAccess):
             self._songs.append(song)
             await self._create_db('PLAYLIST_SONG', playlist_id=self._id, song_id=song.id, asker=song.asker.id,
                                   position=len(self._songs))
-        if type == PlaylistType.USER:
-            await self._create_db('USER_PLAYLIST', user_id=id, playlist_id=self._id)
-        elif type == PlaylistType.SERVER:
-            await self._create_db('SERVER_PLAYLIST', server_id=id, playlist_id=self._id)
+        if playlist_type == PlaylistType.USER:
+            await self._create_db('USER_PLAYLIST', user_id=where_id, playlist_id=self._id)
+        elif playlist_type == PlaylistType.SERVER:
+            await self._create_db('SERVER_PLAYLIST', server_id=where_id, playlist_id=self._id)
         else:
             raise ValueError("Invalid type")
         return self
@@ -608,7 +624,7 @@ class Playlist(DatabaseAccess):
         await self._delete_db('PLAYLIST_SONG', playlist_id=self._id, song_id=song.id)
         table = Table('PLAYLIST_SONG')
         query = Query.update(table).set("position", table.position - 1).where((table.playlist_id == self._id) &
-                                                                             (table.position > index))
+                                                                              (table.position > index))
         await self._custom_query(str(query), commit=True)
 
     async def insert_song(self, song: Song, index: int):
@@ -618,7 +634,7 @@ class Playlist(DatabaseAccess):
                               position=index)
         table = Table('PLAYLIST_SONG')
         query = Query.update(table).set("position", table.position + 1).where((table.playlist_id == self._id) &
-                                                                             (table.position >= index))
+                                                                              (table.position >= index))
         await self._custom_query(str(query), commit=True)
 
     def __str__(self) -> str:
@@ -627,10 +643,10 @@ class Playlist(DatabaseAccess):
 
 class UserPlaylistAccess(DatabaseAccess):
     """
-    A class to represent the access to the playlists of an user. It has the same playlists methods as the Config class.\n
+    A class to represent the access to the playlists of a user. It has the same playlists methods as the Config class.\n
     The only difference is that the playlists are not server specific but user specific.
 
-    Attributes
+    Properties
     ----------
     user_id : int
         The id of the user.
@@ -648,6 +664,7 @@ class UserPlaylistAccess(DatabaseAccess):
     get_playlist(playlist_id) -> Playlist
         Get a playlist from the user's playlists. Search in the database again if the playlist is not in the object.
     """
+
     def __init__(self, copy: bool):
         super().__init__(copy)
         self._user_id: Optional[int] = None
@@ -672,7 +689,10 @@ class UserPlaylistAccess(DatabaseAccess):
         """
         self = cls(is_copy)
         self._user_id = user_id
-        playlists = await self._get_db('USER_PLAYLIST', 'playlist_id', all_results=True)
+        playlists = await self._get_db('PLAYLIST', 'PLAYLIST.playlist_id', all_results=True,
+                                       joins=[JoinCondition('USER_PLAYLIST', 'PLAYLIST',
+                                                            'playlist_id', 'playlist_id')],
+                                       **{"USER_PLAYLIST.user_id": user_id})
         self._playlists = {await Playlist.from_id(playlist_id, is_copy=self._copy) for playlist_id in playlists}
         return self
 
@@ -692,7 +712,6 @@ class UserPlaylistAccess(DatabaseAccess):
         await self._create_db('PLAYLIST', playlist_id=playlist.id, name=playlist.name)
         for song in playlist.songs:
             await self._create_db('PLAYLIST_SONG', playlist_id=playlist.id, song_id=song.id, asker=song.asker.id)
-        
 
     async def remove_playlist(self, playlist: Playlist):
         """Remove a playlist from the user's playlists."""
@@ -702,12 +721,13 @@ class UserPlaylistAccess(DatabaseAccess):
         await self._delete_db('USER_PLAYLIST', user_id=self.user_id, playlist_id=playlist.id)
 
     async def get_playlist(self, playlist_id):
-        """Get a playlist from the user's playlists. Search in the database again if the playlist is not in the object."""
+        """Get a playlist from the user's playlists. Search in the database again if the playlist is not in the
+        object."""
         for playlist in self._playlists:
             if playlist.id == playlist_id:
                 return playlist
         return await Playlist.from_id(playlist_id, is_copy=self._copy)
-    
+
     def __str__(self) -> str:
         return f"UserPlaylistAccess of {self.user_id}: {', '.join([str(playlist) for playlist in self.playlists])}"
 
@@ -716,7 +736,7 @@ class Config(DatabaseAccess):
     """
     A class to represent the configuration of a guild.
 
-    Attributes
+    Properties
     ----------
     guild_id : int
         The id of the guild.
@@ -760,11 +780,12 @@ class Config(DatabaseAccess):
     get_playlist(playlist_id) -> Playlist
         Get a playlist from the guild's playlists. Search in the database again if the playlist is not in the object.
     """
+
     def __init__(self, copy: bool):
         super().__init__(copy)
         self.guild_id: Optional[int] = None
         self._loop_song: Optional[bool] = None
-        self._loop_queue: Optional[bool]  = None
+        self._loop_queue: Optional[bool] = None
         self._random: Optional[bool] = None
         self._volume: Optional[int] = None
         self._position: Optional[int] = None
@@ -803,10 +824,14 @@ class Config(DatabaseAccess):
             self._position = server[5]
         songs = await self._get_db('QUEUE', 'SONG.name', 'SONG.url', 'ASKER.discord_id', all_results=True,
                                    joins=[JoinCondition('QUEUE', 'SONG', 'song_id', 'song_id'),
-                                            JoinCondition('QUEUE', 'ASKER', 'asker', 'asker_id')],
+                                          JoinCondition('QUEUE', 'ASKER', 'asker', 'asker_id')],
                                    **{"QUEUE.server_id": guild_id})
-        self._queue = [await Song.create(name, url, await Asker.from_id(asker_discord)) for name, url, asker_discord in songs]
-        playlists = await self._get_db('PLAYLIST', 'playlist_id', all_results=True)
+        self._queue = [await Song.create(name, url, await Asker.from_id(asker_discord)) for name, url, asker_discord in
+                       songs]
+        playlists = await self._get_db('PLAYLIST', 'PLAYLIST.playlist_id', all_results=True,
+                                       joins=[JoinCondition('SERVER_PLAYLIST', 'PLAYLIST',
+                                                            'playlist_id', 'playlist_id')],
+                                       **{"SERVER_PLAYLIST.server_id": guild_id})
         self._playlists = {await Playlist.from_id(playlist_id, is_copy=self._copy) for playlist_id in playlists}
         return self
 
@@ -878,7 +903,7 @@ class Config(DatabaseAccess):
     @property
     def queue(self) -> list[Song]:
         """
-        A copy of the queue to avoid modifying it outside of the class.\n
+        A copy of the queue to avoid modifying it outside the class.\n
         Use add_to_queue, remove_from_queue, insert_to_queue, edit_queue to modify the queue.
         """
         return self._queue.copy()
@@ -886,7 +911,7 @@ class Config(DatabaseAccess):
     @property
     def playlists(self) -> set[Playlist]:
         """
-        A copy of the playlists to avoid modifying it outside of the class.\n
+        A copy of the playlists to avoid modifying it outside the class.\n
         Use add_playlist, remove_playlist to modify the playlists.
         """
         return self._playlists.copy()
@@ -908,7 +933,8 @@ class Config(DatabaseAccess):
         await self._delete_db('QUEUE', song_id=song.id, server_id=self.guild_id)
         table = Table('QUEUE')
         query = Query.update(table).set("position", table.position - 1).where((table.server_id == self.guild_id) &
-                                                                             (table.position > self._queue.index(song)))
+                                                                              (table.position > self._queue.index(
+                                                                                  song)))
         await self._custom_query(str(query), commit=True)
 
     async def insert_to_queue(self, song: Song, index: int):
@@ -917,7 +943,7 @@ class Config(DatabaseAccess):
         await self._create_db('QUEUE', song_id=song.id, server_id=self.guild_id, asker=song.asker.id, position=index)
         table = Table('QUEUE')
         query = Query.update(table).set("position", table.position + 1).where((table.server_id == self.guild_id) &
-                                                                             (table.position >= index))
+                                                                              (table.position >= index))
         await self._custom_query(str(query), commit=True)
 
     async def edit_queue(self, new_queue: list[Song]):
@@ -937,13 +963,14 @@ class Config(DatabaseAccess):
         await self._delete_db('PLAYLIST_SONG', playlist_id=playlist.id)
         await self._delete_db('SERVER_PLAYLIST', server_id=self.guild_id, playlist_id=playlist.id)
 
-    async def get_playlist(self, playlist_id):
-        """Get a playlist from the guild's playlists. Search in the database again if the playlist is not in the object."""
+    async def get_playlist(self, playlist_id: int):
+        """Get a playlist from the guild's playlists. Search in the database again if the playlist is not in the
+        object."""
         for playlist in self._playlists:
             if playlist.id == playlist_id:
                 return playlist
         return await Playlist.from_id(playlist_id, is_copy=self._copy)
 
     def __str__(self) -> str:
-        return f"Config of {self.guild_id}: {self.loop_song}, {self.loop_queue}, {self.random}, {self.volume}, "\
-        f"{self.position},\n{', '.join([str(song) for song in self.queue])},\n{', '.join([str(playlist) for playlist in self.playlists])}"
+        return f"Config of {self.guild_id}: {self.loop_song}, {self.loop_queue}, {self.random}, {self.volume}, " \
+               f"{self.position},\n{', '.join([str(song) for song in self.queue])},\n{', '.join([str(playlist) for playlist in self.playlists])}"
