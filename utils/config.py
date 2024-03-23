@@ -1,9 +1,10 @@
-from typing import Optional, Union, Any
-import aiosqlite
 import asyncio
-from pypika import Table, Query, Field
 import logging
 from enum import Enum
+from typing import Optional, Union, Any
+
+import aiosqlite
+from pypika import Table, Query, Field
 
 logger = logging.getLogger("__main__")
 

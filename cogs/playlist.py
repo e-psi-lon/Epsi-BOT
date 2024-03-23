@@ -1,8 +1,10 @@
+from concurrent.futures import ThreadPoolExecutor
 from typing import Union, Optional
+
 from discord.commands import SlashCommandGroup
+
 from utils.config import Playlist, PlaylistType
 from utils.utils import *
-from concurrent.futures import ThreadPoolExecutor
 
 
 class Playlists(commands.Cog):

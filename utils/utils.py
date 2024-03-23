@@ -1,18 +1,20 @@
+import asyncio
 import io
-from enum import Enum
 import logging
-import discord
 import os
 import random
+from enum import Enum
+
+import discord
+import discord.ext.pages
 import ffmpeg
 import pydub
 import pytube
-import asyncio
-import discord.ext.pages
-from discord.ext import commands
 import requests
-from .config import Config, Song, Asker, UserPlaylistAccess, format_name
+from discord.ext import commands
 from pytube.exceptions import RegexMatchError as PytubeRegexMatchError
+
+from .config import Config, Song, Asker, UserPlaylistAccess, format_name
 
 logger = logging.getLogger("__main__")
 
@@ -341,5 +343,3 @@ class CustomFormatter(logging.Formatter):
 def get_lyrics(title):
     """Get the lyrics of a song"""
     return title
-
-

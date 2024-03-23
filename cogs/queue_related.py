@@ -1,6 +1,8 @@
-from discord.commands import SlashCommandGroup
-from utils.utils import *
 import random
+
+from discord.commands import SlashCommandGroup
+
+from utils.utils import *
 
 
 class Queue(commands.Cog):

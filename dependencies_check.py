@@ -1,6 +1,7 @@
 # noinspection PyDeprecation
-import pkg_resources
 import os
+
+import pkg_resources
 
 
 def check_version(package, version):

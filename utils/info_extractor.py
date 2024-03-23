@@ -1,6 +1,7 @@
 from discord import Guild, Member, User
 from discord.abc import GuildChannel
 
+
 def get_guild_info(guild: Guild):
     return {
         "name": guild.name,
@@ -10,6 +11,7 @@ def get_guild_info(guild: Guild):
         "channels": [get_channel_info(channel) for channel in guild.channels]
     }
 
+
 def get_member_info(member: Member):
     return {
         "name": member.name,
@@ -18,12 +20,14 @@ def get_member_info(member: Member):
         "avatar": getattr(member.avatar, "url", "")
     }
 
+
 def get_channel_info(channel: GuildChannel):
     return {
         "name": channel.name,
         "id": channel.id,
         "type": channel.type.name
     }
+
 
 def get_user_info(user: User):
     return {

@@ -1,7 +1,8 @@
-import discord
-from discord.ext import commands
-from discord.commands import SlashCommandGroup
 import re
+
+import discord
+from discord.commands import SlashCommandGroup
+from discord.ext import commands
 
 
 class Todo(commands.Cog):
@@ -146,7 +147,7 @@ class Todo(commands.Cog):
                                                fields=lines))
         line = message.embeds[0].fields[index - 1]
         embed = discord.Embed(title="Assignation d'une ligne", description=f"La ligne {line.name} a été assignée à "
-                                    f"{user.mention} dans le message {message.jump_url}")
+                                                                           f"{user.mention} dans le message {message.jump_url}")
         await ctx.respond(embed=embed, delete_after=30)
 
     @todo.command(name="tuto", description="Sends a tutorial on how to use the to-do list")

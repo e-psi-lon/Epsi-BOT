@@ -1,9 +1,9 @@
 import datetime
 import os
 import sys
-import dependencies_check
 import traceback
 
+import dependencies_check
 from utils.info_extractor import *
 
 if __name__ == "__main__":
@@ -87,7 +87,7 @@ class Bot(commands.Bot):
                             pass
                 case _:
                     pass
-    
+
     async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
         exc_type, exc_value, exc_traceback = type(error), error, error.__traceback__
         traceback_str = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
@@ -137,12 +137,9 @@ class Bot(commands.Bot):
                 f"Error in {event_method}\n Error message: {exc_value}\n Traceback: {traceback_str}\n Args: {args}"
                 f"\n Kwargs: {kwargs}")
 
-    
-
 
 bot_instance = Bot(intents=discord.Intents.all())
 bot_instance.owner_id = 708006478807695450
-
 
 
 @bot_instance.slash_command(name="send", description="Envoie un message dans un salon")

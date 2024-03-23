@@ -37,7 +37,6 @@ CREATE TABLE IF NOT EXISTS PLAYLIST (
 );
 ''')
 
-
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS QUEUE (
     server_id INTEGER,
@@ -49,7 +48,6 @@ CREATE TABLE IF NOT EXISTS QUEUE (
     FOREIGN KEY (asker) REFERENCES ASKER(asker_id)
 );
 ''')
-
 
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS PLAYLIST_SONG (
@@ -81,7 +79,6 @@ CREATE TABLE IF NOT EXISTS USER_PLAYLIST (
     FOREIGN KEY (playlist_id) REFERENCES PLAYLIST(playlist_id)
 );
 ''')
-
 
 conn.commit()
 conn.close()

@@ -1,6 +1,7 @@
-from utils.utils import *
 import pytube
 import pytube.exceptions
+
+from utils.utils import *
 
 
 class Others(commands.Cog):

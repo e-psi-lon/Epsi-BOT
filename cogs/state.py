@@ -1,10 +1,12 @@
+import asyncio
 import threading
 from datetime import datetime
-from discord.commands import SlashCommandGroup
-from utils.utils import *
+
 import pytube
+from discord.commands import SlashCommandGroup
 from pytube.exceptions import RegexMatchError as PytubeRegexMatchError
-import asyncio
+
+from utils.utils import *
 
 connections = {}
 

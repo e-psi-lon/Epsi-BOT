@@ -1,13 +1,12 @@
+import multiprocessing
 import sys
 from threading import Timer
 from typing import Optional
-from utils.utils import *
+
 from quart import *
-import requests
-import pytube
-import logging
-import asyncio
-import multiprocessing
+
+from utils.utils import *
+
 
 class Panel(Quart):
     def __init__(self, secret_key, *args, **kwargs):
@@ -40,9 +39,6 @@ class Panel(Quart):
 
 
 app = Panel("121515145141464146EFG", __name__)
-
-
-
 
 
 def to_url(url: str) -> str:
