@@ -11,9 +11,8 @@ import asyncio
 import discord.ext.pages
 from discord.ext import commands
 import requests
-from utils.config import Config, Song, Asker, UserPlaylistAccess, format_name, unformat_name
+from .config import Config, Song, Asker, UserPlaylistAccess, format_name
 from pytube.exceptions import RegexMatchError as PytubeRegexMatchError
-from queue import Queue
 
 logger = logging.getLogger("__main__")
 

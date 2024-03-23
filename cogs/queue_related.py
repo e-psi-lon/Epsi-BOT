@@ -14,10 +14,12 @@ class Queue(commands.Cog):
         if not config.queue:
             return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
         embed = discord.Embed(title="Queue",
-                                description=f"- Queue length: {len(config.queue)}\n- Current position: {config.position + 1}\n"
-                                f"- Loop song: {'`on`' if config.loop_song else '`off`'}\n- Loop queue: {'`on`' if config.loop_queue else '`off`'}"
-                                f"\n- Random: {'`on`' if config.random else '`off`'}\n- Volume: {config.volume}",
-                               color=0x00ff00)
+                              description=f"- Queue length: {len(config.queue)}\n"
+                                          f"- Current position: {config.position + 1}\n"
+                                          f"- Loop song: {'`on`' if config.loop_song else '`off`'}\n"
+                                          f"- Loop queue: {'`on`' if config.loop_queue else '`off`'}\n"
+                                          f"- Random: {'`on`' if config.random else '`off`'}\n- Volume: {config.volume}",
+                              color=0x00ff00)
         for i, song in enumerate(config.queue):
             if i == config.position:
                 embed.add_field(name=f"{i + 1}. {song.name} - __**Now Playing**__",
@@ -109,7 +111,7 @@ class Queue(commands.Cog):
         if index < 0 or index >= len(config.queue):
             return await ctx.respond(embed=discord.Embed(title="Error", description=f"Index {index} out of range.",
                                                          color=0xff0000))
-        song = config.queue[index-1]
+        song = config.queue[index - 1]
         await config.remove_from_queue(song)
         await ctx.respond(
             embed=discord.Embed(title="Remove", description=f"Removed {song.name} from the queue.", color=0x00ff00))
