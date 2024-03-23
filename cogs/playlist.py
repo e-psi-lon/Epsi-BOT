@@ -1,9 +1,5 @@
-from queue import Queue
 from typing import Union, Optional
-
 from discord.commands import SlashCommandGroup
-from pytube.exceptions import RegexMatchError as PytubeRegexMatchError
-
 from utils.config import Playlist, PlaylistType
 from utils.utils import *
 from concurrent.futures import ThreadPoolExecutor
@@ -33,8 +29,8 @@ class Playlists(commands.Cog):
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description="A playlist with this name already exists.",
                                     color=0xff0000))
-        playlist = await Playlist.create(name, config.queue, 
-                                         ctx.guild.id if playlist_type == "server" else ctx.user.id, 
+        playlist = await Playlist.create(name, config.queue,
+                                         ctx.guild.id if playlist_type == "server" else ctx.user.id,
                                          PlaylistType.SERVER if playlist_type == "server" else PlaylistType.USER)
         await config.add_playlist(playlist)
         await ctx.respond(
@@ -60,12 +56,13 @@ class Playlists(commands.Cog):
                     embed=discord.Embed(title="Error", description="A playlist with this name already exists.",
                                         color=0xff0000))
             playlist = await Playlist.create(name,
-                                            [await 
-                                                Song.create(video.title, video.watch_url, 
-                                                        await Asker.from_id(ctx.user.id)) for video in playlist.videos], 
-                                                ctx.guild.id if playlist_type == "server" else ctx.user.id,
-                                                PlaylistType.SERVER if playlist_type == "server" else PlaylistType.USER
-                                            )
+                                             [await
+                                              Song.create(video.title, video.watch_url,
+                                                          await Asker.from_id(ctx.user.id)) for video in
+                                              playlist.videos],
+                                             ctx.guild.id if playlist_type == "server" else ctx.user.id,
+                                             PlaylistType.SERVER if playlist_type == "server" else PlaylistType.USER
+                                             )
             await config.add_playlist(playlist)
             await ctx.respond(
                 embed=discord.Embed(title="Playlist", description=f"Playlist {name} created.", color=0x00ff00))
@@ -109,7 +106,7 @@ class Playlists(commands.Cog):
                                        autocomplete=discord.utils.basic_autocomplete(get_playlists)),
                   query: discord.Option(str, "The YouTube video to add to the playlist", required=True)):
         await ctx.response.defer()
-        config, name = await get_config(ctx, name)
+        config, name = await self.get_config(ctx, name)
         if config is None:
             return
         try:
@@ -136,7 +133,7 @@ class Playlists(commands.Cog):
                      song: discord.Option(str, "The name of the song", required=True,
                                           autocomplete=discord.utils.basic_autocomplete(get_playlists_songs))):
         await ctx.response.defer()
-        config, name = await get_config(ctx, name)
+        config, name = await self.get_config(ctx, name)
         if config is None:
             return
         if song not in [songs.name for songs in
@@ -172,14 +169,15 @@ class Playlists(commands.Cog):
 
         await config.edit_queue(playlist[0].songs)
         config.position = 0
-        # On utilise threadPoolExecutor pour télécharger les vidéos en parallèle
-        pool = ThreadPoolExecutor(max_workers=len(config.queue))
+        pool = ThreadPoolExecutor()
         for song in config.queue:
             video = pytube.YouTube(song.url)
             if video.age_restricted:
                 await ctx.respond(embed=discord.Embed(title="Error",
                                                       description=f"The [video]({song.url}) is age restricted",
                                                       color=0xff0000))
+                config.queue.remove(song)
+                await (await config.get_playlist(playlist[0].id)).remove_song(song)
                 continue
             if video.length > 12000:
                 await ctx.respond(embed=discord.Embed(title="Error",
@@ -222,7 +220,7 @@ class Playlists(commands.Cog):
                    name: discord.Option(str, "The name of the playlist", required=True,
                                         autocomplete=discord.utils.basic_autocomplete(get_playlists))):
         await ctx.response.defer()
-        config, name = await get_config(ctx, name)
+        config, name = await self.get_config(ctx, name)
         if config is None:
             return
         embed = discord.Embed(title=name, color=0x00ff00)
@@ -241,7 +239,7 @@ class Playlists(commands.Cog):
         await ctx.response.defer()
         if len(new_name) > 20:
             return await ctx.respond(embed=EMBED_ERROR_NAME_TOO_LONG)
-        config, name = await get_config(ctx, name)
+        config, name = await self.get_config(ctx, name)
         if config is None:
             return
         if name not in [playlist.name for playlist in config.playlists]:
@@ -254,37 +252,38 @@ class Playlists(commands.Cog):
                                     color=0xff0000))
         new_playlist = await Playlist.create(new_name,
                                              [playlist for playlist in config.playlists if playlist.name == name][
-                                                 0].songs, ctx.guild.id if isinstance(config, Config) else ctx.user.id, PlaylistType.SERVER if isinstance(config, Config) else PlaylistType.USER)
+                                                 0].songs, ctx.guild.id if isinstance(config, Config) else ctx.user.id,
+                                             PlaylistType.SERVER if isinstance(config, Config) else PlaylistType.USER)
         await config.remove_playlist([playlist for playlist in config.playlists if playlist.name == name][0])
         await config.add_playlist(new_playlist)
         await ctx.respond(embed=discord.Embed(title="Playlist", description=f"Playlist {name} renamed to {new_name}.",
                                               color=0x00ff00))
 
+    @staticmethod
+    async def get_config(ctx: discord.ApplicationContext, playlist_name: str) -> \
+            Optional[tuple[Union[Config, UserPlaylistAccess], str]]:
+        if playlist_name.endswith(" - SERVER"):
+            config = await Config.get_config(ctx.guild.id, False)
+            playlist_name = playlist_name[:-8]
+        elif playlist_name.endswith(" - USER"):
+            config = await UserPlaylistAccess.from_id(ctx.user.id)
+            playlist_name = playlist_name[:-6]
+        else:
+            config = await Config.get_config(ctx.guild.id, False)
+            user_config = await UserPlaylistAccess.from_id(ctx.user.id)
+            await ctx.respond(embed=EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
+                              .add_field(name="Existing server playlists:",
+                                         value="\n".join([playlist.name for playlist in config.playlists]))
+                              .add_field(name="Existing user playlists:",
+                                         value="\n".join([playlist.name for playlist in user_config.playlists])))
+            return None
+        if playlist_name not in [playlist.name for playlist in config.playlists]:
+            await ctx.respond(embed=EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
+                              .add_field(name="Existing playlists:",
+                                         value="\n".join([playlist.name for playlist in config.playlists])))
+            return None
+        return config, playlist_name
 
-async def get_config(ctx: discord.ApplicationContext, playlist_name: str) ->\
-        Optional[tuple[Union[Config, UserPlaylistAccess], str]]:
-    if playlist_name.endswith(" - SERVER"):
-        config = await Config.get_config(ctx.guild.id, False)
-        playlist_name = playlist_name[:-8]
-        return config, playlist_name
-    elif playlist_name.endswith(" - USER"):
-        config = await UserPlaylistAccess.from_id(ctx.user.id)
-        playlist_name = playlist_name[:-6]
-        return config, playlist_name
-    else:
-        config = await Config.get_config(ctx.guild.id, False)
-        user_config = await UserPlaylistAccess.from_id(ctx.user.id)
-        await ctx.respond(embed=EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
-                          .add_field(name="Existing server playlists:",
-                                     value="\n".join([playlist.name for playlist in config.playlists]))
-                          .add_field(name="Existing user playlists:",
-                                     value="\n".join([playlist.name for playlist in user_config.playlists])))
-        return None
-    if playlist_name not in [playlist.name for playlist in config.playlists]:
-        await ctx.respond(embed=EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
-                          .add_field(name="Existing playlists:",
-                                     value="\n".join([playlist.name for playlist in config.playlists])))
-        return None
 
 def setup(bot):
     bot.add_cog(Playlists(bot))

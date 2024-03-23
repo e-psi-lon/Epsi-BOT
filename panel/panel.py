@@ -32,6 +32,10 @@ class Panel(Quart):
         data = {"type": "get", "content": content, **kwargs}
         self.queue.put(data)
         print(f"Getting {data} from conn")
+        while self.queue.qsize() == 1:
+            continue
+        while self.queue.empty():
+            continue
         return self.queue.get()
 
 

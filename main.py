@@ -1,5 +1,4 @@
 import datetime
-import multiprocessing
 import os
 import sys
 import dependencies_check
@@ -55,7 +54,7 @@ class Bot(commands.Bot):
         p.start()
         if os.popen("git branch --show-current").read().strip() == "main":
             check_update.start()
-        asyncio.create_task(self.listen_to_queue())
+        await asyncio.create_task(self.listen_to_queue())
         logging.info(f"Bot ready in {datetime.datetime.now() - start_time}")
         for guild in self.guilds:
             # Si la guilde n'existe pas dans la db, on l'ajoute avec les paramètres par défaut
@@ -64,7 +63,6 @@ class Bot(commands.Bot):
 
     async def listen_to_queue(self):
         while True:
-            message = None
             if self.queue.empty():
                 await asyncio.sleep(1)
                 continue
@@ -104,7 +102,7 @@ class Bot(commands.Bot):
         try:
             await ctx.respond(embed=embed, ephemeral=True)
         except Exception:
-            await ctx.channel.send("Ce message se supprimera d'ici 60s", embed=embed, delete_after=60)
+            await ctx.channel.send("Ce message se supprimera d'ici 20s", embed=embed, delete_after=20)
 
     async def on_error(self, event_method: str, *args, **kwargs) -> None:
         context = None
@@ -133,7 +131,7 @@ class Bot(commands.Bot):
             try:
                 await context.respond(embed=embed, ephemeral=True)
             except Exception:
-                await context.send("Ce message se supprimera d'ici 60s", embed=embed, delete_after=60)
+                await context.send("Ce message se supprimera d'ici 20s", embed=embed, delete_after=20)
         else:
             logging.error(
                 f"Error in {event_method}\n Error message: {exc_value}\n Traceback: {traceback_str}\n Args: {args}"
