@@ -41,7 +41,7 @@ def download(url: str, file_format: str = "mp3", download_logger=logger):
             f"(video id: {video_id})")
         return f"cache/{format_name(stream.title)}.{file_format}"
     stream = stream.streams.filter(only_audio=True).first()
-    stream.download(filename=f"cache\{format_name(stream.title)}.{file_format}")
+    stream.download(filename=f"cache\\{format_name(stream.title)}.{file_format}")
     download_logger.info(f"Downloaded {stream.title} to cache/{format_name(stream.title)}.{file_format}"
                          f" (video id: {video_id})")
     return f"cache/{format_name(stream.title)}.{file_format}"
@@ -63,9 +63,10 @@ async def finished_record_callback(sink, channel: discord.TextChannel):
     for user_id in sink.audio_data.keys():
         mention_strs.append(f"<@{user_id}>")
     message = await channel.send(
-        f"## Recorded {', '.join(mention_strs)}\nProcessing audio" if len(
-            mention_strs) > 1 else f"Recorded {mention_strs[0]}\nProcessing audio" if len(
-            mention_strs) == 1 else "Recorded no one")
+        f"## Recorded {', '.join(mention_strs)}\nProcessing audio" if
+        len(mention_strs) > 1 else f"Recorded {mention_strs[0]}\nProcessing audio" if
+        len(mention_strs) == 1 else "Recorded no one"
+    )
 
     for user_id, audio in sink.audio_data.items():
         seg = pydub.AudioSegment.from_file(audio.file, format=sink.encoding)

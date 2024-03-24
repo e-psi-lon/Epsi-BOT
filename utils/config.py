@@ -383,6 +383,9 @@ class Asker(DatabaseAccess):
     def __str__(self) -> str:
         return f"Asker: {self.discord_id}"
 
+    def __repr__(self) -> str:
+        return f"Asker(discord_id={self.discord_id})"
+
 
 class Song(DatabaseAccess):
     """
@@ -486,6 +489,9 @@ class Song(DatabaseAccess):
     def __str__(self) -> str:
         return f"Song: {self.name} - {self.url}"
 
+    def __repr__(self) -> str:
+        return f"Song(name={self.name}, url={self.url})"
+
 
 class Playlist(DatabaseAccess):
     """
@@ -547,7 +553,7 @@ class Playlist(DatabaseAccess):
                                           JoinCondition('PLAYLIST_SONG', 'ASKER', 'asker', 'asker_id')],
                                    order_by="PLAYLIST_SONG.position", **{"PLAYLIST_SONG.playlist_id": playlist_id})
 
-        self._songs = [await Song.create(name, url, asker) for name, url, asker in songs]
+        self._songs = [await Song.create(name, url, await Asker.from_id(asker)) for name, url, asker in songs]
         return self
 
     @classmethod
@@ -641,6 +647,9 @@ class Playlist(DatabaseAccess):
     def __str__(self) -> str:
         return f"Playlist {self.name}: {', '.join([str(song) for song in self.songs])}"
 
+    def __repr__(self) -> str:
+        return f"Playlist(name={self.name}, songs={self.songs})"
+
 
 class UserPlaylistAccess(DatabaseAccess):
     """
@@ -691,7 +700,7 @@ class UserPlaylistAccess(DatabaseAccess):
         self = cls(is_copy)
         self._user_id = user_id
         playlists = await self._get_db('PLAYLIST', 'PLAYLIST.playlist_id', all_results=True,
-                                       joins=[JoinCondition('USER_PLAYLIST', 'PLAYLIST',
+                                       joins=[JoinCondition('PLAYLIST', 'USER_PLAYLIST',
                                                             'playlist_id', 'playlist_id')],
                                        **{"USER_PLAYLIST.user_id": user_id})
         self._playlists = {await Playlist.from_id(playlist_id, is_copy=self._copy) for playlist_id in playlists}
@@ -827,10 +836,10 @@ class Config(DatabaseAccess):
                                    joins=[JoinCondition('QUEUE', 'SONG', 'song_id', 'song_id'),
                                           JoinCondition('QUEUE', 'ASKER', 'asker', 'asker_id')],
                                    **{"QUEUE.server_id": guild_id})
-        self._queue = [await Song.create(name, url, await Asker.from_id(asker_discord)) for name, url, asker_discord in
+        self._queue = [await Song.create(name, url, await Asker.from_id(asker)) for name, url, asker in
                        songs]
         playlists = await self._get_db('PLAYLIST', 'PLAYLIST.playlist_id', all_results=True,
-                                       joins=[JoinCondition('SERVER_PLAYLIST', 'PLAYLIST',
+                                       joins=[JoinCondition('PLAYLIST', 'SERVER_PLAYLIST',
                                                             'playlist_id', 'playlist_id')],
                                        **{"SERVER_PLAYLIST.server_id": guild_id})
         self._playlists = {await Playlist.from_id(playlist_id, is_copy=self._copy) for playlist_id in playlists}
@@ -975,3 +984,8 @@ class Config(DatabaseAccess):
     def __str__(self) -> str:
         return f"Config of {self.guild_id}: {self.loop_song}, {self.loop_queue}, {self.random}, {self.volume}, " \
                f"{self.position},\n{', '.join([str(song) for song in self.queue])},\n{', '.join([str(playlist) for playlist in self.playlists])}"
+
+    def __repr__(self) -> str:
+        return f"Config(guild_id={self.guild_id}, loop_song={self.loop_song}, loop_queue={self.loop_queue}, " \
+               f"random={self.random}, volume={self.volume}, position={self.position}, queue={self.queue}, " \
+               f"playlists={self.playlists})"
