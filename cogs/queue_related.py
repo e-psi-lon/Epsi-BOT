@@ -1,5 +1,3 @@
-import random
-
 from discord.commands import SlashCommandGroup
 
 from utils.utils import *

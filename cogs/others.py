@@ -1,4 +1,3 @@
-import pytube
 import pytube.exceptions
 
 from utils.utils import *

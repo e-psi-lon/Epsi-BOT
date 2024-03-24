@@ -4,19 +4,19 @@ import sys
 import traceback
 
 import dependencies_check
-from utils.info_extractor import *
+from utils import CustomFormatter, get_guild_info, get_user_info
 
 if __name__ == "__main__":
     if len(list(dependencies_check.check_libs())) > 0 and list(dependencies_check.check_libs())[0][0] != "pynacl":
         dependencies_check.update_libs([lib for lib, _, _ in dependencies_check.check_libs()])
         os.execl(sys.executable, sys.executable, *sys.argv)
 import discord.utils
-from discord.ext import tasks
+from discord.ext import tasks, commands
 from dotenv import load_dotenv
-from panel.panel import *
 import utils.config as config
 import asyncio
 import multiprocessing
+import logging
 
 load_dotenv()
 
@@ -54,7 +54,7 @@ class Bot(commands.Bot):
         p.start()
         if os.popen("git branch --show-current").read().strip() == "main":
             check_update.start()
-        await asyncio.create_task(self.listen_to_queue())
+
         logging.info(f"Bot ready in {datetime.datetime.now() - start_time}")
         for guild in self.guilds:
             # Si la guilde n'existe pas dans la db, on l'ajoute avec les paramètres par défaut
@@ -64,7 +64,6 @@ class Bot(commands.Bot):
     async def listen_to_queue(self):
         while True:
             if self.queue.empty():
-                await asyncio.sleep(1)
                 continue
             else:
                 message = self.queue.get()
@@ -75,14 +74,17 @@ class Bot(commands.Bot):
                         case "guilds":
                             logging.info("Got a request for all guilds")
                             self.queue.put([get_guild_info(guild) for guild in self.guilds])
+                            await asyncio.sleep(0.1)
                         case "guild":
                             logging.info(f"Got a request for a specific guild : {message}")
                             guild = self.get_guild(message["server_id"])
                             self.queue.put(get_guild_info(guild))
+                            await asyncio.sleep(0.1)
                         case "user":
                             logging.info(f"Got a request for a specific user : {message}")
                             user = self.get_user(message["user_id"])
                             self.queue.put(get_user_info(user))
+                            await asyncio.sleep(0.1)
                         case _:
                             pass
                 case _:
@@ -179,7 +181,8 @@ def start(instance: Bot):
     os.system("cls" if os.name == "nt" else "clear")
     logging.info(
         f"Script started at {start_time.strftime('%d/%m/%Y %H:%M:%S')} "
-        f"using python executable {sys.executable}")
+        f"using python executable {sys.executable}"
+    )
     if len(list(dependencies_check.check_updates())) > 0:
         dependencies_check.update_requirements()
         logging.info("Requirements updated")
