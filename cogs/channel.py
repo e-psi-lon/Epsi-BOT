@@ -44,10 +44,10 @@ class Channel(commands.Cog):
                 pool = ThreadPoolExecutor()
                 for song in config.queue[1:]:
                     pool.submit(self._check_video_length, song, ctx)
-                pool.shutdown()
+                pool.shutdown(False)
 
     @staticmethod
-    def _check_video_length(song, ctx):
+    def _check_video_length(song: Song, ctx: discord.ApplicationContext):
         try:
             if pytube.YouTube(song.url).length > 12000:
                 asyncio.run_coroutine_threadsafe(
