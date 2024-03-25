@@ -17,9 +17,9 @@ class Playlists(commands.Cog):
 
     @create.command(name="from-queue", description="Creates a playlist from the queue")
     async def create_from_queue(self, ctx: discord.ApplicationContext,
-                                name: discord.Option(str, "The name of the playlist", required=True),
+                                name: discord.Option(str, "The name of the playlist", required=True), # type: ignore
                                 playlist_type: discord.Option(str, "The type of the playlist", required=False,
-                                                              choices=["server", "user"], default="server")):
+                                                              choices=["server", "user"], default="server")): # type: ignore
         await ctx.response.defer()
         if len(name) > 20:
             return await ctx.respond(embed=EMBED_ERROR_NAME_TOO_LONG)
@@ -40,10 +40,10 @@ class Playlists(commands.Cog):
 
     @create.command(name="from-youtube", description="Creates a playlist from a youtube playlist")
     async def create_from_youtube(self, ctx: discord.ApplicationContext,
-                                  url: discord.Option(str, "The url of the playlist", required=True),
-                                  name: discord.Option(str, "The name of the playlist", required=False),
+                                  url: discord.Option(str, "The url of the playlist", required=True), # type: ignore
+                                  name: discord.Option(str, "The name of the playlist", required=False), # type: ignore
                                   playlist_type: discord.Option(str, "The type of the playlist", required=False,
-                                                                choices=["server", "user"], default="server")):
+                                                                choices=["server", "user"], default="server")): # type: ignore
         await ctx.response.defer()
         try:
             playlist = pytube.Playlist(url)
@@ -76,7 +76,7 @@ class Playlists(commands.Cog):
     @playlist.command(name="delete", description="Deletes a playlist")
     async def delete(self, ctx: discord.ApplicationContext,
                      name: discord.Option(str, "The name of the playlist", required=True,
-                                          autocomplete=discord.utils.basic_autocomplete(get_playlists))):
+                                          autocomplete=discord.utils.basic_autocomplete(get_playlists))): # type: ignore
         await ctx.response.defer()
         config: Union[Config, UserPlaylistAccess]
         if name.endswith(" - SERVER"):
@@ -105,8 +105,8 @@ class Playlists(commands.Cog):
     @playlist.command(name="add", description="Adds a song to a playlist")
     async def add(self, ctx: discord.ApplicationContext,
                   name: discord.Option(str, "The name of the playlist", required=True,
-                                       autocomplete=discord.utils.basic_autocomplete(get_playlists)),
-                  query: discord.Option(str, "The YouTube video to add to the playlist", required=True)):
+                                       autocomplete=discord.utils.basic_autocomplete(get_playlists)), # type: ignore
+                  query: discord.Option(str, "The YouTube video to add to the playlist", required=True)): # type: ignore
         await ctx.response.defer()
         config, name = await self.get_config(ctx, name)
         if config is None:
@@ -130,10 +130,10 @@ class Playlists(commands.Cog):
 
     @playlist.command(name="remove", description="Removes a song from a playlist")
     async def remove(self, ctx: discord.ApplicationContext,
-                     name: discord.Option(str, "The name of the playlist", required=True,
-                                          autocomplete=discord.utils.basic_autocomplete(get_playlists)),
+                     name: discord.Option(str, "The name of the playlist", required=True, 
+                                          autocomplete=discord.utils.basic_autocomplete(get_playlists)), # type: ignore 
                      song: discord.Option(str, "The name of the song", required=True,
-                                          autocomplete=discord.utils.basic_autocomplete(get_playlists_songs))):
+                                          autocomplete=discord.utils.basic_autocomplete(get_playlists_songs))): # type: ignore
         await ctx.response.defer()
         config, name = await self.get_config(ctx, name)
         if config is None:
@@ -152,7 +152,7 @@ class Playlists(commands.Cog):
     @playlist.command(name="play", description="Plays a playlist")
     async def play(self, ctx: discord.ApplicationContext,
                    name: discord.Option(str, "The name of the playlist", required=True,
-                                        autocomplete=discord.utils.basic_autocomplete(get_playlists))):
+                                        autocomplete=discord.utils.basic_autocomplete(get_playlists))): # type: ignore
         await ctx.response.defer()
         config = await Config.get_config(ctx.guild.id, False)
         user_playlist = await UserPlaylistAccess.from_id(ctx.user.id)
@@ -206,7 +206,7 @@ class Playlists(commands.Cog):
     @playlist.command(name="list", description="Lists all the playlists")
     async def list_playlist(self, ctx: discord.ApplicationContext,
                             playlist_type: discord.Option(str, "The type of the playlist", required=False,
-                                                          choices=["server", "user"], default="server")):
+                                                          choices=["server", "user"], default="server")): # type: ignore
         await ctx.response.defer()
         playlists = (await Config.get_config(ctx.guild.id, True) if playlist_type == "server" else
                      await UserPlaylistAccess.from_id(ctx.user.id)).playlists
@@ -223,7 +223,7 @@ class Playlists(commands.Cog):
     @playlist.command(name="show", description="Shows a playlist")
     async def show(self, ctx: discord.ApplicationContext,
                    name: discord.Option(str, "The name of the playlist", required=True,
-                                        autocomplete=discord.utils.basic_autocomplete(get_playlists))):
+                                        autocomplete=discord.utils.basic_autocomplete(get_playlists))): # type: ignore
         await ctx.response.defer()
         config, name = await self.get_config(ctx, name)
         if config is None:
@@ -239,8 +239,8 @@ class Playlists(commands.Cog):
     @playlist.command(name="rename", description="Renames a playlist")
     async def rename(self, ctx: discord.ApplicationContext,
                      name: discord.Option(str, "The name of the playlist", required=True,
-                                          autocomplete=discord.utils.basic_autocomplete(get_playlists)),
-                     new_name: discord.Option(str, "The new name of the playlist", required=True)):
+                                          autocomplete=discord.utils.basic_autocomplete(get_playlists)), # type: ignore
+                     new_name: discord.Option(str, "The new name of the playlist", required=True)): # type: ignore
         await ctx.response.defer()
         if len(new_name) > 20:
             return await ctx.respond(embed=EMBED_ERROR_NAME_TOO_LONG)

@@ -4,7 +4,7 @@
 
 Tout est dans une base de données sqlite3, dans le fichier [`database/database.db`](database/database.db) (non présent
 sur le repo, mais créé automatiquement s'il n'existe pas).
-Il y a 7 tables :
+Il y a 8 tables :
 
 - `SERVER` qui contient les infos des guilds et qui se présente sous la forme suivante :
 

@@ -30,7 +30,7 @@ class Admin(commands.Cog):
     @commands.slash_command(name="clean", description="Cleans the bot's messages", guild_ids=[761485410596552736])
     async def clean(self, ctx: discord.ApplicationContext,
                     count: discord.Option(int, description="The number of messages to delete", required=False,
-                                          default=1)):
+                                          default=1)): # type: ignore
         global removed_count
         await ctx.response.defer()
         if ctx.author.id != OWNER_ID:

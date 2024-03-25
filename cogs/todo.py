@@ -13,9 +13,9 @@ class Todo(commands.Cog):
                              guild_ids=[761485410596552736])
 
     @todo.command(name="add_line", description="Adds a line to the message")
-    async def add_line(self, ctx: discord.ApplicationContext, line: discord.Option(str,
-                                                                                   "The line to add", required=True),
-                       index: discord.Option(int, "The index of the line to add", required=False, default=None)):
+    async def add_line(self, ctx: discord.ApplicationContext, 
+                       line: discord.Option(str, "The line to add", required=True), # type: ignore
+                       index: discord.Option(int, "The index of the line to add", required=False, default=None)): # type: ignore
         await ctx.response.defer()
         if ctx.channel.id != 1128286383161745479:
             embed = discord.Embed(title="Ajout d'une ligne", description="Cette commande ne peut être utilisée que dans"
@@ -38,8 +38,8 @@ class Todo(commands.Cog):
         await ctx.respond(embed=embed, delete_after=30)
 
     @todo.command(name="remove_line", description="Removes a line from the message")
-    async def remove_line(self, ctx: discord.ApplicationContext, index: discord.Option(int, "The index of the line to "
-                                                                                            "remove", required=True)):
+    async def remove_line(self, ctx: discord.ApplicationContext, 
+                          index: discord.Option(int, "The index of the line to remove", required=True)): # type: ignore
         await ctx.response.defer()
         if ctx.channel.id != 1128286383161745479:
             embed = discord.Embed(title="Suppression d'une ligne",
@@ -62,8 +62,8 @@ class Todo(commands.Cog):
     @todo.command(name="edit_line", description="Edits a line from the message")
     async def edit_line(self, ctx: discord.ApplicationContext, index: discord.Option(int,
                                                                                      "The index of the line to edit",
-                                                                                     required=True),
-                        line: discord.Option(str, "The new line", required=True)):
+                                                                                     required=True), # type: ignore
+                        line: discord.Option(str, "The new line", required=True)): # type: ignore
         await ctx.response.defer()
         if ctx.channel.id != 1128286383161745479:
             embed = discord.Embed(title="Modification d'une ligne", description="Cette commande ne peut être utilisée "
@@ -88,9 +88,9 @@ class Todo(commands.Cog):
 
     @todo.command(name="assign", description="Assigns a task to a user")
     async def assign(self, ctx: discord.ApplicationContext,
-                     index: discord.Option(int, "The index of the line to assign", required=True),
+                     index: discord.Option(int, "The index of the line to assign", required=True), # type: ignore
                      user: discord.Option(
-                         discord.User, "The user to assign the task to", required=True)
+                         discord.User, "The user to assign the task to", required=True) # type: ignore
                      ):
         await ctx.response.defer()
         if ctx.channel.id != 1128286383161745479:

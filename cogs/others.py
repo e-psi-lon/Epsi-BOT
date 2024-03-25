@@ -11,7 +11,7 @@ class Others(commands.Cog):
     # choices est une liste de formats audio uniquement (pas vidéo)
     async def download(self, ctx, query, file_format: discord.Option(str, description="The file_format of the file",
                                                                      choices=["mp3", "ogg"], required=False,
-                                                                     default="ogg")):
+                                                                     default="ogg")): # type: ignore
         await ctx.response.defer()
         try:
             video = pytube.YouTube(query)
