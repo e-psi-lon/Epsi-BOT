@@ -5,9 +5,11 @@ from .config import (Config,
                      Asker,
                      PlaylistType
                      )
-from .info_extractor import (get_member_info,
-                             get_channel_info,
-                             get_user_info,
-                             get_guild_info
+from .panel import (MemberData,
+                             ChannelData,
+                             UserData,
+                             GuildData,
+                             PanelToBotRequest,
+                             RequestType
                              )
 from .utils import *

@@ -6,6 +6,7 @@ from typing import Optional
 from quart import *
 
 from utils.utils import *
+from utils import PanelToBotRequest, GuildData, UserData, RequestType
 
 
 class Panel(Quart):
@@ -21,21 +22,28 @@ class Panel(Quart):
         self.CLIENT_SECRET = "kH848ueQ4RGF3cKBNRJ1W1bFHI0b9bfo"
         self.REDIRECT_URI = "http://86.196.98.254/auth/discord/callback"
         self.timers = {}
-        self.guilds: dict[int, list[dict]] = {}
-        self.queue: Optional[multiprocessing.Queue] = None
+        self.guilds: dict[int, list[GuildData]] = {}
+        self.queue: Optional[multiprocessing.Queue[PanelToBotRequest | GuildData | UserData | list[GuildData]]] = None
 
     def set_queue(self, queue: multiprocessing.Queue):
         self.queue = queue
 
-    async def get_from_conn(self, content: str, **kwargs):
-        data = {"type": "get", "content": content, **kwargs}
+    async def get_from_conn(self, content: str, **kwargs) -> GuildData | UserData | list[GuildData]:
+        data = PanelToBotRequest(RequestType.GET, content, **kwargs)
         self.queue.put(data)
         print(f"Getting {data} from conn")
+        response = None
         while self.queue.qsize() == 1:
             continue
         while self.queue.empty():
             continue
-        return self.queue.get()
+        response = self.queue.get()
+        return response
+    
+    async def post_to_conn(self, data: dict):
+        request = PanelToBotRequest(RequestType.POST, data)
+        self.queue.put(request)
+        self.logger.info(f"Posting {request} to conn")
 
 
 app = Panel("121515145141464146EFG", __name__)
@@ -75,18 +83,20 @@ async def panel():
         if user['avatar']:
             user['avatar_url'] = f"https://cdn.discordapp.com/avatars/{user['id']}/{user['avatar']}.png"
         if user['id'] == '708006478807695450':
-            app.guilds[session['user_id']] = app.conn
+            app.guilds[session['user_id']] = await (app.get_from_conn("guilds")).__getstate__()
         else:
-            app.guilds[session['user_id']] = [guild for guild in str(await app.get_from_conn("guilds")) if
-                                              session["user_id"] in [str(member["id"]) for member in guild["members"]]]
+            guilds: list[GuildData] = await app.get_from_conn("guilds")
+            app.guilds[session['user_id']] = [guild for guild in guilds if
+                                              session["user_id"] in [str(member.id) for member in guild.members]]
         session['user'] = user
     if app.guilds.get(session["user_id"], None) is None:
         if session['user']['id'] == '708006478807695450':
-            app.guilds[session['user_id']] = await app.get_from_conn("guilds")
+            app.guilds[session['user_id']] = (await app.get_from_conn("guilds")).__getstate__()
         else:
-            app.guilds[session['user_id']] = [guild for guild in await app.get_from_conn("guilds") if
-                                              str(session["user_id"]) in [str(member["id"]) for member in
-                                                                          guild["members"]]]
+            guilds: list[GuildData] = await app.get_from_conn("guilds")
+            app.guilds[session['user_id']] = [guild for guild in guilds if
+                                              str(session["user_id"]) in [str(member.id) for member in
+                                                                          guild.members]]
     return await render_template('panel.html', servers=app.guilds[session['user_id']], user=session['user'])
 
 
@@ -114,7 +124,7 @@ async def server(server_id):
         return redirect(url_for('server', server_id=server_id))
     server_data = {"loop_song": config.loop_song, "loop_queue": config.loop_queue, "random": config.random,
                    "position": config.position, "queue": config.queue, "id": server_id,
-                   "name": await app.get_from_conn("guild", server_id=server_id)["name"]}
+                   "name": (await app.get_from_conn("guild", server_id=server_id)).name}
     return await render_template('server.html', server=server_data, app=app, pytube=pytube)
 
 

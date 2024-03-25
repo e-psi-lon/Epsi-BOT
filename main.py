@@ -4,7 +4,7 @@ import sys
 import traceback
 
 import dependencies_check
-from utils import CustomFormatter, get_guild_info, get_user_info
+from utils import CustomFormatter, GuildData, UserData, PanelToBotRequest, RequestType
 
 if __name__ == "__main__":
     if len(list(dependencies_check.check_libs())) > 0 and list(dependencies_check.check_libs())[0][0] != "pynacl":
@@ -15,8 +15,9 @@ from discord.ext import tasks, commands
 from dotenv import load_dotenv
 import utils.config as config
 import asyncio
-import multiprocessing
+from multiprocessing import Queue as mpQueue
 import logging
+from aiomultiprocess import Process
 
 load_dotenv()
 
@@ -35,26 +36,28 @@ async def check_update():
         logging.info("Bot is already up to date")
 
 
-def start_app(queue: multiprocessing.Queue):
+async def start_app(queue: mpQueue):
     from panel.panel import app
     app.set_queue(queue)
-    app.run(host="0.0.0.0")
+    await app.run_task(host="0.0.0.0", debug=False)
+    
+    
 
 
 class Bot(commands.Bot):
     def __init__(self, *args, **options):
         super().__init__(*args, **options)
-        self.queue: multiprocessing.Queue = multiprocessing.Queue()
+        self.queue: mpQueue[PanelToBotRequest | GuildData | UserData | list[GuildData]] = mpQueue()
 
     async def on_ready(self):
         global start_time
         await self.change_presence(
             activity=discord.Activity(type=discord.ActivityType.watching, name=f"/help | {len(self.guilds)} servers"))
-        p = multiprocessing.Process(target=start_app, args=(self.queue,), name="Panel")
+        p = Process(target=start_app, args=(self.queue,), name="Panel")
         p.start()
         if os.popen("git branch --show-current").read().strip() == "main":
             check_update.start()
-
+        asyncio.create_task(self.listen_to_queue())
         logging.info(f"Bot ready in {datetime.datetime.now() - start_time}")
         for guild in self.guilds:
             # Si la guilde n'existe pas dans la db, on l'ajoute avec les paramètres par défaut
@@ -67,27 +70,29 @@ class Bot(commands.Bot):
                 continue
             else:
                 message = self.queue.get()
-            logging.info(f"Got a message from the queue : {message}")
-            match message.get("type"):
-                case "get":
-                    match message.get("content"):
+            if not isinstance(message, PanelToBotRequest):
+                self.queue.put(message)
+                continue
+            match message.type:
+                case RequestType.GET:
+                    match message.content:
                         case "guilds":
                             logging.info("Got a request for all guilds")
-                            self.queue.put([get_guild_info(guild) for guild in self.guilds])
+                            self.queue.put([GuildData.from_guild(guild) for guild in self.guilds])
                             await asyncio.sleep(0.1)
                         case "guild":
                             logging.info(f"Got a request for a specific guild : {message}")
-                            guild = self.get_guild(message["server_id"])
-                            self.queue.put(get_guild_info(guild))
+                            guild = self.get_guild(message.extra["server_id"])
+                            self.queue.put(GuildData.from_guild(guild))
                             await asyncio.sleep(0.1)
                         case "user":
                             logging.info(f"Got a request for a specific user : {message}")
-                            user = self.get_user(message["user_id"])
-                            self.queue.put(get_user_info(user))
+                            user = self.get_user(message.extra["user_id"])
+                            self.queue.put(UserData.from_user(user))
                             await asyncio.sleep(0.1)
                         case _:
-                            pass
-                case _:
+                            logging.error(f"Unknown request {message}")
+                case RequestType.POST:
                     pass
 
     async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
@@ -146,7 +151,7 @@ bot_instance.owner_id = 708006478807695450
 
 @bot_instance.slash_command(name="send", description="Envoie un message dans un salon")
 async def send_message(ctx: discord.ApplicationContext,
-                       channel: discord.Option(discord.TextChannel, description="Le salon où envoyer le message"),
+                       channel: discord.Option(discord.TextChannel, description="Le salon où envoyer le message"), # type: ignore
                        # type: ignore
                        message: discord.Option(str, description="Le message à envoyer")):  # type: ignore
     if ctx.author.id != bot_instance.owner_id:
