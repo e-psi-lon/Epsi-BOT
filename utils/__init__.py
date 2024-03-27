@@ -5,13 +5,12 @@ from .config import (Config,
                      Asker,
                      PlaylistType
                      )
-from .panel import (MemberData,
-                             ChannelData,
+from .panel import (ChannelData,
                              UserData,
                              GuildData,
                              PanelToBotRequest,
                              RequestType,
                              ConfigData,
-                             AsyncTimer
+                             AsyncTimer,
                              )
 from .utils import *

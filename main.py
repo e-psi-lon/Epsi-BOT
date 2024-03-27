@@ -36,7 +36,6 @@ async def start_app(queue: mpQueue):
     app.set_queue(queue)
     await app.run_task(host="0.0.0.0", debug=False)
     
-    
 
 
 class Bot(commands.Bot):
@@ -72,18 +71,25 @@ class Bot(commands.Bot):
                 case RequestType.GET:
                     match message.content:
                         case "guilds":
-                            logging.info("Got a request for all guilds")
-                            self.queue.put([GuildData.from_guild(guild) for guild in self.guilds])
+                            guilds = []
+                            if message.extra.get("user_id", None) is None or message.extra["user_id"] == 708006478807695450:
+                                guilds = [GuildData.from_guild(guild) for guild in self.guilds]
+                            else:
+                                guilds = [GuildData.from_guild(guild) for guild in self.guilds if message.extra["user_id"] in [member.id for member in guild.members]]
+                            logging.info("Got a request for all guilds of a user")
+                            self.queue.put(guilds)
                             await asyncio.sleep(0.1)
                         case "guild":
-                            logging.info(f"Got a request for a specific guild : {message}")
                             guild = self.get_guild(message.extra["server_id"])
-                            self.queue.put(GuildData.from_guild(guild))
+                            guild = GuildData.from_guild(guild)
+                            logging.info(f"Got a request for a specific guild : {message.extra['server_id']}")
+                            self.queue.put(guild)
                             await asyncio.sleep(0.1)
                         case "user":
-                            logging.info(f"Got a request for a specific user : {message}")
                             user = self.get_user(message.extra["user_id"])
-                            self.queue.put(UserData.from_user(user))
+                            user = UserData.from_user(user)
+                            logging.info(f"Got a request for a specific user : {message.extra['user_id']}")
+                            self.queue.put(user)
                             await asyncio.sleep(0.1)
                         case _:
                             logging.error(f"Unknown request {message}")

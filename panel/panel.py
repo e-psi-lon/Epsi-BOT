@@ -3,11 +3,13 @@ import sys
 
 from typing import Optional
 
-from quart import *
+
+from quart import Quart, session, redirect, url_for, render_template, request
 
 from utils.utils import *
 from utils import PanelToBotRequest, GuildData, UserData, RequestType, ConfigData, AsyncTimer
 import aiohttp
+
 
 
 class Panel(Quart):
@@ -18,6 +20,7 @@ class Panel(Quart):
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setFormatter(CustomFormatter(source="Panel"))
         self.logger.addHandler(console_handler)
+        self.logger.setLevel(logging.INFO)
         self.API_ENDPOINT = "https://discord.com/api/v10"
         self.CLIENT_ID = 1167171085343666216
         self.CLIENT_SECRET = "kH848ueQ4RGF3cKBNRJ1W1bFHI0b9bfo"
@@ -31,19 +34,20 @@ class Panel(Quart):
     async def get_from_conn(self, content: str, **kwargs) -> GuildData | UserData | list[GuildData]:
         data = PanelToBotRequest(RequestType.GET, content, **kwargs)
         self.queue.put(data)
-        print(f"Getting {data} from conn")
+        self.logger.info(f"Getting {data} from conn")
         response = None
         while self.queue.qsize() == 1:
             continue
         while self.queue.empty():
             continue
         response = self.queue.get()
+        self.logger.info(f"Got {response} from conn")
         return response
     
     async def post_to_conn(self, data: dict):
-        request = PanelToBotRequest(RequestType.POST, data)
-        self.queue.put(request)
-        self.logger.info(f"Posting {request} to conn")
+        request_ = PanelToBotRequest(RequestType.POST, data)
+        self.queue.put(request_)
+        self.logger.info(f"Posting {request_} to conn")
 
 
 app = Panel("121515145141464146EFG", __name__)
@@ -76,25 +80,13 @@ async def panel():
         return redirect(url_for('login'))
     token = session['token']
     if 'user' not in session:
-        user = await Requests.get(f"{app.API_ENDPOINT}/users/@me",
-                            headers={"Authorization": f"Bearer {token['access_token']}"})
-        if user['avatar']:
-            user['avatar_url'] = f"https://cdn.discordapp.com/avatars/{user['id']}/{user['avatar']}.png"
-        if user['id'] == '708006478807695450':
-            session['guilds'] = (await app.get_from_conn("guilds")).__getstate__()
-        else:
-            guilds: list[GuildData] = await app.get_from_conn("guilds")
-            session['guilds'] = [guild for guild in guilds if
-                                              session["user_id"] in [str(member.id) for member in guild.members]]
+        user = await Requests.get(f"{app.API_ENDPOINT}/users/@me", headers={"Authorization": f"Bearer {token['access_token']}"})
+        user = UserData.from_api_response(user)
+        print(user)
+        session['guilds'] = await app.get_from_conn("guilds", user_id=session['user_id'])
         session['user'] = user
     if session.get('guilds', None) is None:
-        if session['user']['id'] == '708006478807695450':
-            session['guilds'] = (await app.get_from_conn("guilds")).__getstate__()
-        else:
-            guilds: list[GuildData] = await app.get_from_conn("guilds")
-            session['guilds'] = [guild for guild in guilds if
-                                              str(session["user_id"]) in [str(member.id) for member in
-                                                                          guild.members]]
+        session['guilds'] = await app.get_from_conn("guilds", user_id=session['user_id'])
     return await render_template('panel.html', servers=session['guilds'], user=session['user'])
 
 
@@ -139,7 +131,7 @@ async def add(server_id):
     config = await Config.get_config(server_id, False)
     await config.add_to_queue(await Song.create(pytube.YouTube((await request.form)['url']).title,
                                                 (await request.form)['url'],
-                                                await Asker.from_id(session['user']['id'])))
+                                                await Asker.from_id(session['user'].id)))
     return redirect(url_for('server', server_id=server_id))
 
 
@@ -190,7 +182,7 @@ async def token_from_code(code):
         "Content-Type": "application/x-www-form-urlencoded"
     }
     r = await Requests.post(f"{app.API_ENDPOINT}/oauth2/token", data=data, headers=headers,
-                      auth=aiohttp.BasicAuth(app.CLIENT_ID, app.CLIENT_SECRET))
+                      auth=aiohttp.BasicAuth(str(app.CLIENT_ID), str(app.CLIENT_SECRET)))
     return r
 
 
@@ -205,7 +197,7 @@ async def refresh_token(token):
     r = await Requests.post(f"{app.API_ENDPOINT}/oauth2/token", data=data, headers=headers,
                       auth=(app.CLIENT_ID, app.CLIENT_SECRET))
     session['token'] = r
-    user_id = session['user']['id']
+    user_id = session['user'].id
     session["user_id"] = user_id
     timer = AsyncTimer(session['token']['expires_in'], refresh_token, session['token']['refresh_token'])
     timer.start()
@@ -222,4 +214,4 @@ async def revoke_access_token(access_token):
         "Content-Type": "application/x-www-form-urlencoded"
     }
     await Requests.post(f"{app.API_ENDPOINT}/oauth2/token/revoke", data=data, headers=headers,
-                  auth=aiohttp.BasicAuth(app.CLIENT_ID, app.CLIENT_SECRET))
+                  auth=aiohttp.BasicAuth(str(app.CLIENT_ID), str(app.CLIENT_SECRET)))

@@ -349,14 +349,20 @@ def get_lyrics(title):
 
 class Requests:
     @staticmethod
-    async def get(url: str, params: dict = None, data: Any = None, headers: dict = None, cookies: dict = None, auth: aiohttp.BasicAuth = None, allow_redirects: bool = True, timeout: float = None, json: Any = None) -> Any: 
+    async def get(url: str, params: dict = None, data: Any = None, headers: dict = None, cookies: dict = None, auth: aiohttp.BasicAuth = None, allow_redirects: bool = True, timeout: float = None, json: Any = None, return_type: str = "json") -> Any: 
         async with aiohttp.ClientSession() as session:
             async with session.get(url, params=params, data=data, headers=headers, cookies=cookies, auth=auth, allow_redirects=allow_redirects, timeout=timeout, json=json) as response:
                 response.raise_for_status()
-                return await response.json()
+                match return_type:
+                    case "json":
+                        return await response.json()
+                    case "content":
+                        return await response.content.read()
+                    case _:
+                        return await response.text()
 
     @staticmethod
-    async def post(url: str, data: Any = None, json: Any = None, params: dict = None, headers: dict = None, cookies: dict = None, auth: aiohttp.BasicAuth = None, allow_redirects: bool = True, timeout: float = None, return_type: str = "text") -> Any:
+    async def post(url: str, data: Any = None, json: Any = None, params: dict = None, headers: dict = None, cookies: dict = None, auth: aiohttp.BasicAuth = None, allow_redirects: bool = True, timeout: float = None, return_type: str = "json") -> Any:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, data=data, json=json, params=params, headers=headers, cookies=cookies, auth=auth, allow_redirects=allow_redirects, timeout=timeout) as response:
                 response.raise_for_status()
