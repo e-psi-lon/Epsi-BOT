@@ -57,7 +57,7 @@ class Channel(commands.Cog):
                                                     color=0xff0000)),
                     asyncio.get_event_loop())
             else:
-                download(song.url, download_logger=logging.getLogger("Audio-Downloader"))
+                asyncio.run_coroutine_threadsafe(download(song.url, download_logger=logging.getLogger("Audio-Downloader")), asyncio.get_event_loop())
         except Exception as e:
             print(f"Error checking video length: {e}")
 

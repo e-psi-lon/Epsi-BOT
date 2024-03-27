@@ -7,7 +7,7 @@
 <body>
 <h1>Configuration du Serveur - {{ server['name'] }}</h1>
 <div class="dialog" hidden id="add-song">
-    <form action="/server/{{ server['id'] }}/add" method="POST">
+    <form action="/server/{{ server.id }}/add" method="POST">
         <label for="url">URL : </label>
         <input id="url" name="url" placeholder="URL de la chanson" type="text">
         <br>
@@ -18,38 +18,37 @@
 <form method="POST">
     <label for="loop_song">Loop Song : </label>
 
-    <input id="loop_song" {% if server["loop_song"] %} checked {% endif %} name="loop_song" type="checkbox">
+    <input id="loop_song" {% if server.loop_song %} checked {% endif %} name="loop_song" type="checkbox">
     <br>
     <label for="loop_queue">Loop Queue : </label>
-    <input id="loop_queue" {% if server["loop_queue"] %} checked {% endif %} name="loop_queue" type="checkbox">
+    <input id="loop_queue" {% if server.loop_queue %} checked {% endif %} name="loop_queue" type="checkbox">
     <br>
     <label for="random">Random : </label>
-    <input id="random"  {% if server["random"] %} checked {% endif %} name="random" type="checkbox">
+    <input id="random"  {% if server.random %} checked {% endif %} name="random" type="checkbox">
     <br>
     <label for="position">Position : </label>
-    <input id="position" name="position" position type="number" value="{{ server[""] }}">
+    <input id="position" name="position" position type="number" value="{{ server.position }}">
     <br>
     <div class="queue">
-        {% for song in server["queue"] %}
-        <div class="song{% if song == server['queue'][server['position']] %} current {% endif %}" draggable="true"
-             id="{{ song[" id
-        "] }}>
+        {% for song in server.queue %}
+        <div class="song{% if song == server.queue.[server.position] %} current {% endif %}" draggable="true"
+             id="{{ song.id }}>
         <div class="preview_div">
-            {% if song["url"].startswith("https://youtube.com/watch?v=") %}
+            {% if song.url.startswith("https://youtube.com/watch?v=") %}
             <iframe class="preview" 
-                    src="https://www.youtube.com/embed/{{ pytube.YouTube(song['url']).video_id}}" title={{
-            pytube.YouTube(song['url']).title}} frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope;
+                    src="{{ pytube.YouTube(song.url).embed_html}}" title="{{ pytube.YouTube(song.url).title }}"
+                    frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope;
             picture-in-picture; web-share" allowfullscreen></iframe>
             {% else %}
             <img alt="Video Thumbnail" class="preview" src="{{ url_for('static', filename='default_thumbnail.png') }}">
             {% endif %}
         </div>
         <div class="song_info">
-            <div class="title">{{ song["title"] }}</div>
-            <div class="url" draggable="false"><a draggable="false"  target="_blank" href={{ song["url"] }}>{{ song["url"] }}</a></div>
-            <div class="asker">Asked by {{ get_from_conn(app.conn, "user", user_id=song["asker"])["global_name"] }}
+            <div class="title">{{ song.title }}</div>
+            <div class="url" draggable="false"><a draggable="false"  target="_blank" href={{ song.url }}>{{ song.url }}</a></div>
+            <div class="asker">Asked by {{ (await app.get_from_conn("user", user_id=song.asker.discord_id)).global_name }}
             </div>
-            <button class="remove" onclick="window.location.href='/server/{{ server['id'] }}/remove/{{ song['id'] }}'" type="button">Supprimer</button>
+            <button class="remove" onclick="window.location.href='/server/{{ server.id }}/remove/{{ song.id }}'" type="button">Supprimer</button>
         </div>
     </div>
     {% endfor %}
@@ -59,7 +58,7 @@
         <button class="add" onclick="document.getElementById('add-song').hidden = false" type="button">Ajouter une
             chanson
         </button>
-        <button class="clear" onclick="window.location.href='/server/{{ server['id'] }}/clear'" type="button">Vider la
+        <button class="clear" onclick="window.location.href='/server/{{ server.id }}/clear'" type="button">Vider la
             file d'attente
         </button>
     </div>

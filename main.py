@@ -3,13 +3,8 @@ import os
 import sys
 import traceback
 
-import dependencies_check
 from utils import CustomFormatter, GuildData, UserData, PanelToBotRequest, RequestType
 
-if __name__ == "__main__":
-    if len(list(dependencies_check.check_libs())) > 0 and list(dependencies_check.check_libs())[0][0] != "pynacl":
-        dependencies_check.update_libs([lib for lib, _, _ in dependencies_check.check_libs()])
-        os.execl(sys.executable, sys.executable, *sys.argv)
 import discord.utils
 from discord.ext import tasks, commands
 from dotenv import load_dotenv
@@ -188,12 +183,6 @@ def start(instance: Bot):
         f"Script started at {start_time.strftime('%d/%m/%Y %H:%M:%S')} "
         f"using python executable {sys.executable}"
     )
-    if len(list(dependencies_check.check_updates())) > 0:
-        dependencies_check.update_requirements()
-        logging.info("Requirements updated")
-    if len(list(dependencies_check.check_libs())) > 0:
-        dependencies_check.update_libs([lib for lib, _, _ in dependencies_check.check_libs()])
-        logging.info("Libs updated")
     for cog in cogs:
         try:
             instance.load_extension(cog)

@@ -1,7 +1,9 @@
+import asyncio
 from discord import Guild, Member, User
 from discord.abc import GuildChannel
+from .config import Song
 
-from typing import Any
+from typing import Any, Callable, Coroutine, Union
 from enum import Enum
 
 class RequestType(Enum):
@@ -9,7 +11,7 @@ class RequestType(Enum):
     POST = 'POST'
 
 class PanelToBotRequest:
-    def __init__(self, type: RequestType, content: Any, **extra):
+    def __init__(self, type: RequestType, content, **extra):
         self.type = type
         self.content = content
         self.extra = extra
@@ -136,3 +138,39 @@ class UserData:
     
     def __str__(self) -> str:
         return str(self.__getstate__())
+    
+
+class ConfigData:
+    def __init__(self, loop_song: bool, loop_queue: bool, random: bool, position: int, queue: list[Song], server_id: int, name: str):
+        self.loop_song = loop_song
+        self.loop_queue = loop_queue
+        self.random = random
+        self.position = position
+        self.queue = queue
+        self.id = server_id
+        self.name = name
+
+class AsyncTimer:
+    def __init__(self, delay: Union[int, float], callback: Callable, *args, **kwargs):
+        self.delay = delay
+        self.callback = callback
+        self.args = args
+        self.kwargs = kwargs
+        self.task = None
+
+    async def _job(self):
+        await asyncio.sleep(self.delay)
+        if asyncio.iscoroutinefunction(self.callback):
+            await self.callback(*self.args, **self.kwargs)
+        else:
+            self.callback(*self.args, **self.kwargs)
+            
+        
+
+    def start(self):
+        self.task = asyncio.create_task(self._job())
+
+    def cancel(self):
+        if self.task:
+            self.task.cancel()
+            self.task = None

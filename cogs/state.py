@@ -103,7 +103,7 @@ class State(commands.Cog):
                     await play_song(ctx, url)
                 else:
                     video = pytube.YouTube(url)
-                    threading.Thread(target=download, args=(url,), name=f"Download-{video.video_id}").start()
+                    threading.Thread(target=self._download, args=(url,), name=f"Download-{video.video_id}").start()
                     await ctx.respond(embed=discord.Embed(title="Queue",
                                                           description=f"Song [{pytube.YouTube(url).title}]({url})"
                                                                       f" added to queue.",
@@ -123,6 +123,9 @@ class State(commands.Cog):
                 embed=discord.Embed(title="Select audio",
                                     description=f'Select an audio to play for query `{query}` from the list below',
                                     color=0x00ff00), view=view)
+    @staticmethod
+    def _download(url: str):
+        asyncio.run(download(url, download_logger=logging.getLogger("Audio-Downloader")))
 
     @commands.slash_command(name="pause", description="Pauses the current song")
     async def pause(self, ctx: discord.ApplicationContext):

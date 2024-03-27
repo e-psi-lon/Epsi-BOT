@@ -4,13 +4,14 @@ import logging
 import os
 import random
 from enum import Enum
+from typing import Any
 
+import aiohttp
 import discord
 import discord.ext.pages
 import ffmpeg
 import pydub
 import pytube
-import requests
 from discord.ext import commands
 from pytube.exceptions import RegexMatchError as PytubeRegexMatchError
 
@@ -19,15 +20,15 @@ from .config import Config, Song, Asker, UserPlaylistAccess, format_name
 logger = logging.getLogger("__main__")
 
 
-def download(url: str, file_format: str = "mp3", download_logger=logger):
+async def download(url: str, file_format: str = "mp3", download_logger=logger):
     """Download a video from a YouTube URL"""
     if not url.startswith("https://youtube.com/watch?v="):
         if os.path.exists(f"cache/{format_name(url.split('/')[-1])}"):
             download_logger.info(f"{url.split('/')[-1]} already in cache as cache/{format_name(url.split('/')[-1])}")
             return f"cache/{format_name(url.split('/')[-1])}"
-        r = requests.get(url)
+        r = await Requests.get(url, return_type="content")
         with open(f"cache/{format_name(url.split('/')[-1])}", "wb") as f:
-            f.write(r.content)
+            f.write(r)
         download_logger.info(f"Downloaded {url.split('/')[-1]} to cache/{format_name(url.split('/main')[-1])}")
         return f"cache/{format_name(url.split('/')[-1])}"
     stream = pytube.YouTube(url)
@@ -265,7 +266,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description=f"The video [{video.title}]({url}) is too long",
                                     color=0xff0000))
-        file = download(url)
+        file = await download(url, download_logger=logging.getLogger("Audio-Downloader"))
         player = discord.PCMVolumeTransformer(
             discord.FFmpegPCMAudio(file, executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"),
             config.volume / 100)
@@ -281,7 +282,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
             ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
                                         wait_finish=True)
     except PytubeRegexMatchError:
-        file = download(url)
+        file = await download(url, download_logger=logging.getLogger("Audio-Downloader"))
         player = discord.PCMVolumeTransformer(
             discord.FFmpegPCMAudio(file, executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"),
             config.volume / 100)
@@ -344,3 +345,25 @@ class CustomFormatter(logging.Formatter):
 def get_lyrics(title):
     """Get the lyrics of a song"""
     return title
+
+
+class Requests:
+    @staticmethod
+    async def get(url: str, params: dict = None, data: Any = None, headers: dict = None, cookies: dict = None, auth: aiohttp.BasicAuth = None, allow_redirects: bool = True, timeout: float = None, json: Any = None) -> Any: 
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, params=params, data=data, headers=headers, cookies=cookies, auth=auth, allow_redirects=allow_redirects, timeout=timeout, json=json) as response:
+                response.raise_for_status()
+                return await response.json()
+
+    @staticmethod
+    async def post(url: str, data: Any = None, json: Any = None, params: dict = None, headers: dict = None, cookies: dict = None, auth: aiohttp.BasicAuth = None, allow_redirects: bool = True, timeout: float = None, return_type: str = "text") -> Any:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=data, json=json, params=params, headers=headers, cookies=cookies, auth=auth, allow_redirects=allow_redirects, timeout=timeout) as response:
+                response.raise_for_status()
+                match return_type:
+                    case "json":
+                        return await response.json()
+                    case "content":
+                        return await response.content.read()
+                    case _:
+                        return await response.text()

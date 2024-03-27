@@ -10,6 +10,8 @@ from .panel import (MemberData,
                              UserData,
                              GuildData,
                              PanelToBotRequest,
-                             RequestType
+                             RequestType,
+                             ConfigData,
+                             AsyncTimer
                              )
 from .utils import *

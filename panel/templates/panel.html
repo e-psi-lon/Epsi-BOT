@@ -6,15 +6,15 @@
 </head>
 <body>
 <h1>Liste des Serveurs </h1>
-<div class="user"><img alt="Avatar URL" src="{{ user["avatar_url"] if user["avatar_url"] else url_for('static',
-    filename='default_avatar.png') }}" class="icon"><span class="name">{{ user["global_name"] }}</span></div>
+<div class="user"><img alt="Avatar URL" src="{{ user.avatar_url if user.avatar_url else url_for('static',
+    filename='default_avatar.png') }}" class="icon"><span class="name">{{ user.global_name }}</span></div>
 <button class="logout" onclick="window.location.href='/logout'">Se déconnecter</button>
 <ul class="ulServerList">
     {% for server in servers %}
     <li class="serverList">
-        <div class="server" onclick="window.location.href='/server/{{ server["id"] }}'">
-        <img alt="Server Icon" class="icon" src='{{ server["icon"] }}'>
-        <div class="name">{{ server["name"] }}</div>
+        <div class="server" onclick="window.location.href='/server/{{ server.id }}'">
+        <img alt="Server Icon" class="icon" src='{{ server.icon }}'>
+        <div class="name">{{ server.name }}</div>
         </div>
     </li>
     {% endfor %}

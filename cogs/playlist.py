@@ -182,7 +182,7 @@ class Playlists(commands.Cog):
             pool.shutdown(wait=True)
 
     @staticmethod
-    def _check_video(song, ctx):
+    def _check_video(song: Song, ctx: discord.ApplicationContext):
         try:
             video = pytube.YouTube(song.url)
             if video.age_restricted:
@@ -199,7 +199,8 @@ class Playlists(commands.Cog):
                     asyncio.get_event_loop())
 
             else:
-                download(song.url, download_logger=logging.getLogger("Audio-Downloader"))
+                asyncio.run_coroutine_threadsafe(download(song.url, download_logger=logging.getLogger("Audio-Downloader")),
+                                                 asyncio.get_event_loop())
         except Exception as e:
             print(f"Error checking video availability: {e}")
 
