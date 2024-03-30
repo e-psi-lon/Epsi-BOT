@@ -161,7 +161,6 @@ bot_instance.owner_id = 708006478807695450
 @bot_instance.slash_command(name="send", description="Envoie un message dans un salon")
 async def send_message(ctx: discord.ApplicationContext,
                        channel: discord.Option(discord.TextChannel, description="Le salon où envoyer le message"), # type: ignore
-                       # type: ignore
                        message: discord.Option(str, description="Le message à envoyer")):  # type: ignore
     if ctx.author.id != bot_instance.owner_id:
         raise commands.NotOwner
@@ -172,7 +171,7 @@ async def send_message(ctx: discord.ApplicationContext,
 
 
 @send_message.error
-async def send_message_error(ctx, error):
+async def send_message_error(ctx: discord.ApplicationContext, error: commands.CommandError):
     if isinstance(error, commands.NotOwner):
         await ctx.send("Vous n'êtes pas propriétaire du bot !", ephemeral=True)
 

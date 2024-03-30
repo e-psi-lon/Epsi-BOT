@@ -917,6 +917,14 @@ class Config(DatabaseAccess):
         Use add_to_queue, remove_from_queue, insert_to_queue, edit_queue to modify the queue.
         """
         return self._queue.copy()
+    
+    @property
+    def queue_dict(self) -> list[dict[str, Any]]:
+        """
+        A dictionary of the queue to avoid modifying it outside the class.\n
+        Use add_to_queue, remove_from_queue, insert_to_queue, edit_queue to modify the queue.
+        """
+        return [{"name": song.name, "url": song.url, "asker_id": song.asker.discord_id} for song in self.queue]
 
     @property
     def playlists(self) -> set[Playlist]:

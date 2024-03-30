@@ -134,8 +134,8 @@ async def server(server_id):
             config.random = values['random']
         if config.position != values['position']:
             config.position = values['position']
-        if config.queue != values['queue']:
-            config.queue = values['queue']
+        if config.queue_dict != values['queue']:
+            config.edit_queue([await Song.create(song['title'], song['url'], await Asker.from_id(song['asker_id'])) for song in values['queue']])
         return redirect(url_for('server', server_id=server_id))
     server_data = {"loop_song": config.loop_song, "loop_queue": config.loop_queue, "random": config.random,
                    "position": config.position, "queue": config.queue, "id": server_id,

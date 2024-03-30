@@ -28,7 +28,7 @@ from utils import (Playlist,
 
 
 class Playlists(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
 
     playlist = SlashCommandGroup(name="playlist", description="Commands related to playlists")

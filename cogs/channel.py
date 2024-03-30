@@ -11,7 +11,7 @@ from utils import Config, EMBED_ERROR_BOT_NOT_CONNECTED, Song, play_song, downlo
 
 
 class Channel(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
 
     @commands.slash_command(name="leave", description="Leaves the voice channel")
@@ -69,5 +69,5 @@ class Channel(commands.Cog):
             logging.error(f"Error checking video length: {e}")
 
 
-def setup(bot):
+def setup(bot: commands.Bot):
     bot.add_cog(Channel(bot))

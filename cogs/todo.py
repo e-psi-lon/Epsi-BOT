@@ -6,7 +6,7 @@ from discord.ext import commands
 
 
 class Todo(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
 
     todo = SlashCommandGroup(name="todo", description="Commands related to the to-do list",
@@ -27,13 +27,13 @@ class Todo(commands.Cog):
             index = len(message.embeds[0].fields) + 1
         lines = message.embeds[0].fields
         lines.insert(index - 1, discord.EmbedField(name=f"**`{index + 1}.`**", value=line, inline=False))
-        for py_index, line in enumerate(lines):
-            line.name = f"**`{py_index + 1}.`**"
+        for index_, line_ in enumerate(lines):
+            line_.name = f"**`{index_ + 1}.`**"
         await message.edit(embed=discord.Embed(title="To-Do List", description="Les points suivant sont les "
                                                                                "différentes tâches à effectuer pour "
                                                                                "améliorer le bot", fields=lines))
         line = message.embeds[0].fields[index - 1]
-        embed = discord.Embed(title="Ajout d'une ligne", description=f"La ligne {line.name} a été ajoutée au message "
+        embed = discord.Embed(title="Ajout d'une ligne", description=f"La ligne {line_.name} a été ajoutée au message "
                                                                      f"{message.jump_url}")
         await ctx.respond(embed=embed, delete_after=30)
 
@@ -179,5 +179,5 @@ class Todo(commands.Cog):
         await ctx.respond(embed=embed)
 
 
-def setup(bot):
+def setup(bot: commands.Bot):
     bot.add_cog(Todo(bot))

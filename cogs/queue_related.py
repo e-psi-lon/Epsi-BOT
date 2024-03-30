@@ -4,11 +4,11 @@ from discord.commands import SlashCommandGroup
 from discord.ext import commands
 import discord
 
-from utils import Config, EMBED_ERROR_QUEUE_EMPTY, EMBED_ERROR_BOT_NOT_CONNECTED, get_queue_songs, get_index_from_title
+from utils import Config, EMBED_ERROR_QUEUE_EMPTY, EMBED_ERROR_BOT_NOT_CONNECTED, get_queue_songs, get_index_from_title, Song
 
 
 class Queue(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
 
     @commands.slash_command(name="queue", description="Shows the current queue")
@@ -105,7 +105,7 @@ class Queue(commands.Cog):
             return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
         await config.remove_from_queue([songs for songs in config.queue if songs.name == song][0])
         await ctx.respond(
-            embed=discord.Embed(title="Remove", description=f"Removed {song.name} from the queue.", color=0x00ff00))
+            embed=discord.Embed(title="Remove", description=f"Removed {song} from the queue.", color=0x00ff00))
 
     @remove.command(name="from-index", description="Removes a song from the queue ")
     async def remove_index(self, ctx: discord.ApplicationContext,
@@ -115,7 +115,7 @@ class Queue(commands.Cog):
         if index < 0 or index >= len(config.queue):
             return await ctx.respond(embed=discord.Embed(title="Error", description=f"Index {index} out of range.",
                                                          color=0xff0000))
-        song = config.queue[index - 1]
+        song: Song = config.queue[index - 1]
         await config.remove_from_queue(song)
         await ctx.respond(
             embed=discord.Embed(title="Remove", description=f"Removed {song.name} from the queue.", color=0x00ff00))
@@ -222,5 +222,5 @@ class Queue(commands.Cog):
                                 color=0x00ff00))
 
 
-def setup(bot):
+def setup(bot: commands.Bot):
     bot.add_cog(Queue(bot))

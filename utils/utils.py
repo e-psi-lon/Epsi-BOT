@@ -4,7 +4,7 @@ import logging
 import os
 import random
 from enum import Enum
-from typing import Any
+from typing import Any, Optional, Union
 
 import aiohttp
 import discord
@@ -20,7 +20,7 @@ from .config import Config, Song, Asker, UserPlaylistAccess, format_name
 logger = logging.getLogger("__main__")
 
 
-async def download(url: str, file_format: str = "mp3", download_logger=logger):
+async def download(url: str, file_format: str = "mp3", download_logger: logging.Logger = logger) -> Optional[str]:
     """Download a video from a YouTube URL"""
     if not url.startswith("https://youtube.com/watch?v="):
         if os.path.exists(f"cache/{format_name(url.split('/')[-1])}"):
@@ -111,7 +111,7 @@ async def disconnect_from_channel(state: discord.VoiceState, bot: commands.Bot):
 
 
 class SelectVideo(discord.ui.Select):
-    def __init__(self, videos: list[pytube.YouTube], ctx, download_file, *args, **kwargs):
+    def __init__(self, videos: list[pytube.YouTube], ctx: discord.ApplicationContext, download_file: bool, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.placeholder = "Select an audio to play"
         self.min_values = 1
@@ -221,9 +221,9 @@ async def get_queue_songs(ctx: discord.AutocompleteContext):
     return [song.name for song in queue_]
 
 
-def get_index_from_title(title, list_to_check):
+def get_index_from_title(title: str, list_to_check: list[Song]):
     for index, song in enumerate(list_to_check):
-        if song['title'] == title:
+        if song.title == title:
             return index
     return -1
 
@@ -310,7 +310,7 @@ async def on_play_song_finished(ctx: discord.ApplicationContext, error=None):
     await change_song(ctx)
 
 
-def convert(audio, file_format):
+def convert(audio: str, file_format: str) -> str:
     stream = ffmpeg.input(audio)
     stream = ffmpeg.output(stream, f"{audio.split('/')[1][:-4]}.{file_format}", format=file_format)
     ffmpeg.run(stream)
@@ -318,7 +318,7 @@ def convert(audio, file_format):
 
 
 class CustomFormatter(logging.Formatter):
-    def __init__(self, source, *args, **kwargs):
+    def __init__(self, source: str, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.source = source
 
@@ -342,14 +342,14 @@ class CustomFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-def get_lyrics(title):
+def get_lyrics(title: str):
     """Get the lyrics of a song"""
     return title
 
 
 class Requests:
     @staticmethod
-    async def get(url: str, params: dict = None, data: Any = None, headers: dict = None, cookies: dict = None, auth: aiohttp.BasicAuth = None, allow_redirects: bool = True, timeout: float = None, json: Any = None, return_type: str = "json") -> Any: 
+    async def get(url: str, params: dict = None, data: Any = None, headers: dict = None, cookies: dict = None, auth: aiohttp.BasicAuth = None, allow_redirects: bool = True, timeout: float = None, json: Any = None, return_type: str = "json") -> Union[dict, str, bytes]: 
         async with aiohttp.ClientSession() as session:
             async with session.get(url, params=params, data=data, headers=headers, cookies=cookies, auth=auth, allow_redirects=allow_redirects, timeout=timeout, json=json) as response:
                 response.raise_for_status()
@@ -362,7 +362,7 @@ class Requests:
                         return await response.text()
 
     @staticmethod
-    async def post(url: str, data: Any = None, json: Any = None, params: dict = None, headers: dict = None, cookies: dict = None, auth: aiohttp.BasicAuth = None, allow_redirects: bool = True, timeout: float = None, return_type: str = "json") -> Any:
+    async def post(url: str, data: Any = None, json: Any = None, params: dict = None, headers: dict = None, cookies: dict = None, auth: aiohttp.BasicAuth = None, allow_redirects: bool = True, timeout: float = None, return_type: str = "json") -> Union[dict, str, bytes]:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, data=data, json=json, params=params, headers=headers, cookies=cookies, auth=auth, allow_redirects=allow_redirects, timeout=timeout) as response:
                 response.raise_for_status()

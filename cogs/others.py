@@ -8,11 +8,10 @@ from utils import Config, EMBED_ERROR_BOT_NOT_CONNECTED, convert, Research, get_
 
 
 class Others(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
 
     @commands.slash_command(name="download_file", description="Download the audio of a youtube video")
-    # choices est une liste de formats audio uniquement (pas vidéo)
     async def download(self, ctx: discord.ApplicationContext, query, file_format: discord.Option(str, description="The file_format of the file",
                                                                      choices=["mp3", "ogg"], required=False,
                                                                      default="ogg")): # type: ignore
@@ -65,5 +64,5 @@ class Others(commands.Cog):
         await ctx.respond(embed=discord.Embed(title="Lyrics", description=lyrics, color=0x00ff00))
 
 
-def setup(bot):
+def setup(bot: commands.Bot):
     bot.add_cog(Others(bot))

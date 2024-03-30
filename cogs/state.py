@@ -25,7 +25,7 @@ connections = {}
 
 
 class State(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
 
     play = SlashCommandGroup(name="play", description="Commands related to the audio of the bot")

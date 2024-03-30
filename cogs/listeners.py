@@ -53,5 +53,5 @@ class Listeners(commands.Cog):
                 pass
 
 
-def setup(bot):
+def setup(bot: commands.Bot):
     bot.add_cog(Listeners(bot))
