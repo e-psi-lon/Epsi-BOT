@@ -719,9 +719,6 @@ class UserPlaylistAccess(DatabaseAccess):
     async def add_playlist(self, playlist: Playlist):
         """Add a playlist to the user's playlists."""
         self._playlists.add(playlist)
-        await self._create_db('PLAYLIST', playlist_id=playlist.id, name=playlist.name)
-        for song in playlist.songs:
-            await self._create_db('PLAYLIST_SONG', playlist_id=playlist.id, song_id=song.id, asker=song.asker.id)
 
     async def remove_playlist(self, playlist: Playlist):
         """Remove a playlist from the user's playlists."""
