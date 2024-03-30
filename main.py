@@ -181,27 +181,19 @@ def start(instance: Bot):
     global start_time
     if not os.path.exists('cache/'):
         os.mkdir('cache/')
-    cogs = [
-        "cogs.channel",
-        "cogs.others",
-        "cogs.playlist",
-        "cogs.queue_related",
-        "cogs.state",
-        "cogs.todo",
-        "cogs.admin",
-        "cogs.listeners"
-    ]
     os.system("cls" if os.name == "nt" else "clear")
     logging.info(
         f"Script started at {start_time.strftime('%d/%m/%Y %H:%M:%S')} "
         f"using python executable {sys.executable}"
     )
-    for cog in cogs:
-        try:
-            instance.load_extension(cog)
-        except Exception as e:
-            logging.error(f"Failed to load extension {cog}")
-            logging.error(e)
+    for file in os.listdir("./cogs"):
+        if file.endswith(".py") and not file.startswith("__"):
+            try:
+                instance.load_extension(f"cogs.{file[:-3]}")
+            except Exception as e:
+                logging.error(f"Failed to load extension {file}")
+                logging.error(e)
+    
     # Lancer l'instance du bot
     instance.run(os.environ["TOKEN"])
 
