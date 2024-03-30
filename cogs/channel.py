@@ -1,6 +1,13 @@
 from concurrent.futures import ThreadPoolExecutor
+import asyncio
+import logging
 
-from utils.utils import *
+import discord
+from discord.ext import commands
+import pytube
+
+
+from utils import Config, EMBED_ERROR_BOT_NOT_CONNECTED, Song, play_song, download
 
 
 class Channel(commands.Cog):
@@ -43,23 +50,23 @@ class Channel(commands.Cog):
             if len(config.queue) > 1:
                 pool = ThreadPoolExecutor()
                 for song in config.queue[1:]:
-                    pool.submit(self._check_video_length, song, ctx)
+                    pool.submit(self._check_video_length, song, ctx, asyncio.get_event_loop())
                 pool.shutdown(False)
 
     @staticmethod
-    def _check_video_length(song: Song, ctx: discord.ApplicationContext):
+    def _check_video_length(song: Song, ctx: discord.ApplicationContext, error_loop: asyncio.AbstractEventLoop):
         try:
             if pytube.YouTube(song.url).length > 12000:
                 asyncio.run_coroutine_threadsafe(
                     ctx.respond(embed=discord.Embed(title="Error",
                                                     description=f"The video [{pytube.YouTube(song.url).title}]"
                                                                 f"({song.url}) is too long",
-                                                    color=0xff0000)),
-                    asyncio.get_event_loop())
+                                                    color=0xff0000)), error_loop)
             else:
-                asyncio.run_coroutine_threadsafe(download(song.url, download_logger=logging.getLogger("Audio-Downloader")), asyncio.get_event_loop())
+                loop = asyncio.new_event_loop()
+                asyncio.run_coroutine_threadsafe(download(song.url, download_logger=logging.getLogger("Audio-Downloader")), loop)
         except Exception as e:
-            print(f"Error checking video length: {e}")
+            logging.error(f"Error checking video length: {e}")
 
 
 def setup(bot):

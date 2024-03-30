@@ -1,9 +1,25 @@
 import threading
 from datetime import datetime
+import asyncio
+import logging
 
 from discord.commands import SlashCommandGroup
+from discord.ext import commands
+from pytube.exceptions import RegexMatchError as PytubeRegexMatchError
+import discord
+import pytube
 
-from utils.utils import *
+
+from utils import (Sinks, 
+                   EMBED_ERROR_BOT_NOT_CONNECTED, 
+                   Song, 
+                   Asker, 
+                   Config,  
+                   Research,
+                   play_song, 
+                   download, 
+                   finished_record_callback
+                   )
 
 connections = {}
 

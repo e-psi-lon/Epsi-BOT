@@ -1,10 +1,30 @@
 from concurrent.futures import ThreadPoolExecutor
 from typing import Union, Optional
+import asyncio
+import logging
 
 from discord.commands import SlashCommandGroup
+from discord.ext import commands
+import discord
+import pytube
+from pytube.exceptions import RegexMatchError as PytubeRegexMatchError
 
-from utils.config import Playlist, PlaylistType
-from utils.utils import *
+from utils import (Playlist, 
+                   PlaylistType, 
+                   Config, 
+                   UserPlaylistAccess, 
+                   Song, 
+                   Asker, 
+                   download, 
+                   play_song, 
+                   get_playlists,
+                   get_playlists_songs,
+                   EMBED_ERROR_NAME_TOO_LONG,
+                   EMBED_ERROR_QUEUE_EMPTY,
+                   EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
+                   )
+ 
+
 
 
 class Playlists(commands.Cog):
@@ -178,29 +198,27 @@ class Playlists(commands.Cog):
                                 color=0x00ff00))
         if len(config.queue) > 1:
             for song in config.queue[:1]:
-                pool.submit(self._check_video, song, ctx)
+                pool.submit(self._check_video, song, ctx, asyncio.get_event_loop())
             pool.shutdown(wait=True)
 
     @staticmethod
-    def _check_video(song: Song, ctx: discord.ApplicationContext):
+    def _check_video(song: Song, ctx: discord.ApplicationContext, error_loop: asyncio.AbstractEventLoop):
         try:
             video = pytube.YouTube(song.url)
             if video.age_restricted:
                 asyncio.run_coroutine_threadsafe(
                     ctx.respond(embed=discord.Embed(title="Error",
                                                     description=f"The [video]({song.url}) is age restricted",
-                                                    color=0xff0000)),
-                    asyncio.get_event_loop())
+                                                    color=0xff0000)), error_loop)
             elif video.length > 12000:
                 asyncio.run_coroutine_threadsafe(
                     ctx.respond(embed=discord.Embed(title="Error",
                                                     description=f"The video [{video.title}]({song.url}) is too long",
-                                                    color=0xff0000)),
-                    asyncio.get_event_loop())
+                                                    color=0xff0000)), error_loop)
 
             else:
-                asyncio.run_coroutine_threadsafe(download(song.url, download_logger=logging.getLogger("Audio-Downloader")),
-                                                 asyncio.get_event_loop())
+                loop = asyncio.new_event_loop()
+                asyncio.run_coroutine_threadsafe(download(song.url, download_logger=logging.getLogger("Audio-Downloader")), loop)
         except Exception as e:
             print(f"Error checking video availability: {e}")
 

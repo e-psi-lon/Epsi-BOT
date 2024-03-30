@@ -1,4 +1,9 @@
-from utils.utils import *
+import logging
+
+import discord
+from discord.ext import commands
+
+from utils import disconnect_from_channel
 
 
 class Listeners(commands.Cog):

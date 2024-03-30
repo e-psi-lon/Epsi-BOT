@@ -1,14 +1,42 @@
 import multiprocessing
 import sys
+import logging
+import os
 
 from typing import Optional
 
 
 from quart import Quart, session, redirect, url_for, render_template, request
 
-from utils.utils import *
-from utils import PanelToBotRequest, GuildData, UserData, RequestType, ConfigData, AsyncTimer
+from utils import (PanelToBotRequest, 
+                   GuildData, 
+                   UserData, 
+                   RequestType, 
+                   ConfigData, 
+                   AsyncTimer, 
+                   CustomFormatter,
+                   Config,
+                   Song,
+                   Asker,
+                   Requests
+                   )
+
 import aiohttp
+from dotenv import load_dotenv
+import pytube
+
+
+load_dotenv()
+
+logger = logging.getLogger("Panel")
+logger.handlers.clear()
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setFormatter(CustomFormatter(source="Panel"))
+logger.addHandler(console_handler)
+logger.setLevel(logging.INFO)
+
+
+
 
 
 
@@ -17,8 +45,6 @@ class Panel(Quart):
         super().__init__(*args, **kwargs)
         self.secret_key = secret_key
         self.logger.handlers.clear()
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setFormatter(CustomFormatter(source="Panel"))
         self.logger.addHandler(console_handler)
         self.logger.setLevel(logging.INFO)
         self.API_ENDPOINT = "https://discord.com/api/v10"
@@ -31,8 +57,8 @@ class Panel(Quart):
     def set_queue(self, queue: multiprocessing.Queue):
         self.queue = queue
 
-    async def get_from_conn(self, content: str, **kwargs) -> GuildData | UserData | list[GuildData]:
-        data = PanelToBotRequest(RequestType.GET, content, **kwargs)
+    async def get_from_bot(self, content: str, **kwargs) -> GuildData | UserData | list[GuildData]:
+        data = PanelToBotRequest.create(RequestType.GET, content, **kwargs)
         self.queue.put(data)
         self.logger.info(f"Getting {data} from conn")
         response = None
@@ -44,13 +70,13 @@ class Panel(Quart):
         self.logger.info(f"Got {response} from conn")
         return response
     
-    async def post_to_conn(self, data: dict):
-        request_ = PanelToBotRequest(RequestType.POST, data)
+    async def post_to_bor(self, data: dict):
+        request_ = PanelToBotRequest.create(RequestType.POST, data)
         self.queue.put(request_)
         self.logger.info(f"Posting {request_} to conn")
 
 
-app = Panel("121515145141464146EFG", __name__)
+app = Panel(os.environ['PANEL_SECRET_KEY'], __name__)
 
 
 def to_url(url: str) -> str:
@@ -83,10 +109,10 @@ async def panel():
         user = await Requests.get(f"{app.API_ENDPOINT}/users/@me", headers={"Authorization": f"Bearer {token['access_token']}"})
         user = UserData.from_api_response(user)
         print(user)
-        session['guilds'] = await app.get_from_conn("guilds", user_id=session['user_id'])
+        session['guilds'] = await app.get_from_bot("guilds", user_id=session['user_id'])
         session['user'] = user
     if session.get('guilds', None) is None:
-        session['guilds'] = await app.get_from_conn("guilds", user_id=session['user_id'])
+        session['guilds'] = await app.get_from_bot("guilds", user_id=session['user_id'])
     return await render_template('panel.html', servers=session['guilds'], user=session['user'])
 
 
@@ -113,9 +139,9 @@ async def server(server_id):
         return redirect(url_for('server', server_id=server_id))
     server_data = {"loop_song": config.loop_song, "loop_queue": config.loop_queue, "random": config.random,
                    "position": config.position, "queue": config.queue, "id": server_id,
-                   "name": (await app.get_from_conn("guild", server_id=server_id)).name}
+                   "name": (await app.get_from_bot("guild", server_id=server_id)).name}
     server_data = ConfigData(config.loop_song, config.loop_queue, config.random, config.position, config.queue,
-                                server_id, (await app.get_from_conn("guild", server_id=server_id)).name)
+                                server_id, (await app.get_from_bot("guild", server_id=server_id)).name)
     return await render_template('server.html', server=server_data, app=app, pytube=pytube)
 
 

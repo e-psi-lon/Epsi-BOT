@@ -1,10 +1,17 @@
-from utils.utils import *
+import asyncio
+import os
+
+
+import discord
+from discord.ext import commands
+
+from utils import Config,  OWNER_ID
 
 removed_count = 0
 
 
 class Admin(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
 
     @commands.slash_command(name="remove_cache", description="Removes the audio cache", guild_ids=[761485410596552736])
@@ -38,7 +45,7 @@ class Admin(commands.Cog):
             return await ctx.respond(embed=embed, delete_after=30)
         removed_count = 0
 
-        def check(m):
+        def check(m: discord.Message):
             global removed_count
             removed_count += 1
             return m.author.id == self.bot.user.id and m.id != 1128641774789861488 and removed_count <= count

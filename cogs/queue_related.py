@@ -1,6 +1,10 @@
-from discord.commands import SlashCommandGroup
+import random
 
-from utils.utils import *
+from discord.commands import SlashCommandGroup
+from discord.ext import commands
+import discord
+
+from utils import Config, EMBED_ERROR_QUEUE_EMPTY, EMBED_ERROR_BOT_NOT_CONNECTED, get_queue_songs, get_index_from_title
 
 
 class Queue(commands.Cog):

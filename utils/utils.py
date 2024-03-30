@@ -55,7 +55,7 @@ class Sinks(Enum):
     mp4 = discord.sinks.MP4Sink()
 
 
-async def finished_record_callback(sink, channel: discord.TextChannel):
+async def finished_record_callback(sink: discord.sinks.Sink, channel: discord.TextChannel):
     mention_strs = []
     audio_segs: list[pydub.AudioSegment] = []
     files: list[discord.File] = []

@@ -4,7 +4,7 @@ from discord import Guild, Member, User
 from discord.abc import GuildChannel
 from .config import Song
 
-from typing import Callable, Union, Any
+from typing import Callable, Union, Any, Optional
 from enum import Enum
 
 
@@ -16,10 +16,15 @@ class RequestType(Enum):
 class PanelToBotRequest:
     type: RequestType
     content: Any
-    extra: dict = field(default_factory=dict)
+    extra: Optional[dict] = field(default_factory=dict)
 
     def __str__(self) -> str:
         return f"Type: {self.type}, Content: {self.content}, Extra data: {self.extra}"
+    
+    @classmethod
+    def create(self, type_: RequestType, content: Any, **kwargs):
+        return PanelToBotRequest(type_, content, kwargs)
+    
 
 
 @dataclass

@@ -1,6 +1,7 @@
 import datetime
 import os
 import sys
+import threading
 import traceback
 
 from utils import CustomFormatter, GuildData, UserData, PanelToBotRequest, RequestType
@@ -51,12 +52,19 @@ class Bot(commands.Bot):
         p.start()
         if os.popen("git branch --show-current").read().strip() == "main":
             check_update.start()
-        asyncio.create_task(self.listen_to_queue())
+        threading.Thread(target=self.start_listening, name="Listener").start()
         logging.info(f"Bot ready in {datetime.datetime.now() - start_time}")
         for guild in self.guilds:
             # Si la guilde n'existe pas dans la db, on l'ajoute avec les paramètres par défaut
             if not await config.Config.config_exists(guild.id):
                 await config.Config.create_config(guild.id)
+
+    def start_listening(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        future = asyncio.ensure_future(self.listen_to_queue())
+        loop.run_until_complete(future)
+
 
     async def listen_to_queue(self):
         while True:
@@ -72,21 +80,21 @@ class Bot(commands.Bot):
                     match message.content:
                         case "guilds":
                             guilds = []
-                            if message.extra.get("user_id", None) is None or message.extra["user_id"] == 708006478807695450:
+                            if message.extra.get("user_id", None) is None or int(message.extra["user_id"]) == 708006478807695450:
                                 guilds = [GuildData.from_guild(guild) for guild in self.guilds]
                             else:
-                                guilds = [GuildData.from_guild(guild) for guild in self.guilds if message.extra["user_id"] in [member.id for member in guild.members]]
+                                guilds = [GuildData.from_guild(guild) for guild in self.guilds if int(message.extra["user_id"]) in [member.id for member in guild.members]]
                             logging.info("Got a request for all guilds of a user")
                             self.queue.put(guilds)
                             await asyncio.sleep(0.1)
                         case "guild":
-                            guild = self.get_guild(message.extra["server_id"])
+                            guild = self.get_guild(int(message.extra["server_id"]))
                             guild = GuildData.from_guild(guild)
                             logging.info(f"Got a request for a specific guild : {message.extra['server_id']}")
                             self.queue.put(guild)
                             await asyncio.sleep(0.1)
                         case "user":
-                            user = self.get_user(message.extra["user_id"])
+                            user = self.get_user(int(message.extra["user_id"]))
                             user = UserData.from_user(user)
                             logging.info(f"Got a request for a specific user : {message.extra['user_id']}")
                             self.queue.put(user)
