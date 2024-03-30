@@ -6,6 +6,7 @@ import discord
 from discord.ext import commands
 
 from utils import Config,  OWNER_ID
+from utils.utils import cache
 
 removed_count = 0
 
@@ -29,8 +30,7 @@ class Admin(commands.Cog):
         await asyncio.sleep(1)
         await temp_config2.clear_queue()
         temp_config.position = 0
-        for file in os.listdir('cache/'):
-            os.remove(f'cache/{file}')
+        await cache.clear()
         embed = discord.Embed(title="Cache removed", description="Removed the audio cache.", color=0x00ff00)
         await ctx.respond(embed=embed, delete_after=30)
 

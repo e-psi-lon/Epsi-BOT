@@ -14,38 +14,46 @@ import pydub
 import pytube
 from discord.ext import commands
 from pytube.exceptions import RegexMatchError as PytubeRegexMatchError
+from aiocache import Cache
 
 from .config import Config, Song, Asker, UserPlaylistAccess, format_name
 
 logger = logging.getLogger("__main__")
 
+cache = Cache(Cache.MEMORY)
 
-async def download(url: str, file_format: str = "mp3", download_logger: logging.Logger = logger) -> Optional[str]:
-    """Download a video from a YouTube URL"""
+
+async def to_cache(url: str) -> io.BytesIO:
+    if await cache.exists(url):
+        return await cache.get(url)
+    buffer = io.BytesIO()
     if not url.startswith("https://youtube.com/watch?v="):
-        if os.path.exists(f"cache/{format_name(url.split('/')[-1])}"):
-            download_logger.info(f"{url.split('/')[-1]} already in cache as cache/{format_name(url.split('/')[-1])}")
-            return f"cache/{format_name(url.split('/')[-1])}"
         r = await Requests.get(url, return_type="content")
-        with open(f"cache/{format_name(url.split('/')[-1])}", "wb") as f:
-            f.write(r)
-        download_logger.info(f"Downloaded {url.split('/')[-1]} to cache/{format_name(url.split('/main')[-1])}")
-        return f"cache/{format_name(url.split('/')[-1])}"
-    stream = pytube.YouTube(url)
-    video_id = stream.video_id
-    if stream.age_restricted:
-        download_logger.warning(f"Video {stream.title} is age restricted (video id: {video_id})")
-        return None
-    if os.path.exists(f"cache/{format_name(stream.title)}.{file_format}"):
-        download_logger.info(
-            f"{stream.title} already in cache as cache/{format_name(stream.title)}.{file_format} "
-            f"(video id: {video_id})")
-        return f"cache/{format_name(stream.title)}.{file_format}"
-    stream = stream.streams.filter(only_audio=True).first()
-    stream.download(filename=f"cache\\{format_name(stream.title)}.{file_format}")
-    download_logger.info(f"Downloaded {stream.title} to cache/{format_name(stream.title)}.{file_format}"
-                         f" (video id: {video_id})")
-    return f"cache/{format_name(stream.title)}.{file_format}"
+        buffer.write(r)
+    else:
+        stream = pytube.YouTube(url)
+        stream = stream.streams.filter(only_audio=True).first()
+        buffer = io.BytesIO()
+        stream.stream_to_buffer(buffer)
+    buffer.seek(0)
+    await cache.set(url, buffer, ttl=3600)
+    return buffer
+
+async def download(url: str, download_logger: logging.Logger = logger) -> Optional[Union[io.BytesIO, str]]:
+    """Download a video from a YouTube (or other) URL"""
+    if not url.startswith("https://youtube.com/watch?v="):
+        buffer: io.BytesIO = await to_cache(url)
+        download_logger.info(f"Downloaded {url.split('/')[-1]}")
+        return buffer
+    else:
+        stream = pytube.YouTube(url)
+        video_id = stream.video_id
+        if stream.age_restricted:
+            download_logger.warning(f"Video {stream.title} is age restricted (video id: {video_id})")
+            return None
+        buffer = await to_cache(url)
+        logger.info(f"Downloaded {stream.title}")
+        return buffer
 
 
 class Sinks(Enum):
@@ -141,10 +149,12 @@ class SelectVideo(discord.ui.Select):
                                                                                       f"""[{pytube.YouTube(self.values[0])
                                                                           .title}]({self.values[0]}) is too long""",
                                                                           color=0xff0000))
-            stream.download(filename=f"cache/{format_name(stream.title)}.mp3")
+            buffer = io.BytesIO()
+            stream.stream_to_buffer(buffer)
+            buffer.seek(0)
             return await interaction.message.edit(
                 embed=discord.Embed(title="Download", description="Song downloaded.", color=0x00ff00),
-                file=discord.File(f"cache/{format_name(stream.title)}", filename=f"{format_name(stream.title)}.mp3"),
+                file=discord.File(buffer, filename=f"{format_name(stream.title)}.mp3"),
                 view=None)
         if not config.queue:
             config.position = 0
@@ -268,7 +278,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
                                     color=0xff0000))
         file = await download(url, download_logger=logging.getLogger("Audio-Downloader"))
         player = discord.PCMVolumeTransformer(
-            discord.FFmpegPCMAudio(file, executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"),
+            discord.FFmpegPCMAudio(file, executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg", pipe=True),
             config.volume / 100)
         try:
             logger.info(f"Playing song {video.title}")
@@ -284,7 +294,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
     except PytubeRegexMatchError:
         file = await download(url, download_logger=logging.getLogger("Audio-Downloader"))
         player = discord.PCMVolumeTransformer(
-            discord.FFmpegPCMAudio(file, executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"),
+            discord.FFmpegPCMAudio(file, executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg", pipe=True),
             config.volume / 100)
         try:
             logger.info(f"Playing song {url}")
@@ -310,11 +320,11 @@ async def on_play_song_finished(ctx: discord.ApplicationContext, error=None):
     await change_song(ctx)
 
 
-def convert(audio: str, file_format: str) -> str:
+def convert(audio: io.BytesIO, file_format: str) -> io.BytesIO:
     stream = ffmpeg.input(audio)
     stream = ffmpeg.output(stream, f"{audio.split('/')[1][:-4]}.{file_format}", format=file_format)
     ffmpeg.run(stream)
-    return f"{audio.split('/')[1][:-4]}.{file_format}"
+    return io.BytesIO(open(f"{audio.split('/')[1][:-4]}.{file_format}", "rb").read())
 
 
 class CustomFormatter(logging.Formatter):

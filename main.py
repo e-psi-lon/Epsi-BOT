@@ -179,8 +179,6 @@ async def send_message_error(ctx: discord.ApplicationContext, error: commands.Co
 def start(instance: Bot):
     # Charger les cogs
     global start_time
-    if not os.path.exists('cache/'):
-        os.mkdir('cache/')
     os.system("cls" if os.name == "nt" else "clear")
     logging.info(
         f"Script started at {start_time.strftime('%d/%m/%Y %H:%M:%S')} "

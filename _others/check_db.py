@@ -44,6 +44,7 @@ def check_db():
     cursor = conn.cursor()
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
     tables = cursor.fetchall()
+    tables.append(("sqlite_master",))
     print(f"Tables : {', '.join([table[0] for table in tables])}")
     # On récupère les données de chaque table
     for table in tables:
