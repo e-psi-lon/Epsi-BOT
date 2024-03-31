@@ -21,12 +21,12 @@ from utils import (Sinks,
                    finished_record_callback
                    )
 
-connections = {}
 
 
 class State(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.connections = {}
 
     play = SlashCommandGroup(name="play", description="Commands related to the audio of the bot")
 
@@ -200,7 +200,7 @@ class State(commands.Cog):
             except AttributeError:
                 pass
             config = await Config.get_config(ctx.guild.id, False)
-            config.volume = volume * 100
+            config.volume = volume
             return await ctx.respond(embed=discord.Embed(title="Volume", description=f"Volume set to {volume}%",
                                                          color=0x00ff00))
 
@@ -235,7 +235,7 @@ class State(commands.Cog):
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description="Time is too short.", color=0xff0000))
         vc = ctx.guild.voice_client
-        if ctx.guild.id in connections.keys():
+        if ctx.guild.id in self.connections.keys():
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description="Already recording", color=0xff0000))
 
@@ -244,7 +244,7 @@ class State(commands.Cog):
                 vc.stop_recording()
 
             asyncio.run(stop())
-            connections.pop(ctx.guild.id)
+            self.connections.pop(ctx.guild.id)
 
         if vc.channel.voice_states[vc.client.user.id].self_deaf:
             return await ctx.respond(embed=discord.Embed(title="Error", description="Bot is deafened.", color=0xff0000))
@@ -255,7 +255,7 @@ class State(commands.Cog):
             ctx.channel,
             sync_start=True
         )
-        connections[ctx.guild.id] = vc
+        self.connections[ctx.guild.id] = vc
         users = []
         for user in vc.channel.members:
             if not user.bot:
@@ -277,7 +277,7 @@ class State(commands.Cog):
             return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
         try:
             ctx.guild.voice_client.stop_recording()
-            connections.pop(ctx.guild.id).cancel()
+            self.connections.pop(ctx.guild.id).cancel()
             await ctx.respond(embed=discord.Embed(title="Stop record", description="Stopped recording.",
                                                   color=0x00ff00))
         except Exception as e:
