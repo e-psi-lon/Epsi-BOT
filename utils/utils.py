@@ -20,7 +20,7 @@ from .config import Config, Song, Asker, UserPlaylistAccess, format_name
 
 logger = logging.getLogger("__main__")
 
-cache = Cache(Cache.MEMORY)
+cache = Cache()
 
 
 async def to_cache(url: str) -> io.BytesIO:
@@ -38,6 +38,14 @@ async def to_cache(url: str) -> io.BytesIO:
     buffer.seek(0)
     await cache.set(url, buffer, ttl=3600)
     return buffer
+
+async def update_ttl(key: str, new_ttl: int):
+    buffer = await cache.get(key)
+    await cache.set(key, buffer, ttl=new_ttl)
+
+async def reset_ttl(key: str):
+    buffer = await cache.get(key)
+    await cache.set(key, buffer, ttl=3600)
 
 async def download(url: str, download_logger: logging.Logger = logger) -> Optional[Union[io.BytesIO, str]]:
     """Download a video from a YouTube (or other) URL"""
@@ -239,7 +247,7 @@ def get_index_from_title(title: str, list_to_check: list[Song]):
 
 
 async def change_song(ctx: discord.ApplicationContext):
-    config = await Config.get_config(ctx.guild.id, False)
+    config = await Config.get_config(ctx.guild.id)
     if not config.queue:
         return
     if config.position >= len(config.queue) - 1 and not config.loop_queue:
@@ -249,7 +257,7 @@ async def change_song(ctx: discord.ApplicationContext):
         config.position = -1
     if not config.loop_song:
         if config.random and len(config.queue) > 1:
-            config.position = random.choice(list(set(range(0, len(config.queue))) - {config.position}))
+            config.position = random.choice(list(set(range(0, len(config.queue))) - set([config.position])))
         elif len(config.queue) < 1:
             config.position = 0
         else:
@@ -257,7 +265,7 @@ async def change_song(ctx: discord.ApplicationContext):
     try:
         await play_song(ctx, config.queue[config.position].url)
     except Exception as e:
-        logger.error(f"Erreur : {e}")
+        logger.error(f"Error while playing song: {e}")
 
 
 async def play_song(ctx: discord.ApplicationContext, url: str):
