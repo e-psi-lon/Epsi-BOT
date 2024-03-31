@@ -3,6 +3,7 @@ import os
 import sys
 import threading
 import traceback
+import argparse
 
 from utils import CustomFormatter, GuildData, UserData, PanelToBotRequest, RequestType
 
@@ -195,12 +196,19 @@ def start(instance: Bot):
     # Lancer l'instance du bot
     instance.run(os.environ["TOKEN"])
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--log-level", type=str, default="INFO", help="The log level of the bot", required=False)
+    return parser.parse_known_args()[0]
 
 if __name__ == "__main__":
     # Les logs sont envoyés dans la console
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(CustomFormatter(source="Bot"))
-    logging.basicConfig(level=logging.INFO, handlers=[console_handler])
+    log_level = getattr(logging, parse_args().log_level.upper(), None)
+    if not isinstance(log_level, int):
+        raise ValueError(f"Invalid log level: {parse_args().log_level}")
+    logging.basicConfig(level=log_level, handlers=[console_handler])
     if not os.path.exists("database/database.db"):
         if not os.path.exists("database/"):
             os.mkdir("database/")
