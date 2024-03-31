@@ -122,58 +122,53 @@ class DatabaseAccess:
         sqlite3.Error
             If an error occurs when executing the query.
         """
-        async with aiosqlite.connect("database/database.db") as conn:
-            cursor = await conn.cursor()
-            new_table = Table(table)
-            query = Query.from_(new_table)
-            for key, value in where.items():
-                if len(key.split('.')) > 1:
-                    table_name, column = key.split('.')
-                    query = query.where(getattr(Table(table_name), column) == value)
+        new_table = Table(table)
+        query = Query.from_(new_table)
+        for key, value in where.items():
+            if len(key.split('.')) > 1:
+                table_name, column = key.split('.')
+                query = query.where(getattr(Table(table_name), column) == value)
+            else:
+                query = query.where(getattr(new_table, key) == value)
+        if joins is not None:
+            for join in joins:
+                table1 = Table(join.first_table)
+                table2 = Table(join.second_table)
+                query = query.join(table2).on(
+                    getattr(table1, join.first_column) == getattr(table2, join.second_column))
+        if order_by is not None:
+            if isinstance(order_by, str):
+                if len(order_by.split('.')) > 1:
+                    table_name, column = order_by.split('.')
+                    query = query.orderby(Field(column, table=Table(table_name)))
                 else:
-                    query = query.where(getattr(new_table, key) == value)
-            if joins is not None:
-                for join in joins:
-                    table1 = Table(join.first_table)
-                    table2 = Table(join.second_table)
-                    query = query.join(table2).on(
-                        getattr(table1, join.first_column) == getattr(table2, join.second_column))
-            if order_by is not None:
-                if isinstance(order_by, str):
-                    if len(order_by.split('.')) > 1:
-                        table_name, column = order_by.split('.')
+                    query = query.orderby(Field(order_by))
+            elif isinstance(order_by, list):
+                for column in order_by:
+                    if len(column.split('.')) > 1:
+                        table_name, column = column.split('.')
                         query = query.orderby(Field(column, table=Table(table_name)))
                     else:
-                        query = query.orderby(Field(order_by))
-                elif isinstance(order_by, list):
-                    for column in order_by:
-                        if len(column.split('.')) > 1:
-                            table_name, column = column.split('.')
-                            query = query.orderby(Field(column, table=Table(table_name)))
-                        else:
-                            query = query.orderby(Field(column))
-                else:
-                    raise ValueError("order_by must be a string or a list of strings")
-            if columns[0] != '*':
-                for column in columns:
-                    column = column.split('.')
-                    if len(column) > 1:
-                        if column[1] != '*':
-                            query = query.select(getattr(Table(column[0]), column[1]))
-                        else:
-                            query = query.select(Field('*', table=Table(column[0])))
-                    else:
-                        query = query.select(getattr(new_table, column[0]))
+                        query = query.orderby(Field(column))
             else:
-                query = query.select("*")
-            query = str(query)
-            logger.debug(f"Executing query: {query}")
-            await cursor.execute(query)
-            results = await cursor.fetchall() if all_results else await cursor.fetchone()
-            if results is None and create_if_none:
-                await self._create_db(table, **where)
-                results = await cursor.fetchone()
-            return results
+                raise ValueError("order_by must be a string or a list of strings")
+        if columns[0] != '*':
+            for column in columns:
+                column = column.split('.')
+                if len(column) > 1:
+                    if column[1] != '*':
+                        query = query.select(getattr(Table(column[0]), column[1]))
+                    else:
+                        query = query.select(Field('*', table=Table(column[0])))
+                else:
+                    query = query.select(getattr(new_table, column[0]))
+        else:
+            query = query.select("*")
+        results = await self._query(str(query), return_results=True, return_all=all_results)
+        if results is None and create_if_none:
+            await self._create_db(table, **where)
+            results = await self._query(str(query), return_results=True, return_all=all_results)
+        return results
 
     async def _update_db(self, table: str, columns_values: dict[str, str],
                          **where: Any) -> None:
@@ -196,24 +191,23 @@ class DatabaseAccess:
         """
         if self._copy:
             return
-        async with aiosqlite.connect("database/database.db") as conn:
-            cursor = await conn.cursor()
-            table = Table(table)
-            query = Query.update(table)
-            for key, value in columns_values.items():
-                if len(key.split('.')) > 1:
-                    table_name, column = key.split('.')
-                    query = query.set(Field(column, table=table_name), value)
-                else:
-                    query = query.set(Field(key, table=table), value)
-            for key, value in where.items():
-                if len(key.split('.')) > 1:
-                    table_name, column = key.split('.')
-                    query = query.where(Field(column, table=table_name) == value)
-            query = str(query)
-            logger.debug(f"Executing query: {query}")
-            await cursor.execute(query)
-            await conn.commit()
+        table = Table(table)
+        query = Query.update(table)
+        for key, value in columns_values.items():
+            if len(key.split('.')) > 1:
+                table_name, column = key.split('.')
+                query = query.set(Field(column, table=table_name), value)
+            else:
+                query = query.set(Field(key, table=table), value)
+        for key, value in where.items():
+            if len(key.split('.')) > 1:
+                table_name, column = key.split('.')
+                query = query.where(Field(column, table=table_name) == value)
+            else:
+                query = query.where(Field(key, table=table) == value)
+        await self._query(str(query), commit=True)
+
+        
 
     async def _create_db(self, table, **columns_values: Any) -> Optional[Union[list[tuple], tuple]]:
         """
@@ -239,14 +233,9 @@ class DatabaseAccess:
         """
         if self._copy:
             return await self._get_db(table, f"{table}.*", **columns_values)
-        async with aiosqlite.connect("database/database.db") as conn:
-            cursor = await conn.cursor()
-            table_ = Table(table)
-            query = Query.into(table_).columns(*columns_values.keys()).insert(*columns_values.values())
-            query = str(query)
-            logger.debug(f"Executing query: {query}")
-            await cursor.execute(query)
-            await conn.commit()
+        table_ = Table(table)
+        query = Query.into(table_).columns(*columns_values.keys()).insert(*columns_values.values())
+        await self._query(str(query), commit=True)
         return await self._get_db(table, f"*", **columns_values)
 
     async def _delete_db(self, table: str, **where: Any) -> None:
@@ -267,25 +256,20 @@ class DatabaseAccess:
         """
         if self._copy:
             return
-        async with aiosqlite.connect("database/database.db") as conn:
-            cursor = await conn.cursor()
-            table = Table(table)
-            query = Query.from_(table).delete()
-            for key, value in where.items():
-                if len(key.split('.')) > 1:
-                    table_name, column = key.split('.')
-                    query = query.where(getattr(Table(table_name), column) == value)
-                else:
-                    query = query.where(getattr(table, key) == value)
-            query = str(query)
-            logger.debug(f"Executing query: {query}")
-            await cursor.execute(query)
-            await conn.commit()
+        table = Table(table)
+        query = Query.from_(table).delete()
+        for key, value in where.items():
+            if len(key.split('.')) > 1:
+                table_name, column = key.split('.')
+                query = query.where(getattr(Table(table_name), column) == value)
+            else:
+                query = query.where(getattr(table, key) == value)
+        await self._query(str(query), commit=True)
 
-    async def _custom_query(self, query: str, commit: bool = False, return_results: bool = False,
+    async def _query(self, query: str, commit: bool = False, return_results: bool = False,
                             return_all: bool = False):
         """
-        Execute a custom query which is not a simple select, update, insert, or delete query.
+        Execute a query.
 
         Parameters
         ----------
@@ -312,7 +296,7 @@ class DatabaseAccess:
         """
         async with aiosqlite.connect("database/database.db") as conn:
             cursor = await conn.cursor()
-            logger.debug(f"Executing query: {query}")
+            logger.info(f"Executing query: {query}")
             await cursor.execute(query)
             if not self._copy and commit:
                 await conn.commit()
@@ -632,7 +616,7 @@ class Playlist(DatabaseAccess):
         table = Table('PLAYLIST_SONG')
         query = Query.update(table).set("position", table.position - 1).where((table.playlist_id == self._id) &
                                                                               (table.position > index))
-        await self._custom_query(str(query), commit=True)
+        await self._query(str(query), commit=True)
 
     async def insert_song(self, song: Song, index: int):
         """Insert a song to the playlist at a specific index."""
@@ -642,7 +626,7 @@ class Playlist(DatabaseAccess):
         table = Table('PLAYLIST_SONG')
         query = Query.update(table).set("position", table.position + 1).where((table.playlist_id == self._id) &
                                                                               (table.position >= index))
-        await self._custom_query(str(query), commit=True)
+        await self._query(str(query), commit=True)
 
     def __str__(self) -> str:
         return f"Playlist {self.name}: {', '.join([str(song) for song in self.songs])}"
@@ -950,7 +934,7 @@ class Config(DatabaseAccess):
         query = Query.update(table).set("position", table.position - 1).where((table.server_id == self.guild_id) &
                                                                               (table.position > self._queue.index(
                                                                                   song)))
-        await self._custom_query(str(query), commit=True)
+        await self._query(str(query), commit=True)
 
     async def insert_to_queue(self, song: Song, index: int):
         """Insert a song to the queue at a specific index."""
@@ -959,7 +943,7 @@ class Config(DatabaseAccess):
         table = Table('QUEUE')
         query = Query.update(table).set("position", table.position + 1).where((table.server_id == self.guild_id) &
                                                                               (table.position >= index))
-        await self._custom_query(str(query), commit=True)
+        await self._query(str(query), commit=True)
 
     async def edit_queue(self, new_queue: list[Song]):
         """Replace the actual queue with a new queue."""
