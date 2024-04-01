@@ -1,5 +1,4 @@
 import multiprocessing
-import sys
 import logging
 from logging.config import dictConfig
 import os
@@ -16,7 +15,6 @@ from utils import (PanelToBotRequest,
                    RequestType, 
                    ConfigData, 
                    AsyncTimer, 
-                   CustomFormatter,
                    Config,
                    Song,
                    Asker,
