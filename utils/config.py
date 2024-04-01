@@ -154,14 +154,14 @@ class DatabaseAccess:
                 raise ValueError("order_by must be a string or a list of strings")
         if columns[0] != '*':
             for column in columns:
-                column = column.split('.')
-                if len(column) > 1:
-                    if column[1] != '*':
-                        query = query.select(getattr(Table(column[0]), column[1]))
+                split = column.split('.')
+                if len(split) > 1:
+                    if split[1] != '*':
+                        query = query.select(getattr(Table(split[0]), split[1]))
                     else:
-                        query = query.select(Field('*', table=Table(column[0])))
+                        query = query.select(Field('*', table=Table(split[0])))
                 else:
-                    query = query.select(getattr(new_table, column[0]))
+                    query = query.select(getattr(new_table, split[0]))
         else:
             query = query.select("*")
         results = await self._query(str(query), return_results=True, return_all=all_results)
@@ -321,7 +321,7 @@ class Asker(DatabaseAccess):
         Get an Asker object from the database.
     """
 
-    def __init__(self, copy=False):
+    def __init__(self, copy: bool) -> None:
         super().__init__(copy)
         self._id: Optional[int] = None
         self._discord_id: Optional[int] = None
@@ -346,22 +346,29 @@ class Asker(DatabaseAccess):
         self = cls(is_copy)
         asker = await self._get_db('ASKER', 'asker_id', discord_id=discord_id)
         if asker is not None:
-            self._id = asker[0]
-            self._discord_id = discord_id
+            if isinstance(asker, tuple) and isinstance(asker[0], int):
+                self._id = asker[0]
+                self._discord_id = discord_id
         else:
             self._discord_id = discord_id
             await self._create_db('ASKER', discord_id=discord_id)
-            self._id = (await self._get_db('ASKER', 'asker_id', discord_id=discord_id))[0]
+            response = await self._get_db('ASKER', 'asker_id', discord_id=discord_id)
+            if isinstance(response, tuple) and isinstance(response[0], int):
+                self._id = response[0]
         return self
 
     @property
     def id(self) -> int:
         """The database id of the asker."""
+        if self._id is None:
+            raise ValueError("The instance is incorrectly initialized")
         return self._id
 
     @property
     def discord_id(self) -> int:
         """The discord id of the asker."""
+        if self._discord_id is None:
+            raise ValueError("The instance is incorrectly initialized")
         return self._discord_id
 
     def __str__(self) -> str:
@@ -394,7 +401,7 @@ class Song(DatabaseAccess):
         Create a Song object.
     """
 
-    def __init__(self, copy=False):
+    def __init__(self, copy: bool) -> None:
         super().__init__(copy)
         self._id: Optional[int] = None
         self._name: Optional[str] = None
@@ -425,19 +432,26 @@ class Song(DatabaseAccess):
         self = cls(is_copy)
         if await self._song_exists(url=url):
             song = await self._get_db('SONG', 'song_id', 'name', 'url', name=format_name(name), url=url)
-            self._id, self._name, self._url = song
-            self._name = unformat_name(self._name)
-            self._asker = asker
+            if isinstance(song, tuple) and isinstance(song[0], int) and isinstance(song[1], str) and isinstance(
+                    song[2], str):
+                self._id, self._name, self._url = song
+                if self._name is not None:
+                    self._name = unformat_name(self._name)
+                self._asker = asker
             return self
         self._name = name
         self._url = url
         self._asker = asker
-        self._id = (await self._create_db('SONG', name=format_name(name), url=url))[0]
+        response = await self._get_db('SONG', 'song_id', name=format_name(name), url=url)
+        if isinstance(response, tuple) and isinstance(response[0], int):
+            self._id = response[0]
         return self
 
     @property
     def id(self) -> int:
         """The database id of the song."""
+        if self._id is None:
+            raise ValueError("The instance is incorrectly initialized")
         return self._id
 
     @id.setter
@@ -447,16 +461,22 @@ class Song(DatabaseAccess):
     @property
     def name(self) -> str:
         """The name of the song."""
+        if self._name is None:
+            raise ValueError("The instance is incorrectly initialized")
         return self._name
 
     @property
     def title(self) -> str:
         """The title of the song. (Identical to name)"""
+        if self._name is None:
+            raise ValueError("The instance is incorrectly initialized")
         return self._name
 
     @property
     def url(self) -> str:
         """The url of the song."""
+        if self._url is None:
+            raise ValueError("The instance is incorrectly initialized")
         return self._url
 
     @property
@@ -530,14 +550,14 @@ class Playlist(DatabaseAccess):
         self = cls(is_copy)
         self._id = playlist_id
         playlist = await self._get_db('PLAYLIST', 'name', playlist_id=playlist_id)
-        if playlist is not None:
+        if playlist is not None and isinstance(playlist, tuple) and isinstance(playlist[0], str):
             self._name = format_name(playlist[0])
         songs = await self._get_db('PLAYLIST_SONG', 'SONG.name', 'SONG.url', 'ASKER.discord_id', all_results=True,
                                    joins=[JoinCondition('PLAYLIST_SONG', 'SONG', 'song_id', 'song_id'),
                                           JoinCondition('PLAYLIST_SONG', 'ASKER', 'asker', 'asker_id')],
                                    order_by="PLAYLIST_SONG.position", **{"PLAYLIST_SONG.playlist_id": playlist_id})
-
-        self._songs = [await Song.create(name, url, await Asker.from_id(asker)) for name, url, asker in songs]
+        if songs is not None:
+            self._songs = [await Song.create(name, url, await Asker.from_id(asker)) for name, url, asker in songs]
         return self
 
     @classmethod
@@ -569,7 +589,9 @@ class Playlist(DatabaseAccess):
         self = cls(False)
         self._name = name
         await self._create_db('PLAYLIST', name=format_name(name))
-        self._id = (await self._get_db('PLAYLIST', 'playlist_id', name=format_name(name)))[0]
+        response = await self._get_db('PLAYLIST', 'playlist_id', name=format_name(name))
+        if isinstance(response, tuple) and isinstance(response[0], int):
+            self._id = response[0]
         for song in songs:
             self._songs.append(song)
             await self._create_db('PLAYLIST_SONG', playlist_id=self._id, song_id=song.id, asker=song.asker.id,

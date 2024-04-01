@@ -1,12 +1,14 @@
 import multiprocessing
 import sys
 import logging
+from logging.config import dictConfig
 import os
 
 from typing import Optional
 
-
 from quart import Quart, session, redirect, url_for, render_template, request
+from quart.logging import default_handler
+from quart_session import Session
 
 from utils import (PanelToBotRequest, 
                    GuildData, 
@@ -28,31 +30,38 @@ import pytube
 
 load_dotenv()
 
-logger = logging.getLogger("Panel")
-logger.handlers.clear()
-console_handler = logging.StreamHandler(sys.stdout)
-console_handler.setFormatter(CustomFormatter(source="Panel"))
-logger.addHandler(console_handler)
-logger.setLevel(logging.INFO)
-
-
+dictConfig({
+    'version': 1,
+    'formatters': {'default': {
+        '()': 'utils.CustomFormatter',
+        'source': 'Panel'
+    }},
+    'handlers': {'console': {
+        'class': 'logging.StreamHandler',
+        'formatter': 'default',
+        'stream': 'ext://sys.stdout',
+    }},
+    'root': {
+        'level': logging.getLogger('__main__').getEffectiveLevel(),
+        'handlers': ['console']
+    }
+})
 
 
 
 
 class Panel(Quart):
     def __init__(self, secret_key, *args, **kwargs):
+        logging.getLogger(__name__).removeHandler(default_handler)
         super().__init__(*args, **kwargs)
         self.secret_key = secret_key
-        self.logger.handlers.clear()
-        self.logger.addHandler(console_handler)
-        self.logger.setLevel(logging.INFO)
         self.API_ENDPOINT = "https://discord.com/api/v10"
         self.CLIENT_ID = 1167171085343666216
         self.CLIENT_SECRET = "kH848ueQ4RGF3cKBNRJ1W1bFHI0b9bfo"
         self.REDIRECT_URI = "http://86.196.98.254/auth/discord/callback"
         self.timers: dict[int, AsyncTimer] = {}
         self.queue: Optional[multiprocessing.Queue[PanelToBotRequest | GuildData | UserData | list[GuildData]]] = None
+        Session(self)
 
     def set_queue(self, queue: multiprocessing.Queue):
         self.queue = queue
