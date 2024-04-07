@@ -4,8 +4,10 @@ from enum import Enum
 from typing import Optional, Union, Any
 
 import aiosqlite
-from pypika import Table, Query, Field
+from pypika import Table, Query, Field # type: ignore
 import concurrent.futures
+
+from utils.type_ import type_checking
 
 logger = logging.getLogger("__main__")
 
@@ -93,8 +95,6 @@ class DatabaseAccess:
             concurrent.futures.wait([future])
             return future.result()
         
-
-
     async def _song_exists(self, **song_data) -> bool:
         """Check if a song exists in the database."""
         return await self._get_db('SONG', 'song_id', **song_data) is not None
@@ -408,15 +408,15 @@ class Asker(DatabaseAccess):
         self = cls(is_copy)
         asker = await self._get_db('ASKER', 'asker_id', discord_id=discord_id)
         if asker is not None:
-            if isinstance(asker, tuple) and isinstance(asker[0], int):
-                self._id = asker[0]
-                self._discord_id = discord_id
+            type_checking(asker, tuple, int)
+            self._id = asker[0] 
+            self._discord_id = discord_id
         else:
             self._discord_id = discord_id
             await self._create_db('ASKER', discord_id=discord_id)
             response = await self._get_db('ASKER', 'asker_id', discord_id=discord_id)
-            if isinstance(response, tuple) and isinstance(response[0], int):
-                self._id = response[0]
+            type_checking(response, tuple, int)
+            self._id = response[0]
         return self
 
     @property
@@ -494,19 +494,18 @@ class Song(DatabaseAccess):
         self = cls(is_copy)
         if await self._song_exists(url=url):
             song = await self._get_db('SONG', 'song_id', 'name', 'url', name=format_name(name), url=url)
-            if isinstance(song, tuple) and isinstance(song[0], int) and isinstance(song[1], str) and isinstance(
-                    song[2], str):
-                self._id, self._name, self._url = song
-                if self._name is not None:
-                    self._name = unformat_name(self._name)
-                self._asker = asker
+            type_checking(song, tuple, int, str, str)
+            self._id, self._name, self._url = song
+            if self._name is not None:
+                self._name = unformat_name(self._name)
+            self._asker = asker
             return self
         self._name = name
         self._url = url
         self._asker = asker
         response = await self._create_db('SONG', 'song_id', name=format_name(name), url=url)
-        if isinstance(response, tuple) and isinstance(response[0], int):
-            self._id = response[0]
+        type_checking(response, tuple, int)
+        self._id = response[0]
         return self
 
     @property
@@ -641,8 +640,8 @@ class Playlist(DatabaseAccess):
         self._name = name
         await self._create_db('PLAYLIST', name=format_name(name))
         response = await self._get_db('PLAYLIST', 'playlist_id', name=format_name(name))
-        if isinstance(response, tuple) and isinstance(response[0], int):
-            self._id = response[0]
+        type_checking(response, tuple, int)
+        self._id = response[0]
         for song in songs:
             self._songs.append(song)
             await self._create_db('PLAYLIST_SONG', playlist_id=self._id, song_id=song.id, asker=song.asker.id,
@@ -782,7 +781,10 @@ class UserPlaylistAccess(DatabaseAccess):
 
     @property
     def playlists(self) -> set[Playlist]:
-        """The playlists of the user."""
+        """
+        A copy of the playlists to avoid modifying it outside the class.\n
+        Use add_playlist, remove_playlist to modify the playlists.
+        """
         if self._playlists is None:
             self._playlists = set()
             playlists = self._sync_get_db('PLAYLIST', 'PLAYLIST.playlist_id', all_results=True,
@@ -1024,7 +1026,7 @@ class Config(DatabaseAccess):
     async def add_to_queue(self, song: Song):
         """Add a song to the queue."""
         if self._queue is None:
-            _ = self.queue
+            self._queue = self.queue
         self._queue.append(song)
         await self._create_db('QUEUE', song_id=song.id, server_id=self.guild_id, asker=song.asker.id,
                               position=len(self._queue))
@@ -1032,7 +1034,7 @@ class Config(DatabaseAccess):
     async def remove_from_queue(self, song: Song):
         """Remove a song from the queue."""
         if self._queue is None:
-            _ = self.queue
+            self.queue = self.queue
         self._queue.remove(song)
         await self._delete_db('QUEUE', song_id=song.id, server_id=self.guild_id)
         table = Table('QUEUE')
@@ -1061,13 +1063,13 @@ class Config(DatabaseAccess):
     async def add_playlist(self, playlist: Playlist):
         """Add a playlist to the guild's playlists."""
         if self._playlists is None:
-            _ = self.playlists
+            self._playlists = self.playlists
         self._playlists.add(playlist)
 
     async def remove_playlist(self, playlist: Playlist):
         """Remove a playlist from the guild's playlists."""
         if self._playlists is None:
-            _ = self.playlists
+            self._playlists = self.playlists
         self._playlists.remove(playlist)
         await self._delete_db('PLAYLIST', playlist_id=playlist.id)
         await self._delete_db('PLAYLIST_SONG', playlist_id=playlist.id)
@@ -1077,7 +1079,7 @@ class Config(DatabaseAccess):
         """Get a playlist from the guild's playlists. Search in the database again if the playlist is not in the
         object."""
         if self._playlists is None:
-            _ = self.playlists
+            self._playlists = self.playlists
         for playlist in self._playlists:
             if playlist.id == playlist_id:
                 return playlist

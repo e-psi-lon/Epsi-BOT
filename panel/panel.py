@@ -7,7 +7,7 @@ from typing import Optional
 
 from quart import Quart, session, redirect, url_for, render_template, request
 from quart.logging import default_handler
-from quart_session import Session
+from quart_session import Session # type: ignore
 
 from utils import (PanelToBotRequest, 
                    GuildData, 
@@ -18,12 +18,12 @@ from utils import (PanelToBotRequest,
                    Config,
                    Song,
                    Asker,
-                   Requests
+                   AsyncRequests as Requests,
                    )
 
 import aiohttp
 from dotenv import load_dotenv
-import pytube
+import pytube # type: ignore
 
 
 load_dotenv()
@@ -49,7 +49,7 @@ dictConfig({
 
 
 class Panel(Quart):
-    def __init__(self, secret_key, *args, **kwargs):
+    def __init__(self, secret_key: str, *args, **kwargs):
         logging.getLogger(__name__).removeHandler(default_handler)
         super().__init__(*args, **kwargs)
         self.secret_key = secret_key
@@ -66,6 +66,8 @@ class Panel(Quart):
 
     async def get_from_bot(self, content: str, **kwargs) -> GuildData | UserData | list[GuildData]:
         data = PanelToBotRequest.create(RequestType.GET, content, **kwargs)
+        if self.queue is None:
+            raise ValueError("Queue is not set")
         self.queue.put(data)
         self.logger.info(f"Getting {data} from conn")
         response = None
@@ -77,8 +79,10 @@ class Panel(Quart):
         self.logger.info(f"Got {response} from conn")
         return response
     
-    async def post_to_bor(self, data: dict):
+    async def post_to_bot(self, data: dict):
         request_ = PanelToBotRequest.create(RequestType.POST, data)
+        if self.queue is None:
+            raise ValueError("Queue is not set")
         self.queue.put(request_)
         self.logger.info(f"Posting {request_} to conn")
 

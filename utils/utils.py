@@ -4,19 +4,19 @@ import logging
 import os
 import random
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Optional, Union
 
-import aiohttp
 import discord
 import discord.ext.pages
-import ffmpeg
-import pydub
-import pytube
+import ffmpeg # type: ignore
+import pydub # type: ignore
+import pytube # type: ignore
 from discord.ext import commands
-from pytube.exceptions import RegexMatchError as PytubeRegexMatchError
-from aiocache import Cache
+from pytube.exceptions import RegexMatchError as PytubeRegexMatchError # type: ignore
+from aiocache import Cache # type: ignore
 
 from .config import Config, Song, Asker, UserPlaylistAccess, format_name
+from .async_ import AsyncRequests
 
 logger = logging.getLogger("__main__")
 
@@ -28,7 +28,7 @@ async def to_cache(url: str) -> io.BytesIO:
         return await cache.get(url)
     buffer = io.BytesIO()
     if not url.startswith("https://youtube.com/watch?v="):
-        r = await Requests.get(url, return_type="content")
+        r: bytes = await AsyncRequests.get(url, return_type="content")
         buffer.write(r)
     else:
         stream = pytube.YouTube(url)
@@ -96,7 +96,9 @@ async def finished_record_callback(sink: discord.sinks.Sink, channel: discord.Te
             audio_segs.append(seg)
 
         audio.file.seek(0)
-        files.append(discord.File(audio.file, filename=f"{channel.guild.get_member(user_id).name}.{sink.encoding}"))
+        member = channel.guild.get_member(user_id)
+        if member is not None:
+            files.append(discord.File(audio.file, filename=f"{member.name}.{sink.encoding}"))
 
     for seg in audio_segs:
         longest = longest.overlay(seg)
@@ -114,6 +116,8 @@ async def disconnect_from_channel(state: discord.VoiceState, bot: commands.Bot):
     ok = False
     for client in bot.voice_clients:
         for guild in client.client.guilds:
+            if state.channel is None:
+                return await client.disconnect(force=True)
             if guild.id == state.channel.guild.id:
                 await client.disconnect(force=True)
                 config = await Config.get_config(guild.id, False)
@@ -340,14 +344,14 @@ class CustomFormatter(logging.Formatter):
         super().__init__(*args, **kwargs)
         self.source = source
 
-    format = "[{asctime}] {source} {levelname} : {message} ({path}:{lineno})\033[0m"
+    format_ = "[{asctime}] {source} {levelname} : {message} ({path}:{lineno})\033[0m"
 
     FORMATS = {
-        logging.DEBUG: "\033[34m" + format,  # Blue
-        logging.INFO: "\033[32m" + format,  # Green
-        logging.WARNING: "\033[33m" + format,  # Yellow
-        logging.ERROR: "\033[31m" + format,  # Red
-        logging.CRITICAL: "\033[41m" + format  # Red
+        logging.DEBUG: "\033[34m" + format_,  # Blue
+        logging.INFO: "\033[32m" + format_,  # Green
+        logging.WARNING: "\033[33m" + format_,  # Yellow
+        logging.ERROR: "\033[31m" + format_,  # Red
+        logging.CRITICAL: "\033[41m" + format_  # Red
     }
 
     def format(self, record):
@@ -365,29 +369,4 @@ def get_lyrics(title: str):
     return title
 
 
-class Requests:
-    @staticmethod
-    async def get(url: str, params: dict = None, data: Any = None, headers: dict = None, cookies: dict = None, auth: aiohttp.BasicAuth = None, allow_redirects: bool = True, timeout: float = None, json: Any = None, return_type: str = "json") -> Union[dict, str, bytes]: 
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, params=params, data=data, headers=headers, cookies=cookies, auth=auth, allow_redirects=allow_redirects, timeout=timeout, json=json) as response:
-                response.raise_for_status()
-                match return_type:
-                    case "json":
-                        return await response.json()
-                    case "content":
-                        return await response.content.read()
-                    case _:
-                        return await response.text()
 
-    @staticmethod
-    async def post(url: str, data: Any = None, json: Any = None, params: dict = None, headers: dict = None, cookies: dict = None, auth: aiohttp.BasicAuth = None, allow_redirects: bool = True, timeout: float = None, return_type: str = "json") -> Union[dict, str, bytes]:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, data=data, json=json, params=params, headers=headers, cookies=cookies, auth=auth, allow_redirects=allow_redirects, timeout=timeout) as response:
-                response.raise_for_status()
-                match return_type:
-                    case "json":
-                        return await response.json()
-                    case "content":
-                        return await response.content.read()
-                    case _:
-                        return await response.text()

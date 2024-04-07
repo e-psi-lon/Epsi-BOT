@@ -7,13 +7,12 @@ from .config import (Config,
                      )
 
 from .panel import (ChannelData,
-                             UserData,
-                             GuildData,
-                             PanelToBotRequest,
-                             RequestType,
-                             ConfigData,
-                             AsyncTimer,
-                             )
+                    UserData,
+                    GuildData,
+                    PanelToBotRequest,
+                    RequestType,
+                    ConfigData
+                    )
 
 from .utils import (download,
                     Sinks,
@@ -36,6 +35,11 @@ from .utils import (download,
                     play_song,
                     convert,
                     CustomFormatter,
-                    get_lyrics,
-                    Requests
+                    get_lyrics
                     )
+
+from .async_ import (AsyncTimer,
+                     AsyncRequests
+                    )
+
+from .type_ import (type_checking,)

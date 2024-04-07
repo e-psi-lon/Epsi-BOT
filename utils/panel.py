@@ -1,10 +1,9 @@
-import asyncio
 from dataclasses import dataclass, field
-from discord import Guild, Member, User
+from discord import Guild, User
 from discord.abc import GuildChannel
 from .config import Song
 
-from typing import Callable, Union, Any, Optional
+from typing import Any, Optional
 from enum import Enum
 
 
@@ -63,7 +62,7 @@ class UserData:
     def from_user(cls, user: User):
         return cls(
             name=user.name,
-            global_name=user.global_name,
+            global_name=user.global_name if hasattr(user, "global_name") else user.name, 
             id=user.id,
             avatar=getattr(user.avatar, "url", "")
         )
@@ -140,28 +139,3 @@ class ConfigData:
     
     
 
-
-class AsyncTimer:
-    def __init__(self, delay: Union[int, float], callback: Callable, *args, **kwargs):
-        self.delay = delay
-        self.callback = callback
-        self.args = args
-        self.kwargs = kwargs
-        self.task = None
-
-    async def _job(self):
-        await asyncio.sleep(self.delay)
-        if asyncio.iscoroutinefunction(self.callback):
-            await self.callback(*self.args, **self.kwargs)
-        else:
-            self.callback(*self.args, **self.kwargs)
-            
-        
-
-    def start(self):
-        self.task = asyncio.create_task(self._job())
-
-    def cancel(self):
-        if self.task:
-            self.task.cancel()
-            self.task = None
