@@ -260,13 +260,15 @@ async def change_song(ctx: discord.ApplicationContext):
         await config.clear_queue()
     if config.position >= len(config.queue) - 1 and config.loop_queue and not config.loop_song:
         config.position = -1
+    if config.position >= len(config.queue) - 1 and not config.loop_queue:
+        return
     if not config.loop_song:
         if config.random and len(config.queue) > 1:
             config.position = random.choice(list(set(range(0, len(config.queue))) - set([config.position])))
         elif len(config.queue) < 1:
             config.position = 0
         else:
-            config.position = config.position + 1
+            config.position += 1
     try:
         await play_song(ctx, config.queue[config.position].url)
     except Exception as e:
