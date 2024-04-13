@@ -170,6 +170,16 @@ async def send_message(ctx: discord.ApplicationContext,
     await channel.send(message)
     await ctx.respond(content="Message envoyé !", ephemeral=True)
 
+@bot_instance.slash_command(name="stop-bot", description="Arrête le bot")
+async def stop_bot(ctx: discord.ApplicationContext):
+    if ctx.author.id != bot_instance.owner_id:
+        raise commands.NotOwner
+    await ctx.response.defer()
+    await ctx.respond(content="Arrêt en cours...", ephemeral=True)
+    await bot_instance.logout()
+    await bot_instance.close()
+    exit(0)
+
 
 @send_message.error
 async def send_message_error(ctx: discord.ApplicationContext, error: commands.CommandError):

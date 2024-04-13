@@ -38,18 +38,32 @@ class Queue(commands.Cog):
                    by: discord.Option(int, "How many songs to skip", required=False)): # type: ignore
         await ctx.response.defer()
         config = await Config.get_config(ctx.guild.id, False)
+        loop_song = config.loop_song
+        loop_queue = config.loop_queue
+        config.loop_song = False
+        config.loop_queue = False
         if not config.queue:
+            config.loop_song = loop_song
+            config.loop_queue = loop_queue
             return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
         if ctx.guild.voice_client is None:
+            config.loop_song = loop_song
+            config.loop_queue = loop_queue
             return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
         if by is None:
             ctx.guild.voice_client.stop()
+            config.loop_song = loop_song
+            config.loop_queue = loop_queue
             return await ctx.respond(embed=discord.Embed(title="Skip", description="Song skipped.", color=0x00ff00))
         if by < 0 or by >= len(config.queue) or config.position + by >= len(config.queue):
+            config.loop_song = loop_song
+            config.loop_queue = loop_queue
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description=f"Index {by} out of range.", color=0xff0000))
         config.position = config.position + by - 1
         ctx.guild.voice_client.stop()
+        config.loop_song = loop_song
+        config.loop_queue = loop_queue
         await ctx.respond(embed=discord.Embed(title="Skip", description=f"Skipped {by} songs.", color=0x00ff00))
 
     loop = SlashCommandGroup(name="loop", description="Commands related to looping songs")
@@ -139,15 +153,27 @@ class Queue(commands.Cog):
     async def back(self, ctx: discord.ApplicationContext):
         await ctx.response.defer()
         config = await Config.get_config(ctx.guild.id, False)
+        loop_song = config.loop_song
+        loop_queue = config.loop_queue
+        config.loop_song = False
+        config.loop_queue = False
         if not config.queue:
+            config.loop_song = loop_song
+            config.loop_queue = loop_queue
             return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
         if ctx.guild.voice_client is None:
+            config.loop_song = loop_song
+            config.loop_queue = loop_queue
             return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
         if config.position == 0:
+            config.loop_song = loop_song
+            config.loop_queue = loop_queue
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description="There is no previous song.", color=0xff0000))
         config.position = config.position - 2
         ctx.guild.voice_client.stop()
+        config.loop_song = loop_song
+        config.loop_queue = loop_queue
         await ctx.respond(embed=discord.Embed(title="Back", description="Playing previous song.", color=0x00ff00))
 
     @commands.slash_command(name="shuffle", description="Shuffles the queue")

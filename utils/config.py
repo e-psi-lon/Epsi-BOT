@@ -489,7 +489,7 @@ class Song(DatabaseAccess):
         self._name = name
         self._url = url
         self._asker = asker
-        await self._create_db('SONG', 'song_id', name=format_name(name), url=url)
+        await self._create_db('SONG', name=format_name(name), url=url)
         response = await self._get_db('SONG', 'song_id', name=format_name(name), url=url)
         type_checking(response, tuple, int)
         self._id = response[0]
@@ -1022,12 +1022,12 @@ class Config(DatabaseAccess):
         """Remove a song from the queue."""
         if self._queue is None:
             self.queue = self.queue
-        self._queue.remove(song)
         await self._delete_db('QUEUE', song_id=song.id, server_id=self.guild_id)
         table = Table('QUEUE')
         query = Query.update(table).set("position", table.position - 1).where((table.server_id == self.guild_id) &
                                                                               (table.position > self._queue.index(
                                                                                   song)))
+        self._queue.remove(song)
         await self._query(str(query), commit=True)
 
     async def insert_to_queue(self, song: Song, index: int):
