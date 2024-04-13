@@ -8,11 +8,28 @@ from enum import Enum
 
 
 class RequestType(Enum):
+    """Enum to represent the type of request from the panel to the bot."""
     GET = 'GET'
     POST = 'POST'
 
 @dataclass
 class PanelToBotRequest:
+    """Dataclass to represent a request from the panel to the bot.
+    
+    Attributes
+    ----------
+    type : RequestType
+        The type of request
+    content : Any
+        The content of the request
+    extra : Optional[dict]
+        Extra data for the request. Default is an empty dictionary.
+
+    Methods
+    -------
+    create(type_: RequestType, content: Any, **kwargs) -> PanelToBotRequest (classmethod)
+        Class method to create a PanelToBotRequest instance.
+    """
     type: RequestType
     content: Any
     extra: Optional[dict] = field(default_factory=dict)
@@ -28,6 +45,24 @@ class PanelToBotRequest:
 
 @dataclass
 class ChannelData:
+    """Dataclass to represent a discord channel in the panel.
+    
+    Attributes
+    ----------
+    name : str
+        The name of the channel
+    id : int
+         The id of the channel
+    type : str
+        The type of the channel
+
+    Methods
+    -------
+    from_channel(cls, channel: GuildChannel) -> ChannelData (classmethod)
+        Class method to create a ChannelData instance from a discord.abc.GuildChannel instance.
+    from_dict(cls, dict_: dict) -> ChannelData (classmethod)
+        Class method to create a ChannelData instance from a dictionary.
+    """
     name: str
     id: int
     type: str
@@ -53,6 +88,28 @@ class ChannelData:
 
 @dataclass
 class UserData:
+    """Dataclass to represent a discord user in the panel.
+
+    Attributes
+    ----------
+    name : str
+        The name of the user
+    global_name : str
+        The global name of the user
+    id : int
+        The id of the user
+    avatar : str
+        The avatar's url of the user
+
+    Methods
+    -------
+    from_user(cls, user: User) -> UserData (classmethod)
+        Class method to create a UserData instance from a discord.User instance.
+    from_api_response(cls, response: dict) -> UserData (classmethod)
+        Class method to create a UserData instance from a discord API response.
+    from_dict(cls, dict_: dict) -> UserData (classmethod)
+        Class method to create a UserData instance from a dictionary.
+    """ 
     name: str
     global_name: str
     id: int
@@ -88,6 +145,26 @@ class UserData:
 
 @dataclass
 class GuildData:
+    """Dataclass to represent a discord guild in the panel.
+
+    Attributes
+    ----------
+    name : str
+        The name of the guild
+    id : int
+        The id of the guild
+    icon : str
+        The icon's url of the guild
+    channels : list[ChannelData]
+        The channels of the guild
+
+    Methods
+    -------
+    from_guild(cls, guild: Guild) -> GuildData (classmethod)
+        Class method to create a GuildData instance from a discord.Guild instance.
+    from_dict(cls, dict_: dict) -> GuildData (classmethod)
+        Class method to create a GuildData instance from a dictionary.
+    """
     name: str
     id: int
     icon: str
@@ -115,6 +192,30 @@ class GuildData:
 
 
 class ConfigData:
+    """Dataclass to represent a server's bot configuration in the panel.
+
+    Attributes
+    ----------
+    guild_id : int
+        The id of the guild.
+    loop_song : bool
+        If the player should loop around the song.
+    loop_queue : bool
+        If the player should loop around the queue.
+    random : bool
+        If the player should play the songs in the queue in a random order.
+    volume : int
+        The volume of the player.
+    position : int
+        The position of the song in the queue.
+    queue : list[Song]
+        The queue of the player.
+
+    Methods
+    -------
+    to_dict(self) -> dict
+        Method to convert the ConfigData instance to a dictionary.
+    """
     def __init__(self, loop_song: bool, loop_queue: bool, random: bool, position: int, queue: list[Song], server_id: int, name: str):
         self.loop_song = loop_song
         self.loop_queue = loop_queue

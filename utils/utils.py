@@ -253,8 +253,7 @@ def get_index_from_title(title: str, list_to_check: list[Song]):
 
 
 async def change_song(ctx: discord.ApplicationContext):
-    config = await Config.get_config(ctx.guild.id)
-    if not config.queue:
+    if not (config := await Config.get_config(ctx.guild.id, False)).queue :
         return
     if config.position >= len(config.queue) - 1 and not (config.loop_queue and config.loop_song):
         config.position = 0
