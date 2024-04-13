@@ -1,5 +1,8 @@
 from typing import Any, Union, TYPE_CHECKING
 
+
+
+
 def type_checking(var: Any, type_: Union[type, tuple[type]], *indexed_types: Union[type, tuple[type]], use_attr: bool = False, raise_error: bool = TYPE_CHECKING, **named_types: Union[type, tuple[type]]):
     """
     Check the types of a variable and its attributes/values
@@ -24,38 +27,39 @@ def type_checking(var: Any, type_: Union[type, tuple[type]], *indexed_types: Uni
     TypeError
         If the variable doesn't match the types
     """
-    if not isinstance(var, type_):
-        if raise_error:
-            if isinstance(type_, tuple):
-                raise TypeError(f"Expected type {', '.join([type_.__name__ for type_ in type_])}, got {type(var).__name__}")
-            raise TypeError(f"Expected type {type_.__name__}, got {type(var).__name__}")
+    def raise_type_error(expected_type: Union[type, tuple[type]], actual_type: type, identifier: str = None, from_error: Exception = None):
+        if isinstance(expected_type, tuple):
+            expected_type_names = ', '.join([type_.__name__ for type_ in expected_type])
+        else:
+            expected_type_names = expected_type.__name__
+        if identifier is not None:
+            error_message = f"Expected type {expected_type_names} for {identifier}, got {actual_type.__name__}"
+        else:
+            error_message = f"Expected type {expected_type_names}, got {actual_type.__name__}"
+        if from_error is not None:
+            raise TypeError(error_message) from from_error
+        else:
+            raise TypeError(error_message)
+    if not isinstance(var, type_) and raise_error:
+        raise_type_error(type_, type(var))
     for index, type_ in enumerate(indexed_types):
-        if not isinstance(var, type_):
-            if raise_error:
-                if isinstance(type_, tuple):
-                    raise TypeError(f"Expected type {', '.join([type_.__name__ for type_ in type_])} for value at index {index}, got {type(var).__name__}")
-                raise TypeError(f"Expected type {type_.__name__} for value at index {index}, got {type(var).__name__}")
+        if not isinstance(var, type_) and raise_error:
+            raise_type_error(type_, type(var), f"value at index {index}")
     if use_attr:
         for attr, type_ in named_types.items():
             try:
-                if not isinstance(getattr(var, attr), type_):
-                    if raise_error:
-                        if isinstance(type_, tuple):
-                            raise TypeError(f"Expected type {', '.join([type_.__name__])} for attribute {attr}, got {type(getattr(var, attr)).__name__}")
-                        raise TypeError(f"Expected type {type_.__name__} for attribute {attr}, got {type(getattr(var, attr)).__name__}")
+                attr_value = getattr(var, attr)
+                if not isinstance(attr_value, type_) and raise_error:
+                    raise_type_error(type_, type(attr_value), f"attribute {attr}")
             except AttributeError as e:
-                if isinstance(type_, tuple):
-                    raise TypeError(f"Expected type {', '.join([type_.__name__])} for attribute {attr}, got nothing") from e
-                raise TypeError(f"Expected type {type_.__name__} for attribute {attr}, got nothing") from e
+                if raise_error:
+                    raise_type_error(type_, None, f"attribute {attr}", from_error=e)
     else:
         for attr, type_ in named_types.items():
             try:    
-                if not isinstance(var[attr], type_):
-                    if raise_error:
-                        if isinstance(type_, tuple):
-                            raise TypeError(f"Expected type {', '.join([type_.__name__])} for value at key {attr}, got {type(var[attr]).__name__}")
-                        raise TypeError(f"Expected type {type_.__name__} for value at key {attr}, got {type(var[attr]).__name__}")
+                value = var[attr]
+                if not isinstance(value, type_) and raise_error:
+                    raise_type_error(type_, type(value), f"value at key {attr}")
             except KeyError as e:
-                if isinstance(type_, tuple):
-                    raise TypeError(f"Expected type {', '.join([type_.__name__])} for value at key {attr}, got nothing") from e
-                raise TypeError(f"Expected type {type_.__name__} for value at key {attr}, got nothing") from e
+                if raise_error:
+                    raise_type_error(type_, None, f"value at key {attr}", from_error=e)
