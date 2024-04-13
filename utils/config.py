@@ -101,9 +101,7 @@ class DatabaseAccess:
 
     def _sync_song_exists(self, **song_data) -> bool:
         """Provide a synchronous version of _song_exists."""
-        async def run():
-            return await self._song_exists(**song_data)
-        return self._run_sync(run())
+        return self._run_sync(self._song_exists(**song_data))
 
     async def _asker_exists(self, asker_id: int) -> bool:
         """Check if an asker exists in the database."""
@@ -111,9 +109,7 @@ class DatabaseAccess:
 
     def _sync_asker_exists(self, asker_id: int) -> bool:
         """Provide a synchronous version of _asker_exists."""
-        async def run():
-            return await self._asker_exists(asker_id)
-        return self._run_sync(run())
+        return self._run_sync(self._asker_exists(asker_id))
 
     async def _get_db(self, table: str, *columns: str, all_results: bool = False,
                       joins: Optional[list[JoinCondition]] = None,
@@ -200,10 +196,8 @@ class DatabaseAccess:
                     create_if_none: bool = False, order_by: Optional[str] = None, **where: Any) \
             -> Optional[Union[list[tuple], tuple]]:
         """Provide a synchronous version of _get_db."""
-        async def run():
-            return await self._get_db(table, *columns, all_results=all_results, joins=joins,
-                                      create_if_none=create_if_none, order_by=order_by, **where)
-        return self._run_sync(run())
+        return self._run_sync(self._get_db(table, *columns, all_results=all_results, joins=joins,
+                                      create_if_none=create_if_none, order_by=order_by, **where))
 
     async def _update_db(self, table: str, columns_values: dict[str, str],
                          **where: Any) -> None:
@@ -245,9 +239,7 @@ class DatabaseAccess:
     def _sync_update_db(self, table: str, columns_values: dict[str, str],
                           **where: Any) -> None:
         """Provide a synchronous version of _update_db."""
-        async def run():  
-            return await self._update_db(table, columns_values, **where)
-        return self._run_sync(run())
+        return self._run_sync(self._update_db(table, columns_values, **where))
         
         
 
@@ -282,9 +274,7 @@ class DatabaseAccess:
 
     def _sync_create_db(self, table, **columns_values: Any) -> Optional[Union[list[tuple], tuple]]:
         """Provide a synchronous version of _create_db."""
-        async def run():
-            return await self._create_db(table, **columns_values)
-        return self._run_sync(run())
+        return self._run_sync(self._create_db(table, **columns_values))
         
 
     async def _delete_db(self, table: str, **where: Any) -> None:
@@ -317,9 +307,7 @@ class DatabaseAccess:
 
     def _sync_delete_db(self, table: str, **where: Any) -> None:
         """Provide a synchronous version of _delete_db."""
-        async def run():
-            return await self._delete_db(table, **where)
-        return self._run_sync(run())
+        return self._run_sync(self._delete_db(table, **where))
 
     async def _query(self, query: str, commit: bool = False, return_results: bool = False,
                             return_all: bool = False):
@@ -361,9 +349,7 @@ class DatabaseAccess:
     def _sync_query(self, query: str, commit: bool = False, return_results: bool = False,
                             return_all: bool = False):
         """Provide a synchronous version of _query."""
-        async def run():
-            return await self._query(query, commit=commit, return_results=return_results, return_all=return_all)
-        return self._run_sync(run())
+        return self._run_sync(self._query(query, commit=commit, return_results=return_results, return_all=return_all))
 
 
 class Asker(DatabaseAccess):
@@ -503,7 +489,8 @@ class Song(DatabaseAccess):
         self._name = name
         self._url = url
         self._asker = asker
-        response = await self._create_db('SONG', 'song_id', name=format_name(name), url=url)
+        await self._create_db('SONG', 'song_id', name=format_name(name), url=url)
+        response = await self._get_db('SONG', 'song_id', name=format_name(name), url=url)
         type_checking(response, tuple, int)
         self._id = response[0]
         return self
