@@ -256,10 +256,10 @@ async def change_song(ctx: discord.ApplicationContext):
     config = await Config.get_config(ctx.guild.id)
     if not config.queue:
         return
-    if config.position >= len(config.queue) - 1 and not config.loop_queue:
+    if config.position >= len(config.queue) - 1 and not (config.loop_queue and config.loop_song):
         config.position = 0
         await config.clear_queue()
-    if config.position >= len(config.queue) - 1 and config.loop_queue:
+    if config.position >= len(config.queue) - 1 and config.loop_queue and not config.loop_song:
         config.position = -1
     if not config.loop_song:
         if config.random and len(config.queue) > 1:
