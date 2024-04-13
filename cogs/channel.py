@@ -1,60 +1,73 @@
-import threading
+from concurrent.futures import ThreadPoolExecutor
+import asyncio
+import logging
+
+import discord
 from discord.ext import commands
-from utils import *
+import pytube
+
+
+from utils import Config, EMBED_ERROR_BOT_NOT_CONNECTED, Song, play_song, download
 
 
 class Channel(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
 
     @commands.slash_command(name="leave", description="Leaves the voice channel")
     async def leave(self, ctx: discord.ApplicationContext):
+        await ctx.response.defer()
         if ctx.guild.voice_client is None:
             return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
         await ctx.guild.voice_client.disconnect(force=True)
         await ctx.respond(embed=discord.Embed(title="Leave", description="Bot left the voice channel.",
                                               color=0x00ff00))
-        queue = await get_config(ctx.guild.id, False)
-        await queue.edit_queue([])
-        await queue.set_position(0)
-        await queue.close()
+        config = await Config.get_config(ctx.guild.id, False)
+        await config.edit_queue([])
+        config.position = 0
 
     @commands.slash_command(name='join', description='Join the voice channel you are in.')
     async def join(self, ctx: discord.ApplicationContext):
+        await ctx.response.defer()
         if ctx.guild.voice_client is not None:
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description="Bot is already connected to a voice "
                                                                "channel.", color=0xff0000))
-        queue = await get_config(ctx.guild.id, False)
+
+        config = await Config.get_config(ctx.guild.id, False)
         if ctx.author.voice is None:
-            await queue.close()
             return await ctx.respond(embed=discord.Embed(title="Error", description="You must be in a voice channel.",
                                                          color=0xff0000))
+
         await ctx.author.voice.channel.connect()
         await ctx.respond(
             embed=discord.Embed(title="Join", description="Bot joined the voice channel.", color=0x00ff00))
-        if queue.queue:
-            if queue.position > len(queue.queue) - 1:
-                await queue.set_position(0)
-            await queue.close()
-            # Si il y a plus d'un élément dans la queue on les télécharge tous sur un thread séparé
-            await play_song(ctx, queue.queue[queue.position]['url'])
-            if len(queue.queue) > 1:
-                for song in queue.queue[1:]:
-                    # On limite le nombre de threads à 3
-                    while len([thread for thread in threading.enumerate() if thread.name.startswith("Download-")]) >= 2:
-                        await asyncio.sleep(0.1)
-                    video = pytube.YouTube(song['url'])
-                    if video.length > 12000:
-                        await ctx.respond(embed=discord.Embed(title="Error",
-                                                              description=f"The video [{video.title}]({song['url']}) is too long",
-                                                              color=0xff0000))
-                    else:
-                        threading.Thread(target=download, args=(song['url'],),
-                                         name=f"Download-{video.video_id}").start()
-        else:
-            await queue.close()
+        if config.queue:
+            if config.position > len(config.queue) - 1:
+                config.position = 0
+
+            await play_song(ctx, config.queue[config.position].url)
+            if len(config.queue) > 1:
+                pool = ThreadPoolExecutor()
+                for song in config.queue[1:]:
+                    pool.submit(self._check_video_length, song, ctx, asyncio.get_event_loop())
+                pool.shutdown(False)
+
+    @staticmethod
+    def _check_video_length(song: Song, ctx: discord.ApplicationContext, error_loop: asyncio.AbstractEventLoop):
+        try:
+            if pytube.YouTube(song.url).length > 12000:
+                asyncio.run_coroutine_threadsafe(
+                    ctx.respond(embed=discord.Embed(title="Error",
+                                                    description=f"The video [{pytube.YouTube(song.url).title}]"
+                                                                f"({song.url}) is too long",
+                                                    color=0xff0000)), error_loop)
+            else:
+                loop = asyncio.new_event_loop()
+                asyncio.run_coroutine_threadsafe(download(song.url, download_logger=logging.getLogger("Audio-Downloader")), loop)
+        except Exception as e:
+            logging.error(f"Error checking video length: {e}")
 
 
-def setup(bot):
+def setup(bot: commands.Bot):
     bot.add_cog(Channel(bot))

@@ -1,15 +1,6 @@
-"""
-On affiche chaque table sous le format
-+-----------------+-------------------+-------------------+-------------------+
-| Nom de la clé 1 | Nom de la clé 2 | Nom de la clé 3 | Nom de la clé 4 |
-+-----------------+-----------------+-----------------+-----------------+
-| Valeur 1        | Valeur 2        | Valeur 3        | Valeur 4        |
-| Valeur 5        | Valeur 6        | Valeur 7        | Valeur 8        |
-| Valeur 9        | Valeur 10       | Valeur 11       | Valeur 12       |
-+-----------------+-----------------+-----------------+-----------------+
-"""
-import sqlite3
 import os
+import sqlite3
+
 
 def format_table(table):
     # table est un dict avec comme clé le nom de la clé et comme valeur une liste des valeurs pour cette clé
@@ -47,20 +38,20 @@ def format_table(table):
     return table
 
 
-
 def check_db():
     # On récupère les tables
     conn = sqlite3.connect("database/database.db")
     cursor = conn.cursor()
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
     tables = cursor.fetchall()
+    tables.append(("sqlite_master",))
     print(f"Tables : {', '.join([table[0] for table in tables])}")
     # On récupère les données de chaque table
     for table in tables:
         cursor.execute(f"SELECT * FROM {table[0]};")
         data = cursor.fetchall()
         print(f"\nTable {table[0]} :")
-        # On prends les noms des clés
+        # On prend les noms des clés
         cursor.execute(f"PRAGMA table_info({table[0]});")
         keys = cursor.fetchall()
         keys = [key[1] for key in keys]
@@ -74,7 +65,7 @@ def check_db():
         # On affiche le tableau
         print(format_table(table_dict))
     conn.close()
-    
+
 
 if __name__ == "__main__":
     os.system("cls" if os.name == "nt" else "clear")

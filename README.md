@@ -2,31 +2,75 @@
 
 ## Format de sauvegarde des infos
 
-Les infos sont sauvegardées dans un fichier dans le dossier [queue](./queue) dont le nom est `<guild_id>.json`
-Les fichiers se présentent sous la forme
+Tout est dans une base de données sqlite3, dans le fichier [`database/database.db`](database/database.db) (non présent
+sur le repo, mais créé automatiquement s'il n'existe pas).
+Il y a 8 tables :
 
-```jsonc
-{
-    "channel": 551515454515, // salon dans lequel le bot est connecte, type int ou null
-    "loop-song": false, // true si la chanson en cours de lecture doit être répétée, type bool
-    "loop-queue": false, // true si la file d'attente doit être répétée, type bool
-    "random": false, // true si la file d'attente doit être jouée dans un ordre aléatoire, type bool
-    "index": 0, // index de la chanson en cours de lecture dans la file d'attente, type int
-    "queue": [ // file d'attente des chansons, type list
-        {
-            "title": "", // titre de la chanson, type str
-            "url": "https://www.youtube.com/watch?v=...", // url de la chanson, type str
-            "asker": 95884548745 // id de l'utilisateur qui a demandé la chanson, type int
-        }
-    ],
-    "playlist": { // Playlists enregistrées dans le serveur, type dict
-        "Exemple": [ // nom de la playlist et liste des chansons, type list
-            {
-                "title": "", // titre de la chanson, type str
-                "url": "https://www.youtube.com/watch?v=...", // url de la chanson, type str
-                "asker": 95884548745 // id de l'utilisateur qui a demandé la chanson, type int
-            }
-        ]
-    }
-}
-```
+- `SERVER` qui contient les infos des guilds et qui se présente sous la forme suivante :
+
+  | Colonne    | Type    |
+  |------------|---------|
+  | __id__     | INTEGER |
+  | loop_song  | BOOLEAN |
+  | loop_queue | BOOLEAN |
+  | random     | BOOLEAN |
+  | volume     | INTEGER |
+  | position   | INTEGER |
+
+- `SONG` qui contient les informations des chansons :
+
+  | Colonne | Type         |
+  |---------|--------------|
+  | __id__  | INTEGER      |
+  | name    | VARCHAR(255) |
+  | url     | TEXT         |
+
+- `PLAYLIST` qui contient les informations des playlists :
+
+  | Colonne       | Type         |
+  |---------------|--------------|
+  | __id__        | INTEGER      |
+  | name          | VARCHAR(255) |
+
+- `ASKER` qui contient les informations des utilisateurs :
+
+  | Colonne    | Type    |
+  |------------|---------|
+  | __id__     | INTEGER |
+  | discord_id | INTEGER |
+
+- `PLAYLIST_SONG` qui contient les informations des chansons dans les playlists :
+
+  | Colonne           | Type     |
+  |-------------------|----------|
+  | # __playlist_id__ | INTEGER  |
+  | # __song_id__     | INTEGER  |
+  | position          | INTEGER  |
+  | asker             | INTEGER  |
+
+- `SERVER_PLAYLIST` qui contient les informations des playlists dans les guilds :
+
+  | Colonne           | Type     |
+  |-------------------|----------|
+  | # __server_id__   | INTEGER  |
+  | # __playlist_id__ | INTEGER  |
+
+- `USER_PLAYLIST` qui contient les informations des playlists dans les guilds :
+
+  | Colonne           | Type     |
+  |-------------------|----------|
+  | # __user_id__     | INTEGER  |
+  | # __playlist_id__ | INTEGER  |
+
+- `QUEUE` qui contient les informations de la file d'attente des chansons :
+
+  | Colonne         | Type         |
+  |-----------------|--------------|
+  | # __server_id__ | INTEGER      |
+  | # __song_id__   | INTEGER      |
+  | # asker_id      | INTEGER      |
+  | position        | INTEGER      |
+
+## Contributeurs
+
+[![Contributeurs (vu que la repo est privée ça fonctionne pas bien)](https://contrib.rocks/image?repo=e-psi-lon/Music-BOT)](https://github.com/e-psi-lon/Music-BOT/graphs/contributors)
