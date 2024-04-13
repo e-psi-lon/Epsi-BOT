@@ -39,6 +39,22 @@ class PanelToBotRequest:
     
     @classmethod
     def create(self, type_: RequestType, content: Any, **kwargs):
+        """Class method to create a PanelToBotRequest instance.
+        
+        Parameters
+        ----------
+        type_ : RequestType
+            The type of the request
+        content : Any
+            The content of the request
+        **kwargs : dict
+            Extra data for the request
+
+        Returns
+        -------
+        PanelToBotRequest
+            The PanelToBotRequest instance
+        """
         return PanelToBotRequest(type_, content, kwargs)
     
 
@@ -70,6 +86,19 @@ class ChannelData:
 
     @classmethod
     def from_channel(cls, channel: GuildChannel):
+        """
+        Class method to create a ChannelData instance from a discord.abc.GuildChannel instance.
+        
+        Parameters
+        ----------
+        channel : GuildChannel
+            The discord channel
+            
+        Returns
+        -------
+        ChannelData
+            The ChannelData instance
+        """
         return cls(
             name=channel.name,
             id=channel.id,
@@ -78,6 +107,19 @@ class ChannelData:
     
     @classmethod
     def from_dict(cls, dict_: dict):
+        """
+        Class method to create a ChannelData instance from a dictionary.
+
+        Parameters
+        ----------
+        dict_ : dict
+            The dictionary containing the channel data
+
+        Returns
+        -------
+        ChannelData
+            The ChannelData instance
+        """
         return cls(
             name=dict_["name"],
             id=dict_["id"],
@@ -117,6 +159,19 @@ class UserData:
 
     @classmethod
     def from_user(cls, user: User):
+        """
+        Class method to create a UserData instance from a discord.User instance.
+        
+        Parameters
+        ----------
+        user : User
+            The discord user
+        
+        Returns
+        -------
+        UserData
+            The UserData instance
+        """
         return cls(
             name=user.name,
             global_name=user.global_name if hasattr(user, "global_name") else user.name, 
@@ -126,6 +181,19 @@ class UserData:
     
     @classmethod
     def from_api_response(cls, response: dict):
+        """
+        Class method to create a UserData instance from a discord API response.
+
+        Parameters
+        ----------
+        response : dict
+            The API response
+
+        Returns
+        -------
+        UserData
+            The UserData instance
+        """
         return cls(
             name=response["username"],
             global_name=response["global_name"],
@@ -135,6 +203,19 @@ class UserData:
     
     @classmethod
     def from_dict(cls, dict_: dict):
+        """
+        Class method to create a UserData instance from a dictionary.
+
+        Parameters
+        ----------
+        dict_ : dict
+            The dictionary containing the user data
+
+        Returns
+        -------
+        UserData
+            The UserData instance
+        """
         return cls(
             name=dict_["name"],
             global_name=dict_["global_name"],
@@ -172,6 +253,18 @@ class GuildData:
 
     @classmethod
     def from_guild(cls, guild: Guild):
+        """
+        Class method to create a GuildData instance from a discord.Guild instance.
+
+        Parameters
+        ----------
+        guild : Guild
+            The discord guild.
+        Returns
+        -------
+        GuildData
+            The GuildData instance.
+        """
         return cls(
             name=guild.name,
             id=guild.id,
@@ -181,6 +274,19 @@ class GuildData:
     
     @classmethod
     def from_dict(cls, dict_: dict):
+        """
+        Class method to create a GuildData instance from a dictionary.
+
+        Parameters
+        ----------
+        dict_ : dict
+            The dictionary containing the guild data
+
+        Returns
+        -------
+        GuildData
+            The GuildData instance
+        """
         return cls(
             name=dict_["name"],
             id=dict_["id"],
@@ -236,6 +342,14 @@ class ConfigData:
         return str(self.__getstate__())
     
     def to_dict(self):
+        """
+        Method to convert the ConfigData instance to a dictionary.
+        
+        Returns
+        -------
+        dict
+            The dictionary representation of the ConfigData instance.
+        """
         return self.__getstate__()
     
     
