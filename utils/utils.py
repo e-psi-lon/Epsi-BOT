@@ -27,6 +27,21 @@ cache = Cache()
 
 
 async def to_cache(url: str) -> io.BytesIO:
+    """
+    Download a video from a YouTube (or other) URL and save it in the cache, 
+    or get it from the cache if it already exists.\n
+    Then return the video as a BytesIO object.
+
+    Parameters
+    ----------
+    url : str
+        The URL of the video to download
+
+    Returns
+    -------
+    io.BytesIO
+        The downloaded video
+    """
     if await cache.exists(url):
         return await cache.get(url)
     buffer = io.BytesIO()
@@ -43,15 +58,31 @@ async def to_cache(url: str) -> io.BytesIO:
     return buffer
 
 async def update_ttl(key: str, new_ttl: int):
+    """Update the ttl of a key in the cache"""
     buffer = await cache.get(key)
     await cache.set(key, buffer, ttl=new_ttl)
 
 async def reset_ttl(key: str):
+    """Reset the ttl of a key in the cache"""
     buffer = await cache.get(key)
     await cache.set(key, buffer, ttl=3600)
 
 async def download(url: str, download_logger: logging.Logger = logger) -> Optional[Union[io.BytesIO, str]]:
-    """Download a video from a YouTube (or other) URL"""
+    """
+    Download a video from a YouTube (or other) URL.
+    
+    Parameters
+    ----------
+    url : str
+        The URL of the video to download
+    download_logger : logging.Logger
+        The logger to log the download
+    
+    Returns
+    -------
+    Optional[io.BytesIO]
+        The downloaded video
+    """
     if not url.startswith("https://youtube.com/watch?v="):
         buffer: io.BytesIO = await to_cache(url)
         download_logger.info(f"Downloaded {url.split('/')[-1]}")
@@ -68,6 +99,7 @@ async def download(url: str, download_logger: logging.Logger = logger) -> Option
 
 
 class Sinks(Enum):
+    """Enum for the different types of audio sinks"""
     mp3 = discord.sinks.MP3Sink()
     wav = discord.sinks.WaveSink()
     ogg = discord.sinks.OGGSink()
@@ -75,6 +107,7 @@ class Sinks(Enum):
 
 
 async def finished_record_callback(sink: discord.sinks.Sink, channel: discord.TextChannel):
+    """Callback function to execute when the recording is finished that processes the audio and sends it to the channel"""
     mention_strs = []
     audio_segs: list[pydub.AudioSegment] = []
     files: list[discord.File] = []
@@ -116,6 +149,7 @@ async def finished_record_callback(sink: discord.sinks.Sink, channel: discord.Te
 
 
 async def disconnect_from_channel(state: discord.VoiceState, bot: commands.Bot):
+    """Callback function to execute when the bot has to disconnect from a voice channel"""
     ok = False
     for client in bot.voice_clients:
         for guild in client.client.guilds:
@@ -134,6 +168,27 @@ async def disconnect_from_channel(state: discord.VoiceState, bot: commands.Bot):
 
 
 class SelectVideo(discord.ui.Select):
+    """
+    Select menu to select a video to play
+    
+    Parameters
+    ----------
+    videos : list[pytube.YouTube]
+        The list of videos to select from
+    ctx : discord.ApplicationContext
+        The context of the command
+    download_file : bool
+        Whether to download the file or not (useful for the download command)
+    *args
+        discord.ui.Select arguments
+    **kwargs
+        discord.ui.Select keyword arguments
+
+    Methods
+    -------
+    callback(interaction: discord.Interaction)
+        The callback function to execute when a video is selected
+    """
     def __init__(self, videos: list[pytube.YouTube], ctx: discord.ApplicationContext, download_file: bool, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.placeholder = "Select an audio to play"
@@ -196,6 +251,29 @@ class SelectVideo(discord.ui.Select):
 
 
 class Research(discord.ui.View):
+    """
+    View to search for a video to play using a select menu
+
+    Parameters
+    ----------
+    videos : list[pytube.YouTube]
+        The list of videos to select from
+    ctx : discord.ApplicationContext
+        The context of the command
+    download_file : bool
+        Whether to download the file or not (useful for the download command)
+    *items
+        discord.ui.View items
+    timeout : float
+        The timeout of the view
+    disable_on_timeout : bool
+        Whether to disable the view on timeout or not
+
+    Methods
+    -------
+    callback(interaction: discord.Interaction)
+        The callback function to execute when a video is selected
+    """
     def __init__(self, videos: list[pytube.YouTube], ctx: discord.ApplicationContext, download_file: bool, *items,
                  timeout: float | None = 180, disable_on_timeout: bool = False):
         super().__init__(*items, timeout=timeout, disable_on_timeout=disable_on_timeout)
@@ -273,6 +351,7 @@ async def get_queue_songs(ctx: discord.AutocompleteContext):
 
 
 def get_index_from_title(title: str, list_to_check: list[Song]):
+    """Get the index of a song in a list of songs from its title."""
     for index, song in enumerate(list_to_check):
         if song.title == title:
             return index
@@ -280,6 +359,7 @@ def get_index_from_title(title: str, list_to_check: list[Song]):
 
 
 async def change_song(ctx: discord.ApplicationContext):
+    """Callback function to execute when a song is finished to change the song taking into account the server's configuration"""
     if not (config := await Config.get_config(ctx.guild.id, False)).queue :
         return
     if config.position >= len(config.queue) - 1 and not (config.loop_queue and config.loop_song):
@@ -303,6 +383,7 @@ async def change_song(ctx: discord.ApplicationContext):
 
 
 async def play_song(ctx: discord.ApplicationContext, url: str):
+    """Play a song from a URL"""
     if ctx.guild.voice_client is None:
         return
     if ctx.guild.voice_client.is_playing():
@@ -354,6 +435,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
 
 
 async def on_play_song_finished(ctx: discord.ApplicationContext, error=None):
+    """Callback function to execute when a song is finished"""
     if error is not None and error:
         logger.error("Error:", error)
         await ctx.respond(
@@ -363,6 +445,7 @@ async def on_play_song_finished(ctx: discord.ApplicationContext, error=None):
 
 
 def convert(audio: io.BytesIO, file_format: str) -> io.BytesIO:
+    """Convert an audio file to another format"""
     stream = ffmpeg.input(audio)
     stream = ffmpeg.output(stream, f"{audio.split('/')[1][:-4]}.{file_format}", format=file_format)
     ffmpeg.run(stream)
@@ -370,6 +453,7 @@ def convert(audio: io.BytesIO, file_format: str) -> io.BytesIO:
 
 
 class CustomFormatter(logging.Formatter):
+    """Custom formatter for the bot and the panel's logs"""
     def __init__(self, source: str, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.source = source
