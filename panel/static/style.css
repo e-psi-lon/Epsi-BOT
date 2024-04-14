@@ -32,10 +32,7 @@ input[type="checkbox"] {
 }
 
 .server {
-    display: flex;
-    align-items: center;
     border-radius: 5%;
-    flex-direction: column;
     padding: 1vw;
     margin: 1vw;
 }
@@ -77,11 +74,8 @@ input[type="checkbox"] {
 }
 
 .user {
-    display: flex;
-    align-items: center;
     padding: 1vw;
     margin: 1vw;
-    flex-direction: column;
 }
 
 .queue {
@@ -187,8 +181,6 @@ a:hover {
 }
 
 .connect {
-    display: flex;
-    align-items: center;
     justify-content: center;
     padding: 1vw;
     margin: 1vw;
