@@ -119,7 +119,7 @@ class Bot(commands.Bot):
         try:
             await ctx.respond(embed=embed, ephemeral=True)
             await self.get_user(self.owner_id).send(embed=embed)
-        except Exception:
+        except discord.HTTPException:
             await ctx.channel.send("Ce message se supprimera d'ici 20s", embed=embed, delete_after=20)
             await self.get_user(self.owner_id).send(embed=embed)
 

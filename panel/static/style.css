@@ -25,6 +25,12 @@ input[type="checkbox"] {
     margin-right: 10vw;
 }
 
+.center {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+}
+
 .server {
     display: flex;
     align-items: center;

@@ -19,6 +19,7 @@ pydub.AudioSegment.converter = "./bin/ffmpeg.exe" if os.name == "nt" else "ffmpe
 
 from .config import Config, Song, Asker, UserPlaylistAccess, format_name
 from .async_ import AsyncRequests
+from .constants import EMBED_ERROR_BOT_NOT_CONNECTED
 
 logger = logging.getLogger("__main__")
 
@@ -201,21 +202,21 @@ class Research(discord.ui.View):
         self.add_item(SelectVideo(videos, ctx, download_file))
 
 
-OWNER_ID = 708006478807695450
-EMBED_ERROR_QUEUE_EMPTY = discord.Embed(title="Error", description="The queue is empty.", color=0xff0000)
-EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST = discord.Embed(title="Error", description="A playlist with this name does "
-                                                                                  "not exist. Existing playlists:",
-                                                       color=0xff0000)
-EMBED_ERROR_BOT_NOT_CONNECTED = discord.Embed(title="Error", description="Bot is not connected to a voice channel.",
-                                              color=0xff0000)
-EMBED_ERROR_BOT_NOT_PLAYING = discord.Embed(title="Error", description="Bot is not playing anything.", color=0xff0000)
-EMBED_ERROR_INDEX_TOO_HIGH = discord.Embed(title="Error", description="The index is too high.", color=0xff0000)
-EMBED_ERROR_NAME_TOO_LONG = discord.Embed(title="Error", description="The name is too long.", color=0xff0000)
-EMBED_ERROR_NO_RESULTS_FOUND = discord.Embed(title="Error", description="No results found.", color=0xff0000)
-EMBED_ERROR_VIDEO_TOO_LONG = discord.Embed(title="Error", description="The video is too long.", color=0xff0000)
-
-
-async def get_playlists(ctx: discord.AutocompleteContext):
+async def get_playlists(ctx: discord.AutocompleteContext) -> list[str]:
+    """
+    Discord autocomplete function to get the playlists of the server and the user 
+    typing the command.
+    
+    Parameters
+    ----------
+    ctx : discord.AutocompleteContext
+        The context of the command
+    
+    Returns
+    -------
+    list[str]
+        The list of playlists
+    """
     config = await Config.get_config(ctx.interaction.guild.id, True)
     user_playlists = await UserPlaylistAccess.from_id(ctx.interaction.user.id, True)
     return ([playlist.name + " - SERVER" for playlist in config.playlists] +
@@ -223,7 +224,20 @@ async def get_playlists(ctx: discord.AutocompleteContext):
 
 
 async def get_playlists_songs(ctx: discord.AutocompleteContext):
-    # Si le nom finit par " - SERVER", on cherche dans les playlists du serveur
+    """
+    Discord autocomplete function to get the songs of a playlist which name is
+    given as an argument to the command.
+
+    Parameters
+    ----------
+    ctx : discord.AutocompleteContext
+        The context of the command
+
+    Returns
+    -------
+    list[str]
+        The list of songs in the playlist
+    """
     if ctx.options['playlist'].endswith(" - SERVER"):
         config = await Config.get_config(ctx.interaction.guild.id, True)
         playlist = await config.get_playlist(ctx.options['playlist'][:-8])
@@ -237,6 +251,19 @@ async def get_playlists_songs(ctx: discord.AutocompleteContext):
 
 
 async def get_queue_songs(ctx: discord.AutocompleteContext):
+    """
+    Discord autocomplete function to get the songs in the queue.
+    
+    Parameters
+    ----------
+    ctx : discord.AutocompleteContext
+        The context of the command
+        
+    Returns
+    -------
+    list[str]
+        The list of songs in the queue
+    """
     config = await Config.get_config(ctx.interaction.guild.id, True)
     if len(config.queue) < 1:
         return []
