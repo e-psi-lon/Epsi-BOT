@@ -55,7 +55,7 @@ class Panel(Quart):
         self.secret_key = secret_key
         self.API_ENDPOINT = "https://discord.com/api/v10"
         self.CLIENT_ID = 1167171085343666216
-        self.CLIENT_SECRET = "kH848ueQ4RGF3cKBNRJ1W1bFHI0b9bfo"
+        self.CLIENT_SECRET = os.environ['CLIENT_SECRET']
         self.REDIRECT_URI = "http://86.196.98.254/auth/discord/callback"
         self.timers: dict[int, AsyncTimer] = {}
         self.queue: Optional[multiprocessing.Queue[PanelToBotRequest | GuildData | UserData | list[GuildData]]] = None
