@@ -69,14 +69,14 @@ class Panel(Quart):
         if self.queue is None:
             raise ValueError("Queue is not set")
         self.queue.put(data)
-        self.logger.info(f"Getting {data} from conn")
+        self.logger.info(f"Getting {data} from queue")
         response = None
         while self.queue.qsize() == 1:
             continue
         while self.queue.empty():
             continue
         response = self.queue.get()
-        self.logger.info(f"Got {response} from conn")
+        self.logger.info(f"Got {response} from queue")
         return response
     
     async def post_to_bot(self, data: dict):

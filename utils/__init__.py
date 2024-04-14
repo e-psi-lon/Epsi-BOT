@@ -1,3 +1,7 @@
+"""
+This module is the main module of the package utils. It contains all the classes, 
+functions and constants that are used by the other modules. 
+"""
 from .config import (Config,
                      UserPlaylistAccess,
                      Playlist,
