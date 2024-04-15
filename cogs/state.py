@@ -1,26 +1,24 @@
-import threading
-from datetime import datetime
 import asyncio
 import logging
+import threading
+from datetime import datetime
 
+import discord
+import pytube
 from discord.commands import SlashCommandGroup
 from discord.ext import commands
 from pytube.exceptions import RegexMatchError as PytubeRegexMatchError
-import discord
-import pytube
 
-
-from utils import (Sinks, 
-                   EMBED_ERROR_BOT_NOT_CONNECTED, 
-                   Song, 
-                   Asker, 
-                   Config,  
+from utils import (Sinks,
+                   EMBED_ERROR_BOT_NOT_CONNECTED,
+                   Song,
+                   Asker,
+                   Config,
                    Research,
-                   play_song, 
-                   download, 
+                   play_song,
+                   download,
                    finished_record_callback
                    )
-
 
 
 class State(commands.Cog):
@@ -32,7 +30,7 @@ class State(commands.Cog):
 
     @play.command(name="url", description="Plays the audio of a file from an URL")
     async def play_url(self, ctx: discord.ApplicationContext,
-                       url: discord.Option(str, "The URL of the audio to play", required=True)): # type: ignore
+                       url: discord.Option(str, "The URL of the audio to play", required=True)):  # type: ignore
         await ctx.response.defer()
         if ctx.user.id in [501303816302362635, 942531230291877910]:
             return await ctx.respond(
@@ -66,7 +64,7 @@ class State(commands.Cog):
 
     @play.command(name="file", description="Plays the audio of a file")
     async def play_file(self, ctx: discord.ApplicationContext,
-                        file: discord.Option(discord.Attachment, "The file to play", required=True)): # type: ignore
+                        file: discord.Option(discord.Attachment, "The file to play", required=True)):  # type: ignore
         await ctx.response.defer()
         if ctx.guild.voice_client is None:
             return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
@@ -91,7 +89,7 @@ class State(commands.Cog):
 
     @play.command(name="youtube", description="Plays the audio of a YouTube video")
     async def play_youtube(self, ctx: discord.ApplicationContext,
-                           query: discord.Option(str, "The YouTube audio to play", required=True)): # type: ignore
+                           query: discord.Option(str, "The YouTube audio to play", required=True)):  # type: ignore
         await ctx.response.defer()
         if ctx.guild.voice_client is None:
             return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
@@ -139,6 +137,7 @@ class State(commands.Cog):
                 embed=discord.Embed(title="Select audio",
                                     description=f'Select an audio to play for query `{query}` from the list below',
                                     color=0x00ff00), view=view)
+
     @staticmethod
     def _download(url: str):
         asyncio.run(download(url, download_logger=logging.getLogger("Audio-Downloader")))
@@ -184,7 +183,7 @@ class State(commands.Cog):
 
     @commands.slash_command(name="volume", description="Gets or sets the volume of the bot")
     async def volume(self, ctx: discord.ApplicationContext,
-                     volume: discord.Option(int, "The volume to set (from 0 to 100)", required=False)): # type: ignore
+                     volume: discord.Option(int, "The volume to set (from 0 to 100)", required=False)):  # type: ignore
         await ctx.response.defer()
         if ctx.guild.voice_client is None:
             return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
@@ -223,8 +222,9 @@ class State(commands.Cog):
                             description="Enregistre nos chers gogols en train de chanter "
                                         "(c'est Rignchen qui m'as dit de laisser ça)")
     async def record(self, ctx: discord.ApplicationContext,
-                     time: discord.Option(int, "Le temps d'enregistrement en secondes (de 1s à 260s)", required=True), # type: ignore
-                     file_format: discord.Option(Sinks, "Le format d'enregistrement", required=True)): # type: ignore
+                     time: discord.Option(int, "Le temps d'enregistrement en secondes (de 1s à 260s)", required=True),
+                     # type: ignore
+                     file_format: discord.Option(Sinks, "Le format d'enregistrement", required=True)):  # type: ignore
         await ctx.response.defer()
         if ctx.guild.voice_client is None:
             return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)

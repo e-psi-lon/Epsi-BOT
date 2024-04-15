@@ -1,30 +1,27 @@
-import multiprocessing
 import logging
-from logging.config import dictConfig
+import multiprocessing
 import os
-
+from logging.config import dictConfig
 from typing import Optional
 
+import aiohttp
+import pytube  # type: ignore
+from dotenv import load_dotenv
 from quart import Quart, session, redirect, url_for, render_template, request
 from quart.logging import default_handler
-from quart_session import Session # type: ignore
+from quart_session import Session  # type: ignore
 
-from utils import (PanelToBotRequest, 
-                   GuildData, 
-                   UserData, 
-                   RequestType, 
-                   ConfigData, 
-                   AsyncTimer, 
+from utils import (PanelToBotRequest,
+                   GuildData,
+                   UserData,
+                   RequestType,
+                   ConfigData,
+                   AsyncTimer,
                    Config,
                    Song,
                    Asker,
                    AsyncRequests as Requests,
                    )
-
-import aiohttp
-from dotenv import load_dotenv
-import pytube # type: ignore
-
 
 load_dotenv()
 
@@ -44,8 +41,6 @@ dictConfig({
         'handlers': ['console']
     }
 })
-
-
 
 
 class Panel(Quart):
@@ -78,7 +73,7 @@ class Panel(Quart):
         response = self.queue.get()
         self.logger.info(f"Got {response} from queue")
         return response
-    
+
     async def post_to_bot(self, data: dict):
         request_ = PanelToBotRequest.create(RequestType.POST, data)
         if self.queue is None:
@@ -117,7 +112,8 @@ async def panel():
         return redirect(url_for('login'))
     token = session['token']
     if 'user' not in session:
-        user = await Requests.get(f"{app.API_ENDPOINT}/users/@me", headers={"Authorization": f"Bearer {token['access_token']}"})
+        user = await Requests.get(f"{app.API_ENDPOINT}/users/@me",
+                                  headers={"Authorization": f"Bearer {token['access_token']}"})
         user = UserData.from_api_response(user)
         print(user)
         session['guilds'] = await app.get_from_bot("guilds", user_id=session['user_id'])
@@ -130,7 +126,8 @@ async def panel():
 @app.route('/server/<int:server_id>', methods=['GET', 'POST'])
 async def server(server_id):
     config = await Config.get_config(server_id, request.method != 'POST')
-    if server_id not in [guild["id"] for guild in session.get(session['guilds'], [])] or 'token' not in session or config is None:
+    if server_id not in [guild["id"] for guild in
+                         session.get(session['guilds'], [])] or 'token' not in session or config is None:
         return redirect(url_for('panel'))
     if request.method == 'POST':
         values = (await request.form).to_dict()
@@ -146,13 +143,15 @@ async def server(server_id):
         if config.position != values['position']:
             config.position = values['position']
         if config.queue_dict != values['queue']:
-            config.edit_queue([await Song.create(song['title'], song['url'], await Asker.from_id(song['asker_id'])) for song in values['queue']])
+            await config.edit_queue(
+                [await Song.create(song['title'], song['url'], await Asker.from_id(song['asker_id'])) for song in
+                 values['queue']])
         return redirect(url_for('server', server_id=server_id))
     server_data = {"loop_song": config.loop_song, "loop_queue": config.loop_queue, "random": config.random,
                    "position": config.position, "queue": config.queue, "id": server_id,
                    "name": (await app.get_from_bot("guild", server_id=server_id)).name}
     server_data = ConfigData(config.loop_song, config.loop_queue, config.random, config.position, config.queue,
-                                server_id, (await app.get_from_bot("guild", server_id=server_id)).name)
+                             server_id, (await app.get_from_bot("guild", server_id=server_id)).name)
     return await render_template('server.html', server=server_data, app=app, pytube=pytube)
 
 
@@ -188,7 +187,7 @@ async def callback():
         timer.start()
         session['token'] = token
         user = await Requests.get(f"{app.API_ENDPOINT}/users/@me",
-                            headers={"Authorization": f"Bearer {token['access_token']}"})
+                                  headers={"Authorization": f"Bearer {token['access_token']}"})
         session['user_id'] = user['id']
         app.timers[user['id']] = timer
         return redirect(url_for('panel'))
@@ -219,7 +218,7 @@ async def token_from_code(code):
         "Content-Type": "application/x-www-form-urlencoded"
     }
     r = await Requests.post(f"{app.API_ENDPOINT}/oauth2/token", data=data, headers=headers,
-                      auth=aiohttp.BasicAuth(str(app.CLIENT_ID), str(app.CLIENT_SECRET)))
+                            auth=aiohttp.BasicAuth(str(app.CLIENT_ID), str(app.CLIENT_SECRET)))
     return r
 
 
@@ -232,7 +231,7 @@ async def refresh_token(token):
         "Content-Type": "application/x-www-form-urlencoded"
     }
     r = await Requests.post(f"{app.API_ENDPOINT}/oauth2/token", data=data, headers=headers,
-                      auth=(app.CLIENT_ID, app.CLIENT_SECRET))
+                            auth=aiohttp.BasicAuth(str(app.CLIENT_ID), str(app.CLIENT_SECRET)))
     session['token'] = r
     user_id = session['user'].id
     session["user_id"] = user_id
@@ -251,4 +250,4 @@ async def revoke_access_token(access_token):
         "Content-Type": "application/x-www-form-urlencoded"
     }
     await Requests.post(f"{app.API_ENDPOINT}/oauth2/token/revoke", data=data, headers=headers,
-                  auth=aiohttp.BasicAuth(str(app.CLIENT_ID), str(app.CLIENT_SECRET)))
+                        auth=aiohttp.BasicAuth(str(app.CLIENT_ID), str(app.CLIENT_SECRET)))

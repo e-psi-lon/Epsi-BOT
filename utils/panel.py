@@ -1,16 +1,18 @@
 from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Optional
+
 from discord import Guild, User
 from discord.abc import GuildChannel
-from .config import Song
 
-from typing import Any, Optional
-from enum import Enum
+from .config import Song
 
 
 class RequestType(Enum):
     """Enum to represent the type of request from the panel to the bot."""
     GET = 'GET'
     POST = 'POST'
+
 
 @dataclass
 class PanelToBotRequest:
@@ -36,9 +38,9 @@ class PanelToBotRequest:
 
     def __str__(self) -> str:
         return f"Type: {self.type}, Content: {self.content}, Extra data: {self.extra}"
-    
+
     @classmethod
-    def create(self, type_: RequestType, content: Any, **kwargs):
+    def create(cls, type_: RequestType, content: Any, **kwargs):
         """Class method to create a PanelToBotRequest instance.
         
         Parameters
@@ -55,8 +57,7 @@ class PanelToBotRequest:
         PanelToBotRequest
             The PanelToBotRequest instance
         """
-        return PanelToBotRequest(type_, content, kwargs)
-    
+        return cls(type_, content, kwargs)
 
 
 @dataclass
@@ -83,7 +84,6 @@ class ChannelData:
     id: int
     type: str
 
-
     @classmethod
     def from_channel(cls, channel: GuildChannel):
         """
@@ -104,7 +104,7 @@ class ChannelData:
             id=channel.id,
             type=channel.type.name
         )
-    
+
     @classmethod
     def from_dict(cls, dict_: dict):
         """
@@ -125,7 +125,6 @@ class ChannelData:
             id=dict_["id"],
             type=dict_["type"]
         )
-    
 
 
 @dataclass
@@ -151,7 +150,7 @@ class UserData:
         Class method to create a UserData instance from a discord API response.
     from_dict(cls, dict_: dict) -> UserData (classmethod)
         Class method to create a UserData instance from a dictionary.
-    """ 
+    """
     name: str
     global_name: str
     id: int
@@ -174,11 +173,11 @@ class UserData:
         """
         return cls(
             name=user.name,
-            global_name=user.global_name if hasattr(user, "global_name") else user.name, 
+            global_name=user.global_name if hasattr(user, "global_name") else user.name,
             id=user.id,
             avatar=getattr(user.avatar, "url", "")
         )
-    
+
     @classmethod
     def from_api_response(cls, response: dict):
         """
@@ -198,9 +197,10 @@ class UserData:
             name=response["username"],
             global_name=response["global_name"],
             id=int(response["id"]),
-            avatar = f"https://cdn.discordapp.com/avatars/{response['id']}/{response['avatar']}.png" if response.get("avatar", None) is not None else ""
+            avatar=f"https://cdn.discordapp.com/avatars/{response['id']}/{response['avatar']}.png" if response.get(
+                "avatar", None) is not None else ""
         )
-    
+
     @classmethod
     def from_dict(cls, dict_: dict):
         """
@@ -271,7 +271,7 @@ class GuildData:
             icon=getattr(guild.icon, "url", ""),
             channels=[ChannelData.from_channel(channel) for channel in guild.channels]
         )
-    
+
     @classmethod
     def from_dict(cls, dict_: dict):
         """
@@ -293,8 +293,6 @@ class GuildData:
             icon=dict_["icon"],
             channels=[ChannelData.from_dict(channel) for channel in dict_["channels"]]
         )
-    
-    
 
 
 class ConfigData:
@@ -322,7 +320,9 @@ class ConfigData:
     to_dict(self) -> dict
         Method to convert the ConfigData instance to a dictionary.
     """
-    def __init__(self, loop_song: bool, loop_queue: bool, random: bool, position: int, queue: list[Song], server_id: int, name: str):
+
+    def __init__(self, loop_song: bool, loop_queue: bool, random: bool, position: int, queue: list[Song],
+                 server_id: int, name: str):
         self.loop_song = loop_song
         self.loop_queue = loop_queue
         self.random = random
@@ -333,14 +333,14 @@ class ConfigData:
 
     def __getstate__(self) -> object:
         return self.__dict__
-    
+
     def __setstate__(self, state: dict) -> None:
         for key, value in state.items():
             setattr(self, key, value)
 
     def __str__(self) -> str:
         return str(self.__getstate__())
-    
+
     def to_dict(self):
         """
         Method to convert the ConfigData instance to a dictionary.
@@ -351,6 +351,3 @@ class ConfigData:
             The dictionary representation of the ConfigData instance.
         """
         return self.__getstate__()
-    
-    
-

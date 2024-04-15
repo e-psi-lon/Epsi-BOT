@@ -35,7 +35,7 @@ Il y a 8 tables :
 - `ASKER` qui contient les informations des utilisateurs :
 
   | Colonne    | Type    |
-  |------------|---------|
+    |------------|---------|
   | __id__     | INTEGER |
   | discord_id | INTEGER |
 
@@ -73,4 +73,4 @@ Il y a 8 tables :
 
 ## Contributeurs
 
-[![Contributeurs (vu que la repo est privée ça fonctionne pas bien)](https://contrib.rocks/image?repo=e-psi-lon/Music-BOT)](https://github.com/e-psi-lon/Music-BOT/graphs/contributors)
+[![Contributeurs](https://contrib.rocks/image?repo=e-psi-lon/Music-BOT)](https://github.com/e-psi-lon/Music-BOT/graphs/contributors)

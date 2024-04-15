@@ -26,10 +26,10 @@ class Listeners(commands.Cog):
     @commands.Cog.listener("on_guild_join")
     async def on_guild_join(self, guild: discord.Guild):
         channel = guild.system_channel
-        text = 'Hey, je suis un bot de musique en cours de développement fait par '\
-                '<@!708006478807695450>, je permet de jouer de la musique depuis YouTube dans un channel '\
-                'vocal. Pour l\'instant, il est encore bugué donc en '\
-                'test'
+        text = 'Hey, je suis un bot de musique en cours de développement fait par ' \
+               '<@!708006478807695450>, je permet de jouer de la musique depuis YouTube dans un channel ' \
+               'vocal. Pour l\'instant, il est encore bugué donc en ' \
+               'test'
         if channel is not None:
             try:
                 await channel.send(text)

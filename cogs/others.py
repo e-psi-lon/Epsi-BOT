@@ -1,8 +1,7 @@
-import os
 import io
 
-import pytube.exceptions
 import discord
+import pytube.exceptions
 from discord.ext import commands
 
 from utils import Config, EMBED_ERROR_BOT_NOT_CONNECTED, convert, Research, get_lyrics
@@ -13,9 +12,10 @@ class Others(commands.Cog):
         self.bot = bot
 
     @commands.slash_command(name="download_file", description="Download the audio of a youtube video")
-    async def download(self, ctx: discord.ApplicationContext, query, file_format: discord.Option(str, description="The file_format of the file",
-                                                                     choices=["mp3", "ogg"], required=False,
-                                                                     default="ogg")): # type: ignore
+    async def download(self, ctx: discord.ApplicationContext, query,
+                       file_format: discord.Option(str, description="The file_format of the file",
+                                                   choices=["mp3", "ogg"], required=False,
+                                                   default="ogg")):  # type: ignore
         await ctx.response.defer()
         try:
             video = pytube.YouTube(query)

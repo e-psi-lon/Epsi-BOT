@@ -1,10 +1,9 @@
 import asyncio
 
-
 import discord
 from discord.ext import commands
 
-from utils import Config,  OWNER_ID
+from utils import Config, OWNER_ID
 from utils.utils import cache
 
 removed_count = 0
@@ -36,7 +35,7 @@ class Admin(commands.Cog):
     @commands.slash_command(name="clean", description="Cleans the bot's messages", guild_ids=[761485410596552736])
     async def clean(self, ctx: discord.ApplicationContext,
                     count: discord.Option(int, description="The number of messages to delete", required=False,
-                                          default=1)): # type: ignore
+                                          default=1)):  # type: ignore
         global removed_count
         await ctx.response.defer()
         if ctx.author.id != OWNER_ID:

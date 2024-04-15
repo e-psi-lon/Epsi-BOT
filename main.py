@@ -1,20 +1,20 @@
+import argparse
+import asyncio
 import datetime
+import logging
 import os
 import sys
 import threading
 import traceback
-import argparse
-
-from utils import CustomFormatter, GuildData, UserData, PanelToBotRequest, RequestType
+from multiprocessing import Queue as mpQueue
 
 import discord.utils
+from aiomultiprocess import Process
 from discord.ext import tasks, commands
 from dotenv import load_dotenv
+
 import utils.config as config
-import asyncio
-from multiprocessing import Queue as mpQueue
-import logging
-from aiomultiprocess import Process
+from utils import CustomFormatter, GuildData, UserData, PanelToBotRequest, RequestType
 
 load_dotenv()
 
@@ -37,7 +37,6 @@ async def start_app(queue: mpQueue):
     from panel.panel import app
     app.set_queue(queue)
     await app.run_task(host="0.0.0.0", debug=False)
-    
 
 
 class Bot(commands.Bot):
@@ -66,7 +65,6 @@ class Bot(commands.Bot):
         future = asyncio.ensure_future(self.listen_to_queue())
         loop.run_until_complete(future)
 
-
     async def listen_to_queue(self):
         while True:
             if self.queue.empty():
@@ -81,10 +79,12 @@ class Bot(commands.Bot):
                     match message.content:
                         case "guilds":
                             guilds = []
-                            if message.extra.get("user_id", None) is None or int(message.extra["user_id"]) == 708006478807695450:
+                            if message.extra.get("user_id", None) is None or int(
+                                    message.extra["user_id"]) == 708006478807695450:
                                 guilds = [GuildData.from_guild(guild) for guild in self.guilds]
                             else:
-                                guilds = [GuildData.from_guild(guild) for guild in self.guilds if int(message.extra["user_id"]) in [member.id for member in guild.members]]
+                                guilds = [GuildData.from_guild(guild) for guild in self.guilds if
+                                          int(message.extra["user_id"]) in [member.id for member in guild.members]]
                             logging.info("Got a request for all guilds of a user")
                             self.queue.put(guilds)
                             await asyncio.sleep(0.1)
@@ -165,7 +165,8 @@ bot_instance.owner_id = 708006478807695450
 
 @bot_instance.slash_command(name="send", description="Envoie un message dans un salon")
 async def send_message(ctx: discord.ApplicationContext,
-                       channel: discord.Option(discord.TextChannel, description="Le salon où envoyer le message"), # type: ignore
+                       channel: discord.Option(discord.TextChannel, description="Le salon où envoyer le message"),
+                       # type: ignore
                        message: discord.Option(str, description="Le message à envoyer")):  # type: ignore
     if ctx.author.id != bot_instance.owner_id:
         raise commands.NotOwner
@@ -174,13 +175,13 @@ async def send_message(ctx: discord.ApplicationContext,
     await channel.send(message)
     await ctx.respond(content="Message envoyé !", ephemeral=True)
 
+
 @bot_instance.slash_command(name="stop-bot", description="Arrête le bot")
 async def stop_bot(ctx: discord.ApplicationContext):
     if ctx.author.id != bot_instance.owner_id:
         raise commands.NotOwner
     await ctx.response.defer()
     await ctx.respond(content="Arrêt en cours...", ephemeral=True)
-    await bot_instance.logout()
     await bot_instance.close()
     exit(0)
 
@@ -188,7 +189,7 @@ async def stop_bot(ctx: discord.ApplicationContext):
 @send_message.error
 async def send_message_error(ctx: discord.ApplicationContext, error: commands.CommandError):
     if isinstance(error, commands.NotOwner):
-        await ctx.send("Vous n'êtes pas propriétaire du bot !", ephemeral=True)
+        await ctx.respond("Vous n'êtes pas propriétaire du bot !", ephemeral=True)
 
 
 def start(instance: Bot):
@@ -206,14 +207,16 @@ def start(instance: Bot):
             except Exception as e:
                 logging.error(f"Failed to load extension {file}")
                 logging.error(e)
-    
+
     # Lancer l'instance du bot
     instance.run(os.environ["TOKEN"])
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--log-level", type=str, default="INFO", help="The log level of the bot", required=False)
     return parser.parse_known_args()[0]
+
 
 if __name__ == "__main__":
     # Les logs sont envoyés dans la console

@@ -1,11 +1,10 @@
-from concurrent.futures import ThreadPoolExecutor
 import asyncio
 import logging
+from concurrent.futures import ThreadPoolExecutor
 
 import discord
-from discord.ext import commands
 import pytube
-
+from discord.ext import commands
 
 from utils import Config, EMBED_ERROR_BOT_NOT_CONNECTED, Song, play_song, download
 
@@ -64,7 +63,8 @@ class Channel(commands.Cog):
                                                     color=0xff0000)), error_loop)
             else:
                 loop = asyncio.new_event_loop()
-                asyncio.run_coroutine_threadsafe(download(song.url, download_logger=logging.getLogger("Audio-Downloader")), loop)
+                asyncio.run_coroutine_threadsafe(
+                    download(song.url, download_logger=logging.getLogger("Audio-Downloader")), loop)
         except Exception as e:
             logging.error(f"Error checking video length: {e}")
 

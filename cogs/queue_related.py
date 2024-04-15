@@ -1,10 +1,11 @@
 import random
 
+import discord
 from discord.commands import SlashCommandGroup
 from discord.ext import commands
-import discord
 
-from utils import Config, EMBED_ERROR_QUEUE_EMPTY, EMBED_ERROR_BOT_NOT_CONNECTED, get_queue_songs, get_index_from_title, Song
+from utils import Config, EMBED_ERROR_QUEUE_EMPTY, EMBED_ERROR_BOT_NOT_CONNECTED, get_queue_songs, get_index_from_title, \
+    Song
 
 
 class Queue(commands.Cog):
@@ -35,7 +36,7 @@ class Queue(commands.Cog):
 
     @commands.slash_command(name="skip", description="Skips the current song")
     async def skip(self, ctx: discord.ApplicationContext,
-                   by: discord.Option(int, "How many songs to skip", required=False)): # type: ignore
+                   by: discord.Option(int, "How many songs to skip", required=False)):  # type: ignore
         await ctx.response.defer()
         config = await Config.get_config(ctx.guild.id, False)
         loop_song = config.loop_song
@@ -70,7 +71,7 @@ class Queue(commands.Cog):
 
     @loop.command(name="song", description="Loops the current song")
     async def loop_song(self, ctx: discord.ApplicationContext,
-                        state: discord.Option(bool, "The loop state", required=False)): # type: ignore
+                        state: discord.Option(bool, "The loop state", required=False)):  # type: ignore
         await ctx.response.defer()
         config = await Config.get_config(ctx.guild.id, False)
         if state is None:
@@ -83,7 +84,7 @@ class Queue(commands.Cog):
 
     @loop.command(name="queue", description="Loops the current song")
     async def loop_queue(self, ctx: discord.ApplicationContext,
-                         state: discord.Option(bool, "The loop state", required=False)): # type: ignore
+                         state: discord.Option(bool, "The loop state", required=False)):  # type: ignore
         await ctx.response.defer()
         config = await Config.get_config(ctx.guild.id, False)
         if state is None:
@@ -112,7 +113,8 @@ class Queue(commands.Cog):
     @remove.command(name="from-name", description="Removes a song from the queue ")
     async def remove_name(self, ctx: discord.ApplicationContext,
                           song: discord.Option(str, "The name of the song to remove", required=True,
-                                               autocomplete=discord.utils.basic_autocomplete(get_queue_songs))): # type: ignore
+                                               autocomplete=discord.utils.basic_autocomplete(
+                                                   get_queue_songs))):  # type: ignore
         await ctx.response.defer()
         config = await Config.get_config(ctx.guild.id, False)
         if not config.queue:
@@ -123,7 +125,8 @@ class Queue(commands.Cog):
 
     @remove.command(name="from-index", description="Removes a song from the queue ")
     async def remove_index(self, ctx: discord.ApplicationContext,
-                           index: discord.Option(int, "The index of the song to remove", required=True)): # type: ignore
+                           index: discord.Option(int, "The index of the song to remove",
+                                                 required=True)):  # type: ignore
         await ctx.response.defer()
         config = await Config.get_config(ctx.guild.id, False)
         if index < 0 or index >= len(config.queue):
@@ -191,7 +194,7 @@ class Queue(commands.Cog):
 
     @random_command.command(name="toggle", description="Toggles the random mode")
     async def random_toggle(self, ctx: discord.ApplicationContext,
-                            state: discord.Option(bool, "The random state", required=False)): # type: ignore
+                            state: discord.Option(bool, "The random state", required=False)):  # type: ignore
         await ctx.response.defer()
         config = await Config.get_config(ctx.guild.id, False)
         if state is None:
@@ -214,7 +217,8 @@ class Queue(commands.Cog):
     @play.command(name="song", description="Plays a song from the queue")
     async def play_queue_song(self, ctx: discord.ApplicationContext,
                               song: discord.Option(str, "The song to play", required=True,
-                                                   autocomplete=discord.utils.basic_autocomplete(get_queue_songs))): # type: ignore
+                                                   autocomplete=discord.utils.basic_autocomplete(
+                                                       get_queue_songs))):  # type: ignore
         await ctx.response.defer()
         config = await Config.get_config(ctx.guild.id, False)
         if not config.queue:
@@ -231,7 +235,8 @@ class Queue(commands.Cog):
 
     @play.command(name="number", description="Plays a song from the queue")
     async def play_queue_index(self, ctx: discord.ApplicationContext,
-                               index: discord.Option(int, "The index of the song to play", required=True)): # type: ignore
+                               index: discord.Option(int, "The index of the song to play",
+                                                     required=True)):  # type: ignore
         await ctx.response.defer()
         config = await Config.get_config(ctx.guild.id, False)
         if not config.queue:

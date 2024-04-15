@@ -8,12 +8,12 @@ from typing import Optional, Union
 
 import discord
 import discord.ext.pages
-import ffmpeg # type: ignore
-import pydub # type: ignore
-import pytube # type: ignore
+import ffmpeg  # type: ignore
+import pydub  # type: ignore
+import pytube  # type: ignore
+from aiocache import Cache  # type: ignore
 from discord.ext import commands
-from pytube.exceptions import RegexMatchError as PytubeRegexMatchError # type: ignore
-from aiocache import Cache # type: ignore
+from pytube.exceptions import RegexMatchError as PytubeRegexMatchError  # type: ignore
 
 pydub.AudioSegment.converter = "./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"
 
@@ -57,15 +57,18 @@ async def to_cache(url: str) -> io.BytesIO:
     await cache.set(url, buffer, ttl=3600)
     return buffer
 
+
 async def update_ttl(key: str, new_ttl: int):
     """Update the ttl of a key in the cache"""
     buffer = await cache.get(key)
     await cache.set(key, buffer, ttl=new_ttl)
 
+
 async def reset_ttl(key: str):
     """Reset the ttl of a key in the cache"""
     buffer = await cache.get(key)
     await cache.set(key, buffer, ttl=3600)
+
 
 async def download(url: str, download_logger: logging.Logger = logger) -> Optional[Union[io.BytesIO, str]]:
     """
@@ -107,7 +110,8 @@ class Sinks(Enum):
 
 
 async def finished_record_callback(sink: discord.sinks.Sink, channel: discord.TextChannel):
-    """Callback function to execute when the recording is finished that processes the audio and sends it to the channel"""
+    """Callback function to execute when the recording is finished that processes the audio and sends it to the
+    channel"""
     mention_strs = []
     audio_segs: list[pydub.AudioSegment] = []
     files: list[discord.File] = []
@@ -189,7 +193,9 @@ class SelectVideo(discord.ui.Select):
     callback(interaction: discord.Interaction)
         The callback function to execute when a video is selected
     """
-    def __init__(self, videos: list[pytube.YouTube], ctx: discord.ApplicationContext, download_file: bool, *args, **kwargs):
+
+    def __init__(self, videos: list[pytube.YouTube], ctx: discord.ApplicationContext, download_file: bool, *args,
+                 **kwargs):
         super().__init__(*args, **kwargs)
         self.placeholder = "Select an audio to play"
         self.min_values = 1
@@ -274,6 +280,7 @@ class Research(discord.ui.View):
     callback(interaction: discord.Interaction)
         The callback function to execute when a video is selected
     """
+
     def __init__(self, videos: list[pytube.YouTube], ctx: discord.ApplicationContext, download_file: bool, *items,
                  timeout: float | None = 180, disable_on_timeout: bool = False):
         super().__init__(*items, timeout=timeout, disable_on_timeout=disable_on_timeout)
@@ -359,8 +366,9 @@ def get_index_from_title(title: str, list_to_check: list[Song]):
 
 
 async def change_song(ctx: discord.ApplicationContext):
-    """Callback function to execute when a song is finished to change the song taking into account the server's configuration"""
-    if not (config := await Config.get_config(ctx.guild.id, False)).queue :
+    """Callback function to execute when a song is finished to change the song taking into account the server's
+    configuration"""
+    if not (config := await Config.get_config(ctx.guild.id, False)).queue:
         return
     if config.position >= len(config.queue) - 1 and not (config.loop_queue and config.loop_song):
         config.position = 0
@@ -454,6 +462,7 @@ def convert(audio: io.BytesIO, file_format: str) -> io.BytesIO:
 
 class CustomFormatter(logging.Formatter):
     """Custom formatter for the bot and the panel's logs"""
+
     def __init__(self, source: str, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.source = source
@@ -481,6 +490,3 @@ class CustomFormatter(logging.Formatter):
 def get_lyrics(title: str):
     """Get the lyrics of a song"""
     return title
-
-
-

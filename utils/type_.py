@@ -1,9 +1,8 @@
 from typing import Any, Union, TYPE_CHECKING
 
 
-
-
-def type_checking(var: Any, type_: Union[type, tuple[type]], *indexed_types: Union[type, tuple[type]], use_attr: bool = False, raise_error: bool = TYPE_CHECKING, **named_types: Union[type, tuple[type]]):
+def type_checking(var: Any, type_: Union[type, tuple[type]], *indexed_types: Union[type, tuple[type]],
+                  use_attr: bool = False, raise_error: bool = TYPE_CHECKING, **named_types: Union[type, tuple[type]]):
     """
     Check the types of a variable and its attributes/values
 
@@ -27,7 +26,9 @@ def type_checking(var: Any, type_: Union[type, tuple[type]], *indexed_types: Uni
     TypeError
         If the variable doesn't match the types
     """
-    def raise_type_error(expected_type: Union[type, tuple[type]], actual_type: type, identifier: str = None, from_error: Exception = None):
+
+    def raise_type_error(expected_type: Union[type, tuple[type]], actual_type: type, identifier: str = None,
+                         from_error: Exception = None):
         if isinstance(expected_type, tuple):
             expected_type_names = ', '.join([type_.__name__ for type_ in expected_type])
         else:
@@ -40,6 +41,7 @@ def type_checking(var: Any, type_: Union[type, tuple[type]], *indexed_types: Uni
             raise TypeError(error_message) from from_error
         else:
             raise TypeError(error_message)
+
     if not isinstance(var, type_) and raise_error:
         raise_type_error(type_, type(var))
     for index, type_ in enumerate(indexed_types):
@@ -53,13 +55,13 @@ def type_checking(var: Any, type_: Union[type, tuple[type]], *indexed_types: Uni
                     raise_type_error(type_, type(attr_value), f"attribute {attr}")
             except AttributeError as e:
                 if raise_error:
-                    raise_type_error(type_, None, f"attribute {attr}", from_error=e)
+                    raise_type_error(type_, type(None), f"attribute {attr}", from_error=e)
     else:
         for attr, type_ in named_types.items():
-            try:    
+            try:
                 value = var[attr]
                 if not isinstance(value, type_) and raise_error:
                     raise_type_error(type_, type(value), f"value at key {attr}")
             except KeyError as e:
                 if raise_error:
-                    raise_type_error(type_, None, f"value at key {attr}", from_error=e)
+                    raise_type_error(type_, type(None), f"value at key {attr}", from_error=e)

@@ -1,7 +1,9 @@
-from typing import Literal, Optional, Union, Callable, Coroutine, Any
 import asyncio
 import concurrent.futures
+from typing import Literal, Optional, Union, Callable, Coroutine, Any
+
 import aiohttp
+
 
 def run_sync(coro: Coroutine):
     """
@@ -22,6 +24,7 @@ def run_sync(coro: Coroutine):
         concurrent.futures.wait([future])
         return future.result()
 
+
 async def run_async(func: Callable):
     """
     Run a synchronous function asynchronously
@@ -37,7 +40,7 @@ async def run_async(func: Callable):
         The result of the function
     """
     return await asyncio.get_event_loop().run_in_executor(None, func)
-    
+
 
 class AsyncTimer:
     """
@@ -51,11 +54,11 @@ class AsyncTimer:
     Methods
     -------
     start
-        Start the timer
+        A method that starts the timer
     cancel
-        Cancel the timer
+        A method that cancel the timer
     restart
-        Restart the timer
+        A method that restart the timer
 
     Parameters
     ----------
@@ -68,6 +71,7 @@ class AsyncTimer:
     **kwargs
         The keyword arguments for the callback
     """
+
     def __init__(self, delay: Union[int, float], callback: Callable, *args, **kwargs):
         self._delay = delay
         self._callback = callback
@@ -81,7 +85,6 @@ class AsyncTimer:
             await self._callback(*self._args, **self._kwargs)
         else:
             self._callback(*self._args, **self._kwargs)
-            
 
     def start(self):
         """
@@ -89,7 +92,6 @@ class AsyncTimer:
         """
         with concurrent.futures.ThreadPoolExecutor() as pool:
             self._future = pool.submit(run_sync, self._job())
-        
 
     def cancel(self):
         """
@@ -106,14 +108,12 @@ class AsyncTimer:
         """
         return self._future is not None and not self._future.done()
 
-    
     def restart(self):
         """
         Restart the timer
         """
         self.cancel()
         self.start()
-
 
 
 class AsyncRequests:
@@ -127,8 +127,12 @@ class AsyncRequests:
     post
         Make a POST request
     """
+
     @staticmethod
-    async def get(url: str, params: Optional[dict] = None, data: Any = None, headers: Optional[dict] = None, cookies: Optional[dict] = None, auth: Optional[aiohttp.BasicAuth] = None, allow_redirects: bool = True, timeout: Optional[float] = None, json: Any = None, return_type: Literal["json", "text", "content"] = "json") -> Union[dict, str, bytes]: 
+    async def get(url: str, params: Optional[dict] = None, data: Any = None, headers: Optional[dict] = None,
+                  cookies: Optional[dict] = None, auth: Optional[aiohttp.BasicAuth] = None,
+                  allow_redirects: bool = True, timeout: Optional[float] = None, json: Any = None,
+                  return_type: Literal["json", "text", "content"] = "json") -> Union[dict, str, bytes]:
         """
         Make a GET request
         
@@ -161,7 +165,8 @@ class AsyncRequests:
             The response of the request
         """
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, params=params, data=data, headers=headers, cookies=cookies, auth=auth, allow_redirects=allow_redirects, timeout=timeout, json=json) as response:
+            async with session.get(url, params=params, data=data, headers=headers, cookies=cookies, auth=auth,
+                                   allow_redirects=allow_redirects, timeout=timeout, json=json) as response:
                 response.raise_for_status()
                 match return_type:
                     case "json":
@@ -172,7 +177,11 @@ class AsyncRequests:
                         return await response.text()
 
     @staticmethod
-    async def post(url: str, data: Any = None, json: Any = None, params: Optional[dict] = None, headers: Optional[dict] = None, cookies: Optional[dict] = None, auth: Optional[aiohttp.BasicAuth] = None, allow_redirects: bool = True, timeout: Optional[float] = None, return_type: Literal["json", "text", "content"] = "json") -> Union[dict, str, bytes]:
+    async def post(url: str, data: Any = None, json: Any = None, params: Optional[dict] = None,
+                   headers: Optional[dict] = None, cookies: Optional[dict] = None,
+                   auth: Optional[aiohttp.BasicAuth] = None, allow_redirects: bool = True,
+                   timeout: Optional[float] = None, return_type: Literal["json", "text", "content"] = "json") \
+            -> Union[dict, str, bytes]:
         """
         Make a POST request
         
@@ -200,7 +209,8 @@ class AsyncRequests:
             The type of the return value. Default is "json".
         """
         async with aiohttp.ClientSession() as session:
-            async with session.post(url, data=data, json=json, params=params, headers=headers, cookies=cookies, auth=auth, allow_redirects=allow_redirects, timeout=timeout) as response:
+            async with session.post(url, data=data, json=json, params=params, headers=headers, cookies=cookies,
+                                    auth=auth, allow_redirects=allow_redirects, timeout=timeout) as response:
                 response.raise_for_status()
                 match return_type:
                     case "json":
@@ -209,4 +219,3 @@ class AsyncRequests:
                         return await response.content.read()
                     case _:
                         return await response.text()
-    
