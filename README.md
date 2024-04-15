@@ -1,4 +1,4 @@
-# Music-BOT
+# Epsi-BOT
 
 ## Format de sauvegarde des infos
 
@@ -73,4 +73,4 @@ Il y a 8 tables :
 
 ## Contributeurs
 
-[![Contributeurs](https://contrib.rocks/image?repo=e-psi-lon/Music-BOT)](https://github.com/e-psi-lon/Music-BOT/graphs/contributors)
+[![Contributeurs](https://contrib.rocks/image?repo=e-psi-lon/Epsi-BOT)](https://github.com/e-psi-lon/Epsi-BOT/graphs/contributors)
