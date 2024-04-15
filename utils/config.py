@@ -365,6 +365,7 @@ class Asker(DatabaseAccess):
     from_id(discord_id: int, is_copy: bool = False) -> Asker (classmethod)
         Get an Asker object from the database.
     """
+
     def __init__(self, copy: bool) -> None:
         super().__init__(copy)
         self._id: Optional[int] = None

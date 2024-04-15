@@ -30,7 +30,7 @@ def type_checking(var: Any, type_: Union[type, tuple[type]], *indexed_types: Uni
     def raise_type_error(expected_type: Union[type, tuple[type]], actual_type: type, identifier: str = None,
                          from_error: Exception = None):
         if isinstance(expected_type, tuple):
-            expected_type_names = ', '.join([type_.__name__ for type_ in expected_type])
+            expected_type_names = ', '.join([type__.__name__ for type__ in expected_type])
         else:
             expected_type_names = expected_type.__name__
         if identifier is not None:

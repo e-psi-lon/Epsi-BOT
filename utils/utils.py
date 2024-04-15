@@ -15,11 +15,11 @@ from aiocache import Cache  # type: ignore
 from discord.ext import commands
 from pytube.exceptions import RegexMatchError as PytubeRegexMatchError  # type: ignore
 
-pydub.AudioSegment.converter = "./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"
-
-from .config import Config, Song, Asker, UserPlaylistAccess, format_name
 from .async_ import AsyncRequests
+from .config import Config, Song, Asker, UserPlaylistAccess, format_name
 from .constants import EMBED_ERROR_BOT_NOT_CONNECTED
+
+pydub.AudioSegment.converter = "./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"
 
 logger = logging.getLogger("__main__")
 
