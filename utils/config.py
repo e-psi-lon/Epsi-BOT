@@ -91,7 +91,8 @@ class DatabaseAccess:
     def __init__(self, copy: bool):
         self._copy = copy
 
-    def _run_sync(self, coro):
+    @staticmethod
+    def _run_sync(coro):
         with concurrent.futures.ThreadPoolExecutor() as pool:
             future = pool.submit(asyncio.run, coro)
             concurrent.futures.wait([future])
@@ -667,8 +668,9 @@ class Playlist(DatabaseAccess):
                                       joins=[JoinCondition('PLAYLIST_SONG', 'SONG', 'song_id', 'song_id'),
                                              JoinCondition('PLAYLIST_SONG', 'ASKER', 'asker', 'asker_id')],
                                       **{"PLAYLIST_SONG.playlist_id": self._id})
-        self._songs = [self._run_sync(Song.create(name, url, self._run_sync(Asker.from_id(asker)))) for name, url, asker
-                       in songs]
+            self._songs = [self._run_sync(Song.create(name, url, self._run_sync(Asker.from_id(asker)))) for
+                           name, url, asker
+                           in songs]
         return self._songs.copy()
 
     async def add_song(self, song: Song):
@@ -1077,7 +1079,8 @@ class Config(DatabaseAccess):
 
     def __str__(self) -> str:
         return f"Config of {self.guild_id}: {self.loop_song}, {self.loop_queue}, {self.random}, {self.volume}, " \
-               f"{self.position},\n{', '.join([str(song) for song in self.queue])},\n{', '.join([str(playlist) for playlist in self.playlists])}"
+               f"{self.position},\n{', '.join([str(song) for song in self.queue])}," \
+               f"\n{', '.join([str(playlist) for playlist in self.playlists])}"
 
     def __repr__(self) -> str:
         return f"Config(guild_id={self.guild_id}, loop_song={self.loop_song}, loop_queue={self.loop_queue}, " \

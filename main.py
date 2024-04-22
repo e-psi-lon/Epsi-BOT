@@ -3,10 +3,12 @@ import asyncio
 import datetime
 import logging
 import os
+import subprocess
 import sys
 import threading
 import traceback
 from multiprocessing import Queue as mpQueue
+from typing import Optional
 
 import discord.utils
 from aiomultiprocess import Process
@@ -21,7 +23,7 @@ load_dotenv()
 start_time = datetime.datetime.now()
 
 
-@tasks.loop(seconds=18000)
+@tasks.loop(hours=5)
 async def check_update():
     current_hash = os.popen("git rev-parse HEAD").read().strip()
     origin_hash = os.popen("git ls-remote origin main | awk '{print $1}'").read().strip()
@@ -43,6 +45,8 @@ class Bot(commands.Bot):
     def __init__(self, *args, **options):
         super().__init__(*args, **options)
         self.queue: mpQueue[PanelToBotRequest | GuildData | UserData | list[GuildData]] = mpQueue()
+        self.listener_thread: Optional[threading.Thread] = None
+        self.memcached: Optional[subprocess.Popen] = None
 
     async def on_ready(self):
         global start_time
@@ -52,7 +56,8 @@ class Bot(commands.Bot):
         p.start()
         if os.popen("git branch --show-current").read().strip() == "main":
             check_update.start()
-        threading.Thread(target=self.start_listening, name="Listener").start()
+        self.listener_thread = threading.Thread(target=self.start_listening, name="Listener").start()
+        self.memcached = subprocess.Popen(["wsl", "memcached", "-p", "11211"], stdout=sys.stdout, stderr=sys.stderr)
         logging.info(f"Bot ready in {datetime.datetime.now() - start_time}")
         for guild in self.guilds:
             # Si la guilde n'existe pas dans la db, on l'ajoute avec les paramètres par défaut
@@ -183,6 +188,7 @@ async def stop_bot(ctx: discord.ApplicationContext):
     await ctx.response.defer()
     await ctx.respond(content="Arrêt en cours...", ephemeral=True)
     await bot_instance.close()
+    bot_instance.memcached.terminate()
     exit(0)
 
 

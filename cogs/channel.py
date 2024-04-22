@@ -47,10 +47,9 @@ class Channel(commands.Cog):
 
             await play_song(ctx, config.queue[config.position].url)
             if len(config.queue) > 1:
-                pool = ThreadPoolExecutor()
-                for song in config.queue[1:]:
-                    pool.submit(self._check_video_length, song, ctx, asyncio.get_event_loop())
-                pool.shutdown(False)
+                with ThreadPoolExecutor() as pool:
+                    for song in config.queue[1:]:
+                        pool.submit(self._check_video_length, song, ctx, asyncio.get_event_loop())
 
     @staticmethod
     def _check_video_length(song: Song, ctx: discord.ApplicationContext, error_loop: asyncio.AbstractEventLoop):

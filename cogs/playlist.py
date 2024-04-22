@@ -153,8 +153,7 @@ class Playlists(commands.Cog):
     @playlist.command(name="remove", description="Removes a song from a playlist")
     async def remove(self, ctx: discord.ApplicationContext,
                      name: discord.Option(str, "The name of the playlist", required=True,
-                                          autocomplete=discord.utils.basic_autocomplete(get_playlists)),
-                     # type: ignore
+                                          autocomplete=discord.utils.basic_autocomplete(get_playlists)),  # type: ignore
                      song: discord.Option(str, "The name of the song", required=True,
                                           autocomplete=discord.utils.basic_autocomplete(
                                               get_playlists_songs))):  # type: ignore
@@ -195,16 +194,14 @@ class Playlists(commands.Cog):
 
         await config.edit_queue(playlist[0].songs)
         config.position = 0
-        pool = ThreadPoolExecutor()
         await play_song(ctx, config.queue[0].url)
         await ctx.respond(
             embed=discord.Embed(title="Play", description=f"Playing {config.queue[config.position].name}",
                                 color=0x00ff00))
         if len(config.queue) > 1:
-            for song in config.queue[:1]:
-                pool.submit(self._check_video, song, ctx, asyncio.get_event_loop())
-            pool.shutdown(wait=True)
-
+            with ThreadPoolExecutor() as pool:
+                for song in config.queue[:1]:
+                    pool.submit(self._check_video, song, ctx, asyncio.get_event_loop())
     @staticmethod
     def _check_video(song: Song, ctx: discord.ApplicationContext, error_loop: asyncio.AbstractEventLoop):
         try:
@@ -291,10 +288,10 @@ class Playlists(commands.Cog):
 
     @staticmethod
     async def get_config(ctx: discord.ApplicationContext, playlist_name: str) -> \
-            Optional[tuple[Union[Config, UserPlaylistAccess], str]]:
+            tuple[Optional[Union[Config, UserPlaylistAccess]], Optional[str]]:
         if playlist_name.endswith(" - SERVER"):
             config = await Config.get_config(ctx.guild.id, False)
-            playlist_name = playlist_name[:-3]
+            playlist_name = playlist_name[:-9]
         elif playlist_name.endswith(" - USER"):
             config = await UserPlaylistAccess.from_id(ctx.user.id)
             playlist_name = playlist_name[:-7]
@@ -306,12 +303,12 @@ class Playlists(commands.Cog):
                                          value="\n".join([playlist.name for playlist in config.playlists]))
                               .add_field(name="Existing user playlists:",
                                          value="\n".join([playlist.name for playlist in user_config.playlists])))
-            return None
+            return None, None
         if playlist_name not in [playlist.name for playlist in config.playlists]:
             await ctx.respond(embed=EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
                               .add_field(name="Existing playlists:",
                                          value="\n".join([playlist.name for playlist in config.playlists])))
-            return None
+            return None, None
         return config, playlist_name
 
 

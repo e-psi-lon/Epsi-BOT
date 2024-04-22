@@ -54,6 +54,7 @@ class Panel(Quart):
         self.REDIRECT_URI = "http://86.196.98.254/auth/discord/callback"
         self.timers: dict[int, AsyncTimer] = {}
         self.queue: Optional[multiprocessing.Queue[PanelToBotRequest | GuildData | UserData | list[GuildData]]] = None
+        self.config['SESSION_TYPE'] = 'memcached'
         Session(self)
 
     def set_queue(self, queue: multiprocessing.Queue):

@@ -1,4 +1,8 @@
 import logging
+import io
+import contextlib
+import sys
+import traceback
 
 import discord
 from discord.ext import commands
@@ -9,6 +13,28 @@ from utils import disconnect_from_channel
 class Listeners(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+
+    @commands.Cog.listener()
+    async def on_message(self, message:discord.Message):
+        if message.content.startswith("e!eval"):
+            output = io.StringIO()
+            if message.author.id == self.bot.owner_id:
+                try:
+                    code = message.content.split("\n", 1)[1]
+                    code = code[3:-3]
+                    code = "\n".join(["\t" + line for line in code.split("\n")])
+                    exec(f"async def __ex(message: discord.Message, bot: commands.Bot):\n{code}", globals(), locals())
+                    output = io.StringIO()
+                    with contextlib.redirect_stdout(output):
+                        with contextlib.redirect_stderr(output):
+                            await locals()["__ex"](message, self.bot)
+                except Exception:
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    traceback_str = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+                    output.write(f"Uncaught {exc_type.__name__}: {exc_value}\n{traceback_str}")
+                finally:
+                    await message.reply(f"```{output.getvalue()[:1994]}```")
+                
 
     @commands.Cog.listener("on_voice_state_update")
     async def on_voice_state_update(self, _: discord.Member, before: discord.VoiceState,

@@ -4,6 +4,8 @@ import logging
 import os
 import random
 import subprocess
+import base64
+import binascii
 from enum import Enum
 from typing import Optional, Union
 
@@ -12,7 +14,8 @@ import discord.ext.pages
 import ffmpeg  # type: ignore
 import pydub  # type: ignore
 import pytube  # type: ignore
-from aiocache import Cache  # type: ignore
+from aiocache import MemcachedCache  # type: ignore
+from aiocache.serializers import JsonSerializer  # type: ignore
 from discord.ext import commands
 from pytube.exceptions import RegexMatchError as PytubeRegexMatchError  # type: ignore
 
@@ -22,9 +25,21 @@ from .constants import EMBED_ERROR_BOT_NOT_CONNECTED
 
 pydub.AudioSegment.converter = "./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"
 
+class Base64Serializer(JsonSerializer):
+    def dumps(self, value):
+        if isinstance(value, io.BytesIO):
+            return base64.b64encode(value.getvalue()).decode('utf-8')
+        return super().dumps(value)
+
+    def loads(self, value):
+        try:
+            return io.BytesIO(base64.b64decode(value.encode('utf-8')))
+        except (TypeError, binascii.Error):
+            return super().loads(value)
+
 logger = logging.getLogger("__main__")
 
-cache = Cache()
+cache = MemcachedCache(serializer=Base64Serializer())
 
 __all__ = [
     "download",
@@ -61,7 +76,7 @@ async def to_cache(url: str) -> io.BytesIO:
         The downloaded video
     """
     if await cache.exists(url):
-        return await cache.get(url)
+        return io.BytesIO(await cache.get(url))
     buffer = io.BytesIO()
     if not url.startswith("https://youtube.com/watch?v="):
         r: bytes = await AsyncRequests.get(url, return_type="content")
@@ -72,7 +87,7 @@ async def to_cache(url: str) -> io.BytesIO:
         buffer = io.BytesIO()
         stream.stream_to_buffer(buffer)
     buffer.seek(0)
-    await cache.set(url, buffer, ttl=3600)
+    await cache.set(url, buffer.getvalue(), ttl=3600)
     return buffer
 
 
@@ -116,7 +131,7 @@ async def download(url: str, download_logger: logging.Logger = logger) -> Option
             return None
         buffer = await to_cache(url)
         logger.info(f"Downloaded {stream.title}")
-        return buffer
+        return io.BytesIO(buffer.getvalue())
 
 
 class Sinks(Enum):
@@ -485,8 +500,10 @@ def convert(audio: io.BytesIO, file_format: FfmpegFormats, log: logging.Logger =
     stream = ffmpeg.input("pipe:0")
     stream = ffmpeg.output(stream, "pipe:1", *file_format.value)
     process: subprocess.Popen = ffmpeg.run_async(stream, executable, pipe_stdin=True, pipe_stdout=True)
-    process.communicate(input=audio.read())
     buffer = io.BytesIO()
+    while audio:
+        process.stdin.write(audio.read(1024))
+    process.stdin.close()
     process.wait()
     buffer.write(process.stdout.read())
     buffer.seek(0)
