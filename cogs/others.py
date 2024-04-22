@@ -4,7 +4,7 @@ import discord
 import pytube.exceptions
 from discord.ext import commands
 
-from utils import Config, EMBED_ERROR_BOT_NOT_CONNECTED, convert, Research, get_lyrics
+from utils import Config, EMBED_ERROR_BOT_NOT_CONNECTED, convert, Research, get_lyrics, FfmpegFormats
 
 
 class Others(commands.Cog):
@@ -25,7 +25,15 @@ class Others(commands.Cog):
                 stream.stream_to_buffer(buffer)
                 buffer.seek(0)
                 # On convertit l'audio dans le format demandé
-                buffer = convert(buffer, file_format)
+                match file_format:
+                    case "mp3":
+                        buffer = convert(buffer, FfmpegFormats.MP3)
+                    case "ogg":
+                        buffer = convert(buffer, FfmpegFormats.OGG)
+                    case _:
+                        return await ctx.respond(
+                            embed=discord.Embed(title="Error", description="Invalid file_format.", color=0xff0000)
+                        )
                 await ctx.respond(embed=discord.Embed(title="Download", description="Song downloaded.", color=0x00ff00),
                                   file=discord.File(buffer,
                                                     filename=f"{video.title}.{file_format}"))

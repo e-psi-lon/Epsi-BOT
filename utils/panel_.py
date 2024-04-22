@@ -7,6 +7,8 @@ from discord.abc import GuildChannel
 
 from .config import Song
 
+__all__ = ["RequestType", "PanelToBotRequest", "ChannelData", "UserData", "GuildData", "ConfigData"]
+
 
 class RequestType(Enum):
     """Enum to represent the type of request from the panel to the bot."""

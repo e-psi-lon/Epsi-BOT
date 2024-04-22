@@ -3,6 +3,7 @@ import io
 import logging
 import os
 import random
+import subprocess
 from enum import Enum
 from typing import Optional, Union
 
@@ -24,6 +25,23 @@ pydub.AudioSegment.converter = "./bin/ffmpeg.exe" if os.name == "nt" else "ffmpe
 logger = logging.getLogger("__main__")
 
 cache = Cache()
+
+__all__ = [
+    "download",
+    "Sinks",
+    "finished_record_callback",
+    "disconnect_from_channel",
+    "Research",
+    "get_playlists",
+    "get_playlists_songs",
+    "get_queue_songs",
+    "get_index_from_title",
+    "play_song",
+    "FfmpegFormats",
+    "convert",
+    "CustomFormatter",
+    "get_lyrics"
+]
 
 
 async def to_cache(url: str) -> io.BytesIO:
@@ -379,7 +397,7 @@ async def change_song(ctx: discord.ApplicationContext):
         return
     if not config.loop_song:
         if config.random and len(config.queue) > 1:
-            config.position = random.choice(list(set(range(0, len(config.queue))) - set([config.position])))
+            config.position = random.choice(list(set(range(0, len(config.queue))) - {config.position}))
         elif len(config.queue) < 1:
             config.position = 0
         else:
@@ -452,12 +470,28 @@ async def on_play_song_finished(ctx: discord.ApplicationContext, error=None):
     await change_song(ctx)
 
 
-def convert(audio: io.BytesIO, file_format: str) -> io.BytesIO:
+class FfmpegFormats(Enum):
+    MP3 = ("-codec:a", "libmp3lame")
+    FLAC = ("-codec:a", "flac", "-sample_fmt", "s16")
+    OGG = ("-codec:a", "libvorbis")
+    OPUS = ("-codec:a", "libopus")
+    M4A = ("-codec:a", "aac")
+    WAV = ("-codec:a", "pcm_s16le")
+
+
+def convert(audio: io.BytesIO, file_format: FfmpegFormats, log: logging.Logger = logger,
+            executable: str = "./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg") -> io.BytesIO:
     """Convert an audio file to another format"""
-    stream = ffmpeg.input(audio)
-    stream = ffmpeg.output(stream, f"{audio.split('/')[1][:-4]}.{file_format}", format=file_format)
-    ffmpeg.run(stream)
-    return io.BytesIO(open(f"{audio.split('/')[1][:-4]}.{file_format}", "rb").read())
+    stream = ffmpeg.input("pipe:0")
+    stream = ffmpeg.output(stream, "pipe:1", *file_format.value)
+    process: subprocess.Popen = ffmpeg.run_async(stream, executable, pipe_stdin=True, pipe_stdout=True)
+    process.communicate(input=audio.read())
+    buffer = io.BytesIO()
+    process.wait()
+    buffer.write(process.stdout.read())
+    buffer.seek(0)
+    log.info(f"Converted audio to {file_format}")
+    return buffer
 
 
 class CustomFormatter(logging.Formatter):

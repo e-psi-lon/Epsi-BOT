@@ -11,6 +11,8 @@ from utils.type_ import type_checking
 
 logger = logging.getLogger("__main__")
 
+__all__ = ["Config", "UserPlaylistAccess", "Playlist", "Song", "Asker", "PlaylistType", "format_name"]
+
 
 def format_name(name: str):
     """Replace |, /, backslash, <, >, :, ;, *, ?, ", and ' with a character with their unicode"""

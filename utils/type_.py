@@ -1,5 +1,6 @@
 from typing import Any, Union, TYPE_CHECKING
 
+__all__ = ["type_checking"]
 
 def type_checking(var: Any, type_: Union[type, tuple[type]], *indexed_types: Union[type, tuple[type]],
                   use_attr: bool = False, raise_error: bool = TYPE_CHECKING, **named_types: Union[type, tuple[type]]):

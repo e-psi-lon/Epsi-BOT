@@ -150,7 +150,7 @@ class Bot(commands.Bot):
             try:
                 await context.respond(embed=embed, ephemeral=True)
                 await self.get_user(self.owner_id).send(embed=embed)
-            except Exception:
+            except discord.DiscordException:
                 await context.send("Ce message se supprimera d'ici 20s", embed=embed, delete_after=20)
                 await self.get_user(self.owner_id).send(embed=embed)
         else:
@@ -165,13 +165,13 @@ bot_instance.owner_id = 708006478807695450
 
 @bot_instance.slash_command(name="send", description="Envoie un message dans un salon")
 async def send_message(ctx: discord.ApplicationContext,
-                       channel: discord.Option(discord.TextChannel, description="Le salon où envoyer le message"),
-                       # type: ignore
+                       channel: discord.Option(
+                           discord.TextChannel,
+                           description="Le salon où envoyer le message"),  # type: ignore
                        message: discord.Option(str, description="Le message à envoyer")):  # type: ignore
     if ctx.author.id != bot_instance.owner_id:
         raise commands.NotOwner
     await ctx.response.defer()
-    channel = bot_instance.get_channel(channel)
     await channel.send(message)
     await ctx.respond(content="Message envoyé !", ephemeral=True)
 
