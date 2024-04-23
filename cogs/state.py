@@ -222,8 +222,7 @@ class State(commands.Cog):
                             description="Enregistre nos chers gogols en train de chanter "
                                         "(c'est Rignchen qui m'as dit de laisser ça)")
     async def record(self, ctx: discord.ApplicationContext,
-                     time: discord.Option(int, "Le temps d'enregistrement en secondes (de 1s à 260s)", required=True),
-                     # type: ignore
+                     time: discord.Option(int, "Le temps d'enregistrement en secondes (de 1s à 260s)", required=True),  # type: ignore
                      file_format: discord.Option(Sinks, "Le format d'enregistrement", required=True)):  # type: ignore
         await ctx.response.defer()
         if ctx.guild.voice_client is None:

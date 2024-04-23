@@ -201,28 +201,28 @@ class Playlists(commands.Cog):
         if len(config.queue) > 1:
             with ThreadPoolExecutor() as pool:
                 for song in config.queue[:1]:
-                    pool.submit(self._check_video, song, ctx, asyncio.get_event_loop())
-    @staticmethod
-    def _check_video(song: Song, ctx: discord.ApplicationContext, error_loop: asyncio.AbstractEventLoop):
+                    pool.submit(self._check_video, song, ctx)
+                    
+    def _check_video(self, song: Song, ctx: discord.ApplicationContext):
         try:
             video = pytube.YouTube(song.url)
             if video.age_restricted:
-                asyncio.run_coroutine_threadsafe(
+                self.bot.loop.create_task(
                     ctx.respond(embed=discord.Embed(title="Error",
                                                     description=f"The [video]({song.url}) is age restricted",
-                                                    color=0xff0000)), error_loop)
+                                                    color=0xff0000)))
             elif video.length > 12000:
-                asyncio.run_coroutine_threadsafe(
+                self.bot.loop.create_task(
                     ctx.respond(embed=discord.Embed(title="Error",
                                                     description=f"The video [{video.title}]({song.url}) is too long",
-                                                    color=0xff0000)), error_loop)
+                                                    color=0xff0000)))
 
             else:
                 loop = asyncio.new_event_loop()
-                asyncio.run_coroutine_threadsafe(
-                    download(song.url, download_logger=logging.getLogger("Audio-Downloader")), loop)
+                asyncio.set_event_loop(loop)
+                loop.run_until_complete(download(song.url, download_logger=logging.getLogger("Audio-Downloader")))
         except Exception as e:
-            print(f"Error checking video availability: {e}")
+            logging.error(f"Error checking video availability: {e}")
 
     @playlist.command(name="list", description="Lists all the playlists")
     async def list_playlist(self, ctx: discord.ApplicationContext,

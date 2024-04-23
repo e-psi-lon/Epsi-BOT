@@ -76,7 +76,7 @@ async def to_cache(url: str) -> io.BytesIO:
         The downloaded video
     """
     if await cache.exists(url):
-        return io.BytesIO(await cache.get(url))
+        return await cache.get(url)
     buffer = io.BytesIO()
     if not url.startswith("https://youtube.com/watch?v="):
         r: bytes = await AsyncRequests.get(url, return_type="content")
@@ -87,7 +87,7 @@ async def to_cache(url: str) -> io.BytesIO:
         buffer = io.BytesIO()
         stream.stream_to_buffer(buffer)
     buffer.seek(0)
-    await cache.set(url, buffer.getvalue(), ttl=3600)
+    await cache.set(url, buffer, ttl=3600)
     return buffer
 
 

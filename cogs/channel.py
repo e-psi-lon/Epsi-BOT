@@ -49,21 +49,19 @@ class Channel(commands.Cog):
             if len(config.queue) > 1:
                 with ThreadPoolExecutor() as pool:
                     for song in config.queue[1:]:
-                        pool.submit(self._check_video_length, song, ctx, asyncio.get_event_loop())
+                        pool.submit(self._check_video_length, song, ctx)
 
-    @staticmethod
-    def _check_video_length(song: Song, ctx: discord.ApplicationContext, error_loop: asyncio.AbstractEventLoop):
+    def _check_video_length(self, song: Song, ctx: discord.ApplicationContext):
         try:
             if pytube.YouTube(song.url).length > 12000:
-                asyncio.run_coroutine_threadsafe(
-                    ctx.respond(embed=discord.Embed(title="Error",
+                self.bot.loop.create_task(ctx.respond(embed=discord.Embed(title="Error",
                                                     description=f"The video [{pytube.YouTube(song.url).title}]"
                                                                 f"({song.url}) is too long",
-                                                    color=0xff0000)), error_loop)
+                                                    color=0xff0000)))
             else:
                 loop = asyncio.new_event_loop()
-                asyncio.run_coroutine_threadsafe(
-                    download(song.url, download_logger=logging.getLogger("Audio-Downloader")), loop)
+                asyncio.set_event_loop(loop)
+                loop.run_until_complete(download(song.url, download_logger=logging.getLogger("Audio-Downloader")))
         except Exception as e:
             logging.error(f"Error checking video length: {e}")
 

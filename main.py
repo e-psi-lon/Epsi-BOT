@@ -57,7 +57,7 @@ class Bot(commands.Bot):
         if os.popen("git branch --show-current").read().strip() == "main":
             check_update.start()
         self.listener_thread = threading.Thread(target=self.start_listening, name="Listener").start()
-        self.memcached = subprocess.Popen(["wsl", "memcached", "-p", "11211"], stdout=sys.stdout, stderr=sys.stderr)
+        self.memcached = subprocess.Popen(["wsl", "memcached", "d", "-p", "11211", "-I", "500m", "-m", "1024"], stdout=sys.stdout, stderr=sys.stderr)
         logging.info(f"Bot ready in {datetime.datetime.now() - start_time}")
         for guild in self.guilds:
             # Si la guilde n'existe pas dans la db, on l'ajoute avec les paramètres par défaut

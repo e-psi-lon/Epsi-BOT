@@ -12,7 +12,7 @@ class Others(commands.Cog):
         self.bot = bot
 
     @commands.slash_command(name="download_file", description="Download the audio of a youtube video")
-    async def download(self, ctx: discord.ApplicationContext, query,
+    async def download_file(self, ctx: discord.ApplicationContext, query,
                        file_format: discord.Option(str, description="The file_format of the file",
                                                    choices=["mp3", "ogg"], required=False,
                                                    default="ogg")):  # type: ignore
