@@ -42,8 +42,8 @@ class Playlists(commands.Cog):
         await ctx.response.defer()
         if len(name) > 20:
             return await ctx.respond(embed=EMBED_ERROR_NAME_TOO_LONG)
-        config = await Config.get_config(ctx.interaction.guild.id, False) if playlist_type == "server" else \
-            await UserPlaylistAccess.from_id(ctx.user.id)
+        config = await Config.get_config(ctx.interaction.guild.id, False)
+        user_config = await UserPlaylistAccess.from_id(ctx.user.id)
         if not config.queue:
             return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
         if name in [playlist.name for playlist in config.playlists]:
@@ -53,7 +53,10 @@ class Playlists(commands.Cog):
         playlist = await Playlist.create(name, config.queue,
                                          ctx.guild.id if playlist_type == "server" else ctx.user.id,
                                          PlaylistType.SERVER if playlist_type == "server" else PlaylistType.USER)
-        await config.add_playlist(playlist)
+        if playlist_type == "server":
+            await config.add_playlist(playlist)
+        else:
+            await user_config.add_playlist(playlist)
         await ctx.respond(
             embed=discord.Embed(title="Playlist", description=f"Playlist {name} created.", color=0x00ff00))
 
