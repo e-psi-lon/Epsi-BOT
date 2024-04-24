@@ -116,7 +116,6 @@ async def panel():
         user = await Requests.get(f"{app.API_ENDPOINT}/users/@me",
                                   headers={"Authorization": f"Bearer {token['access_token']}"})
         user = UserData.from_api_response(user)
-        print(user)
         session['guilds'] = await app.get_from_bot("guilds", user_id=session['user_id'])
         session['user'] = user
     if session.get('guilds', None) is None:

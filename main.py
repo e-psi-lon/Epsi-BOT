@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import datetime
+import io
 import logging
 import os
 import subprocess
@@ -40,6 +41,34 @@ async def start_app(queue: mpQueue):
     app.set_queue(queue)
     await app.run_task(host="0.0.0.0", debug=False)
 
+class MemcachedStd(io.TextIOBase):
+    def __init__(self, type: str = "stdout", *args, **kwargs):
+        self.type = type
+        super().__init__(*args, **kwargs)
+
+    def write(self, string: str) -> int:
+        match self.type:
+            case "stdout":
+                logging.info(string)
+            case "stderr":
+                logging.error(string)
+        return len(string)
+
+    def writelines(self, lines: list[str]) -> None:
+        for line in lines:
+            self.write(line)
+
+    def fileno(self) -> int:
+        return sys.stdout.fileno()
+    
+    def isatty(self) -> bool:
+        return sys.stdout.isatty()
+    
+    def readable(self) -> bool:
+        return False
+    
+    def writable(self) -> bool:
+        return True
 
 class Bot(commands.Bot):
     def __init__(self, *args, **options):
@@ -57,7 +86,10 @@ class Bot(commands.Bot):
         if os.popen("git branch --show-current").read().strip() == "main":
             check_update.start()
         self.listener_thread = threading.Thread(target=self.start_listening, name="Listener").start()
-        self.memcached = subprocess.Popen(["wsl", "memcached", "d", "-p", "11211", "-I", "500m", "-m", "1024"], stdout=sys.stdout, stderr=sys.stderr)
+        if os.name == "nt":
+            self.memcached = subprocess.Popen(["wsl", "memcached", "d", "-p", "11211", "-I", "500m", "-m", "1024"], stdout=MemcachedStd(), stderr=MemcachedStd("stderr"))
+        else:
+            self.memcached = subprocess.Popen(["memcached", "-d", "-p", "11211", "-I", "500m", "-m", "1024"], stdout=MemcachedStd(), stderr=MemcachedStd())
         logging.info(f"Bot ready in {datetime.datetime.now() - start_time}")
         for guild in self.guilds:
             # Si la guilde n'existe pas dans la db, on l'ajoute avec les paramètres par défaut

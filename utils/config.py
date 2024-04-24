@@ -7,7 +7,7 @@ from typing import Optional, Union, Any
 import aiosqlite
 from pypika import Table, Query, Field  # type: ignore
 
-from utils.type_ import type_checking
+from .type_ import type_checking
 
 logger = logging.getLogger("__main__")
 

@@ -21,9 +21,9 @@ from utils import (Playlist,
                    get_playlists_songs,
                    EMBED_ERROR_NAME_TOO_LONG,
                    EMBED_ERROR_QUEUE_EMPTY,
-                   EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
+                   EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST,
+                   EMBED_ERROR_BOT_NOT_CONNECTED
                    )
-
 
 class Playlists(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -177,6 +177,8 @@ class Playlists(commands.Cog):
                    name: discord.Option(str, "The name of the playlist", required=True,
                                         autocomplete=discord.utils.basic_autocomplete(get_playlists))):  # type: ignore
         await ctx.response.defer()
+        if ctx.guild.voice_client is None:
+            return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
         config = await Config.get_config(ctx.guild.id, False)
         user_playlist = await UserPlaylistAccess.from_id(ctx.user.id)
         playlist = []
@@ -220,7 +222,8 @@ class Playlists(commands.Cog):
             else:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                loop.run_until_complete(download(song.url, download_logger=logging.getLogger("Audio-Downloader")))
+                future = asyncio.ensure_future(download(song.url, download_logger=logging.getLogger("Audio-Downloader")))
+                loop.run_until_complete(future)
         except Exception as e:
             logging.error(f"Error checking video availability: {e}")
 

@@ -4,10 +4,11 @@ import logging
 import os
 import random
 import subprocess
+import zlib
 import base64
 import binascii
 from enum import Enum
-from typing import Optional, Union
+from typing import Optional
 
 import discord
 import discord.ext.pages
@@ -23,18 +24,24 @@ from .async_ import AsyncRequests
 from .config import Config, Song, Asker, UserPlaylistAccess, format_name
 from .constants import EMBED_ERROR_BOT_NOT_CONNECTED
 
+
 pydub.AudioSegment.converter = "./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"
 
 class Base64Serializer(JsonSerializer):
     def dumps(self, value):
         if isinstance(value, io.BytesIO):
-            return base64.b64encode(value.getvalue()).decode('utf-8')
+            logger.debug(f"Audio size: {len(value.getvalue())} bytes")
+            compressed = zlib.compress(base64.b64encode(value.getvalue()))
+            logger.debug(f"Compressed audio size: {len(compressed)} bytes")
+            return binascii.hexlify(compressed).decode()
         return super().dumps(value)
 
-    def loads(self, value):
+    def loads(self, value: str):
         try:
-            return io.BytesIO(base64.b64decode(value.encode('utf-8')))
-        except (TypeError, binascii.Error):
+            val = io.BytesIO(base64.b64decode(zlib.decompress(binascii.unhexlify(value.encode()))))
+            val.seek(0)
+            return val
+        except (TypeError, binascii.Error, zlib.error):
             return super().loads(value)
 
 logger = logging.getLogger("__main__")
@@ -75,8 +82,8 @@ async def to_cache(url: str) -> io.BytesIO:
     io.BytesIO
         The downloaded video
     """
-    if await cache.exists(url):
-        return await cache.get(url)
+    if await cache.exists(url, namespace="audio"):
+        return await cache.get(url, namespace="audio")
     buffer = io.BytesIO()
     if not url.startswith("https://youtube.com/watch?v="):
         r: bytes = await AsyncRequests.get(url, return_type="content")
@@ -87,23 +94,23 @@ async def to_cache(url: str) -> io.BytesIO:
         buffer = io.BytesIO()
         stream.stream_to_buffer(buffer)
     buffer.seek(0)
-    await cache.set(url, buffer, ttl=3600)
+    await cache.set(url, buffer, ttl=3600, namespace="audio")
     return buffer
 
 
-async def update_ttl(key: str, new_ttl: int):
+async def update_ttl(key: str, new_ttl: int, namespace: str):
     """Update the ttl of a key in the cache"""
-    buffer = await cache.get(key)
-    await cache.set(key, buffer, ttl=new_ttl)
+    buffer = await cache.get(key, namespace=namespace)
+    await cache.set(key, buffer, ttl=new_ttl, namespace=namespace)
 
 
-async def reset_ttl(key: str):
+async def reset_ttl(key: str, namespace: str):
     """Reset the ttl of a key in the cache"""
-    buffer = await cache.get(key)
-    await cache.set(key, buffer, ttl=3600)
+    buffer = await cache.get(key, namespace=namespace)
+    await cache.set(key, buffer, ttl=3600, namespace=namespace)
 
 
-async def download(url: str, download_logger: logging.Logger = logger) -> Optional[Union[io.BytesIO, str]]:
+async def download(url: str, download_logger: logging.Logger = logger) -> Optional[io.BytesIO]:
     """
     Download a video from a YouTube (or other) URL.
     
@@ -131,7 +138,9 @@ async def download(url: str, download_logger: logging.Logger = logger) -> Option
             return None
         buffer = await to_cache(url)
         logger.info(f"Downloaded {stream.title}")
-        return io.BytesIO(buffer.getvalue())
+        new_buffer = io.BytesIO(buffer.getvalue())
+        new_buffer.seek(0)
+        return new_buffer
 
 
 class Sinks(Enum):
@@ -401,22 +410,17 @@ def get_index_from_title(title: str, list_to_check: list[Song]):
 async def change_song(ctx: discord.ApplicationContext):
     """Callback function to execute when a song is finished to change the song taking into account the server's
     configuration"""
-    if not (config := await Config.get_config(ctx.guild.id, False)).queue:
+    config = await Config.get_config(ctx.guild.id, False)
+    if not config.queue:
         return
-    if config.position >= len(config.queue) - 1 and not (config.loop_queue and config.loop_song):
-        config.position = 0
-        await config.clear_queue()
-    if config.position >= len(config.queue) - 1 and config.loop_queue and not config.loop_song:
-        config.position = -1
-    if config.position >= len(config.queue) - 1 and not config.loop_queue:
+    if config.loop_song:
+        pass
+    elif config.loop_queue or config.position < len(config.queue) - 1:
+        config.position = (config.position + 1) % len(config.queue)
+    else:
         return
-    if not config.loop_song:
-        if config.random and len(config.queue) > 1:
-            config.position = random.choice(list(set(range(0, len(config.queue))) - {config.position}))
-        elif len(config.queue) < 1:
-            config.position = 0
-        else:
-            config.position += 1
+    if config.random and len(config.queue) > 1:
+        config.position = random.choice(list(set(range(0, len(config.queue))) - {config.position}))
     try:
         await play_song(ctx, config.queue[config.position].url)
     except Exception as e:
@@ -441,6 +445,10 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
                 embed=discord.Embed(title="Error", description=f"The video [{video.title}]({url}) is too long",
                                     color=0xff0000))
         file = await download(url, download_logger=logging.getLogger("Audio-Downloader"))
+        buffer = io.BytesIO()
+        stream = video.streams.filter(only_audio=True).first()
+        stream.stream_to_buffer(buffer)
+        buffer.seek(0)
         player = discord.PCMVolumeTransformer(
             discord.FFmpegPCMAudio(file, executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg", pipe=True),
             config.volume / 100)
@@ -541,3 +549,5 @@ class CustomFormatter(logging.Formatter):
 def get_lyrics(title: str):
     """Get the lyrics of a song"""
     return title
+
+

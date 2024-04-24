@@ -59,9 +59,7 @@ class Channel(commands.Cog):
                                                                 f"({song.url}) is too long",
                                                     color=0xff0000)))
             else:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                loop.run_until_complete(download(song.url, download_logger=logging.getLogger("Audio-Downloader")))
+                asyncio.run(download(song.url, download_logger=logging.getLogger("Audio-Downloader")))
         except Exception as e:
             logging.error(f"Error checking video length: {e}")
 
