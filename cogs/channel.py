@@ -1,12 +1,10 @@
 import asyncio
-import logging
 from concurrent.futures import ThreadPoolExecutor
 
 import discord
-import pytube
 from discord.ext import commands
 
-from utils import Config, EMBED_ERROR_BOT_NOT_CONNECTED, Song, play_song, download
+from utils import Config, EMBED_ERROR_BOT_NOT_CONNECTED, play_song, check_video
 
 
 class Channel(commands.Cog):
@@ -46,25 +44,14 @@ class Channel(commands.Cog):
                 config.position = 0
 
             await play_song(ctx, config.queue[config.position].url)
+            futures = []
             if len(config.queue) > 1:
                 with ThreadPoolExecutor() as pool:
-                    for song in config.queue[1:]:
-                        pool.submit(self._check_video_length, song, ctx)
+                    for song in config.queue[:1]:
+                        loop = asyncio.get_event_loop()
+                        futures.append(loop.run_in_executor(pool, check_video, song.url, ctx))
+                await asyncio.gather(*futures)
 
-    def _check_video_length(self, song: Song, ctx: discord.ApplicationContext):
-        try:
-            if pytube.YouTube(song.url).length > 12000:
-                self.bot.loop.create_task(ctx.respond(embed=discord.Embed(title="Error",
-                                                    description=f"The video [{pytube.YouTube(song.url).title}]"
-                                                                f"({song.url}) is too long",
-                                                    color=0xff0000)))
-            else:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                future = asyncio.ensure_future(download(song.url, ctx.guild.id))
-                loop.run_until_complete(future)
-        except Exception as e:
-            logging.error(f"Error checking video length: {e}")
 
 
 def setup(bot: commands.Bot):

@@ -4,6 +4,7 @@ import datetime
 import io
 import logging
 import os
+import signal
 import subprocess
 import sys
 import threading
@@ -35,6 +36,13 @@ async def check_update():
     else:
         logging.info("Bot is already up to date")
 
+def stop_bot_process():
+    bot_instance.memcached.terminate()
+    bot_instance.memcached.wait()
+    logging.info("Memcached stopped")
+    bot_instance.queue.put(PanelToBotRequest(type=RequestType.POST, content="stop"))
+    exit(0)
+
 
 async def start_app(queue: mpQueue):
     from panel.panel import app
@@ -65,7 +73,7 @@ class MemcachedStd(io.TextIOBase):
         return sys.stdout.isatty()
     
     def readable(self) -> bool:
-        return False
+        return True
     
     def writable(self) -> bool:
         return True
@@ -76,20 +84,31 @@ class Bot(commands.Bot):
         self.queue: mpQueue[PanelToBotRequest | GuildData | UserData | list[GuildData]] = mpQueue()
         self.listener_thread: Optional[threading.Thread] = None
         self.memcached: Optional[subprocess.Popen] = None
+        self.panel: Optional[Process] = None
 
     async def on_ready(self):
         global start_time
         await self.change_presence(
             activity=discord.Activity(type=discord.ActivityType.watching, name=f"/help | {len(self.guilds)} servers"))
-        p = Process(target=start_app, args=(self.queue,), name="Panel")
-        p.start()
+        self.panel = Process(target=start_app, args=(self.queue,), name="Panel")
+        self.panel.start()
         if os.popen("git branch --show-current").read().strip() == "main":
             check_update.start()
         self.listener_thread = threading.Thread(target=self.start_listening, name="Listener").start()
         if os.name == "nt":
             self.memcached = subprocess.Popen(["wsl", "memcached", "d", "-p", "11211", "-I", "500m", "-m", "1024"], stdout=MemcachedStd(), stderr=MemcachedStd("stderr"))
+            _, stderr = self.memcached.communicate()
+            if b"command not found" in stderr:
+                logging.error("Memcached not found, please install it")
+                self.memcached = None
+                exit(1)
         else:
-            self.memcached = subprocess.Popen(["memcached", "-d", "-p", "11211", "-I", "500m", "-m", "1024"], stdout=MemcachedStd(), stderr=MemcachedStd())
+            try:
+                self.memcached = subprocess.Popen(["memcached", "-d", "-p", "11211", "-I", "500m", "-m", "1024"], stdout=MemcachedStd(), stderr=MemcachedStd())
+            except FileNotFoundError:
+                logging.error("Memcached not found, please install it")
+                self.memcached = None
+                exit(1)
         logging.info(f"Bot ready in {datetime.datetime.now() - start_time}")
         for guild in self.guilds:
             # Si la guilde n'existe pas dans la db, on l'ajoute avec les paramètres par défaut
@@ -257,6 +276,8 @@ def parse_args():
 
 
 if __name__ == "__main__":
+    signal.signal(signal.SIGINT, lambda sig, frame: stop_bot_process())
+    signal.signal(signal.SIGTERM, lambda sig, frame: stop_bot_process())
     # Les logs sont envoyés dans la console
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(CustomFormatter(source="Bot"))

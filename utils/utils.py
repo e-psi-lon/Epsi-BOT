@@ -62,7 +62,8 @@ __all__ = [
     "FfmpegFormats",
     "convert",
     "CustomFormatter",
-    "get_lyrics"
+    "get_lyrics",
+    "check_video",
 ]
 
 
@@ -82,6 +83,7 @@ async def to_cache(url: str) -> io.BytesIO:
     io.BytesIO
         The downloaded video
     """
+    global cache
     if await cache.exists(url, namespace="audio"):
         return await cache.get(url, namespace="audio")
     buffer = io.BytesIO()
@@ -99,12 +101,14 @@ async def to_cache(url: str) -> io.BytesIO:
 
 
 async def update_ttl(key: str, new_ttl: int, namespace: str):
+    global cache
     """Update the ttl of a key in the cache"""
     buffer = await cache.get(key, namespace=namespace)
     await cache.set(key, buffer, ttl=new_ttl, namespace=namespace)
 
 
 async def reset_ttl(key: str, namespace: str):
+    global cache
     """Reset the ttl of a key in the cache"""
     buffer = await cache.get(key, namespace=namespace)
     await cache.set(key, buffer, ttl=3600, namespace=namespace)
@@ -551,3 +555,23 @@ def get_lyrics(title: str):
     return title
 
 
+async def check_video(bot: commands.Bot, song: Song, ctx: discord.ApplicationContext):
+    try:
+        if song.url.startswith("https://youtube.com/watch?v="):
+            video = pytube.YouTube(song.url)
+            if video.age_restricted:
+                bot.loop.create_task(
+                    ctx.respond(embed=discord.Embed(title="Error",
+                                                    description=f"The [video]({song.url}) is age restricted",
+                                                    color=0xff0000)))
+            elif video.length > 12000:
+                bot.loop.create_task(
+                    ctx.respond(embed=discord.Embed(title="Error",
+                                                    description=f"The video [{video.title}]({song.url}) is too long",
+                                                    color=0xff0000)))
+            else:
+                await download(song.url, download_logger=logging.getLogger("Audio-Downloader"))
+        else:
+            await download(song.url, download_logger=logging.getLogger("Audio-Downloader"))
+    except Exception as e:
+        logging.error(f"Error checking video availability: {e}")

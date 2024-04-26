@@ -1,8 +1,10 @@
+import asyncio
 import logging
 import multiprocessing
 import os
 from logging.config import dictConfig
-from typing import Optional
+import threading
+from typing import Awaitable, Callable, NoReturn, Optional
 
 import aiohttp
 import pytube  # type: ignore
@@ -55,7 +57,12 @@ class Panel(Quart):
         self.timers: dict[int, AsyncTimer] = {}
         self.queue: Optional[multiprocessing.Queue[PanelToBotRequest | GuildData | UserData | list[GuildData]]] = None
         self.config['SESSION_TYPE'] = 'memcached'
+        self.listener_thread: Optional[threading.Thread] = None
         Session(self)
+
+    async def run_task(self, host: str = "127.0.0.1", port: int = 5000, debug: bool | None = None, ca_certs: str | None = None, certfile: str | None = None, keyfile: str | None = None, shutdown_trigger: Callable[..., Awaitable[None]] | None = None) -> None:
+        self.listener_thread = threading.Thread(target=self.receive, name="Listener")
+        return await super().run_task(host, port, debug, ca_certs, certfile, keyfile, shutdown_trigger)
 
     def set_queue(self, queue: multiprocessing.Queue):
         self.queue = queue
@@ -81,6 +88,30 @@ class Panel(Quart):
             raise ValueError("Queue is not set")
         self.queue.put(request_)
         self.logger.info(f"Posting {request_} to conn")
+
+    def receive(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        future = asyncio.ensure_future(self.receive_from_bot())
+        loop.run_until_complete(future)
+
+    async def receive_from_bot(self) -> Optional[NoReturn]:
+        if self.queue is None:
+            raise ValueError("Queue is not set")
+        while self.queue.empty():
+            continue
+        response = self.queue.get()
+        self.logger.info(f"Got {response} from conn")
+        if isinstance(response, PanelToBotRequest):
+            match response.type:
+                case RequestType.GET:
+                    return self.queue.put(response)
+                case RequestType.POST:
+                    if response.content == "stop":
+                        await self.shutdown()
+                        exit(0)
+                    return self.queue.put(response)
+        return self.queue.put(response)
 
 
 app = Panel(os.environ['PANEL_SECRET_KEY'], __name__)

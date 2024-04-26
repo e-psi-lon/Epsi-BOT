@@ -628,6 +628,7 @@ class Playlist(DatabaseAccess):
         response = await self._get_db('PLAYLIST', 'playlist_id', name=format_name(name))
         type_checking(response, tuple, int)
         self._id = response[0]
+        self._songs = []
         for song in songs:
             self._songs.append(song)
             await self._create_db('PLAYLIST_SONG', playlist_id=self._id, song_id=song.id, asker=song.asker.id,

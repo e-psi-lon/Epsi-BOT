@@ -1,7 +1,6 @@
-import asyncio
-import logging
 from concurrent.futures import ThreadPoolExecutor
 from typing import Union, Optional
+import asyncio
 
 import discord
 import pytube
@@ -15,14 +14,14 @@ from utils import (Playlist,
                    UserPlaylistAccess,
                    Song,
                    Asker,
-                   download,
+                   check_video,
                    play_song,
                    get_playlists,
                    get_playlists_songs,
                    EMBED_ERROR_NAME_TOO_LONG,
                    EMBED_ERROR_QUEUE_EMPTY,
                    EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST,
-                   EMBED_ERROR_BOT_NOT_CONNECTED
+                   EMBED_ERROR_BOT_NOT_CONNECTED,
                    )
 
 class Playlists(commands.Cog):
@@ -46,7 +45,8 @@ class Playlists(commands.Cog):
         user_config = await UserPlaylistAccess.from_id(ctx.user.id)
         if not config.queue:
             return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
-        if name in [playlist.name for playlist in config.playlists]:
+        if (name in [playlist.name for playlist in config.playlists] and playlist_type == "server") or \
+            (name in [playlist.name for playlist in user_config.playlists] and playlist_type == "user"):
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description="A playlist with this name already exists.",
                                     color=0xff0000))
@@ -203,32 +203,16 @@ class Playlists(commands.Cog):
         await ctx.respond(
             embed=discord.Embed(title="Play", description=f"Playing {config.queue[config.position].name}",
                                 color=0x00ff00))
+        futures = []
         if len(config.queue) > 1:
             with ThreadPoolExecutor() as pool:
                 for song in config.queue[:1]:
-                    pool.submit(self._check_video, song, ctx)
-                    
-    def _check_video(self, song: Song, ctx: discord.ApplicationContext):
-        try:
-            video = pytube.YouTube(song.url)
-            if video.age_restricted:
-                self.bot.loop.create_task(
-                    ctx.respond(embed=discord.Embed(title="Error",
-                                                    description=f"The [video]({song.url}) is age restricted",
-                                                    color=0xff0000)))
-            elif video.length > 12000:
-                self.bot.loop.create_task(
-                    ctx.respond(embed=discord.Embed(title="Error",
-                                                    description=f"The video [{video.title}]({song.url}) is too long",
-                                                    color=0xff0000)))
+                    loop = asyncio.get_event_loop()
+                    futures.append(loop.run_in_executor(pool, check_video, song.url, ctx))
+            await asyncio.gather(*futures)
+        
 
-            else:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                future = asyncio.ensure_future(download(song.url, download_logger=logging.getLogger("Audio-Downloader")))
-                loop.run_until_complete(future)
-        except Exception as e:
-            logging.error(f"Error checking video availability: {e}")
+                    
 
     @playlist.command(name="list", description="Lists all the playlists")
     async def list_playlist(self, ctx: discord.ApplicationContext,
@@ -292,6 +276,30 @@ class Playlists(commands.Cog):
         await ctx.respond(embed=discord.Embed(title="Playlist", description=f"Playlist {name} renamed to {new_name}.",
                                               color=0x00ff00))
 
+    @playlist.command(name="copy", description="Copies a playlist to another playlist type")
+    async def copy(self, ctx: discord.ApplicationContext,
+                     name: discord.Option(str, "The name of the playlist", required=True,
+                                         autocomplete=discord.utils.basic_autocomplete(get_playlists)),  # type: ignore
+                    ):
+        await ctx.response.defer()
+        config, name = await self.get_config(ctx, name)
+        if config is None:
+            return
+        if (name in [playlist.name for playlist in config.playlists] and isinstance(config, Config)) or \
+            (name in [playlist.name for playlist in (await UserPlaylistAccess.from_id(ctx.user.id)).playlists] and isinstance(config, UserPlaylistAccess)):
+            return await ctx.respond(
+                embed=discord.Embed(title="Error", description="A playlist with this name already exists.",
+                                    color=0xff0000))
+        new_playlist = await Playlist.create(name,
+                                             [playlist for playlist in config.playlists if playlist.name == name][
+                                                 0].songs, ctx.user.id if isinstance(config, Config) else ctx.guild.id,
+                                             PlaylistType.USER if isinstance(config, Config) else PlaylistType.SERVER)
+        if isinstance(config, Config):
+            await (await UserPlaylistAccess.from_id(ctx.user.id)).add_playlist(new_playlist)
+        else:
+            await Config.get_config(ctx.guild.id, False).add_playlist(new_playlist)
+        await ctx.respond(embed=discord.Embed(title="Playlist", description=f"Playlist {name} copied.",
+                                                color=0x00ff00))
     @staticmethod
     async def get_config(ctx: discord.ApplicationContext, playlist_name: str) -> \
             tuple[Optional[Union[Config, UserPlaylistAccess]], Optional[str]]:

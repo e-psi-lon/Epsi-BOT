@@ -27,6 +27,7 @@ __all__ = [
     'play_song',
     'FfmpegFormats',
     'convert',
+    "check_video"
     'CustomFormatter',
     'get_lyrics',
     'AsyncTimer',
@@ -72,7 +73,8 @@ from .utils import (download,
                     FfmpegFormats,
                     convert,
                     CustomFormatter,
-                    get_lyrics
+                    get_lyrics,
+                    check_video
                     )
 
 from .async_ import (AsyncTimer,
