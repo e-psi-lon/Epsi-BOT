@@ -62,6 +62,7 @@ class Panel(Quart):
 
     async def run_task(self, host: str = "127.0.0.1", port: int = 5000, debug: bool | None = None, ca_certs: str | None = None, certfile: str | None = None, keyfile: str | None = None, shutdown_trigger: Callable[..., Awaitable[None]] | None = None) -> None:
         self.listener_thread = threading.Thread(target=self.receive, name="Listener")
+        self.listener_thread.start()
         return await super().run_task(host, port, debug, ca_certs, certfile, keyfile, shutdown_trigger)
 
     def set_queue(self, queue: multiprocessing.Queue):

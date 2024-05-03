@@ -2,7 +2,7 @@
 pytube==15.0.0
 ffmpeg-python==0.2.0
 pydub==0.25.1
-aiocache==0.12.2
+aiocache[memcached]==0.12.2
 
 # Discord Stuff
 git+https://github.com/Pycord-Development/pycord.git

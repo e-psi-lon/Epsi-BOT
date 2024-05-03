@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+import logging
 from typing import Union, Optional
 import asyncio
 
@@ -203,14 +204,17 @@ class Playlists(commands.Cog):
         await ctx.respond(
             embed=discord.Embed(title="Play", description=f"Playing {config.queue[config.position].name}",
                                 color=0x00ff00))
-        futures = []
+        futures: list[asyncio.Future] = []
         if len(config.queue) > 1:
             with ThreadPoolExecutor() as pool:
-                for song in config.queue[:1]:
+                for song in config.queue[1:]:
                     loop = asyncio.get_event_loop()
-                    futures.append(loop.run_in_executor(pool, check_video, song.url, ctx))
-            await asyncio.gather(*futures)
-        
+                    futures.append(loop.run_in_executor(pool, check_video, self.bot, song, ctx, loop))
+                for future in asyncio.as_completed(futures):
+                    try:
+                        await future
+                    except Exception as e:
+                        logging.warning(f"Error while checking video: {e}")
 
                     
 

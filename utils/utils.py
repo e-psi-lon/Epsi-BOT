@@ -555,7 +555,7 @@ def get_lyrics(title: str):
     return title
 
 
-async def check_video(bot: commands.Bot, song: Song, ctx: discord.ApplicationContext):
+def check_video(bot: commands.Bot, song: Song, ctx: discord.ApplicationContext, loop: asyncio.AbstractEventLoop):
     try:
         if song.url.startswith("https://youtube.com/watch?v="):
             video = pytube.YouTube(song.url)
@@ -570,8 +570,8 @@ async def check_video(bot: commands.Bot, song: Song, ctx: discord.ApplicationCon
                                                     description=f"The video [{video.title}]({song.url}) is too long",
                                                     color=0xff0000)))
             else:
-                await download(song.url, download_logger=logging.getLogger("Audio-Downloader"))
+                loop.run_until_complete(download(song.url, download_logger=logging.getLogger("Audio-Downloader")))
         else:
-            await download(song.url, download_logger=logging.getLogger("Audio-Downloader"))
+            loop.run_until_complete(download(song.url, download_logger=logging.getLogger("Audio-Downloader")))
     except Exception as e:
         logging.error(f"Error checking video availability: {e}")

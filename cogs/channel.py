@@ -1,5 +1,7 @@
 import asyncio
+import concurrent.futures
 from concurrent.futures import ThreadPoolExecutor
+import logging
 
 import discord
 from discord.ext import commands
@@ -44,15 +46,17 @@ class Channel(commands.Cog):
                 config.position = 0
 
             await play_song(ctx, config.queue[config.position].url)
-            futures = []
+            futures: list[asyncio.Future] = []
             if len(config.queue) > 1:
                 with ThreadPoolExecutor() as pool:
-                    for song in config.queue[:1]:
+                    for song in config.queue[1:]:
                         loop = asyncio.get_event_loop()
-                        futures.append(loop.run_in_executor(pool, check_video, song.url, ctx))
-                await asyncio.gather(*futures)
-
-
+                        futures.append(loop.run_in_executor(pool, check_video, self.bot, song, ctx, loop))
+                    for future in asyncio.as_completed(futures):
+                        try:
+                            await future
+                        except Exception as e:
+                            logging.warning(f"Error while checking video: {e}")
 
 def setup(bot: commands.Bot):
     bot.add_cog(Channel(bot))

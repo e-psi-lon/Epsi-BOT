@@ -94,14 +94,10 @@ class Bot(commands.Bot):
         self.panel.start()
         if os.popen("git branch --show-current").read().strip() == "main":
             check_update.start()
-        self.listener_thread = threading.Thread(target=self.start_listening, name="Listener").start()
+        self.listener_thread = threading.Thread(target=self.start_listening, name="Listener")
+        self.listener_thread.start()
         if os.name == "nt":
             self.memcached = subprocess.Popen(["wsl", "memcached", "d", "-p", "11211", "-I", "500m", "-m", "1024"], stdout=MemcachedStd(), stderr=MemcachedStd("stderr"))
-            _, stderr = self.memcached.communicate()
-            if b"command not found" in stderr:
-                logging.error("Memcached not found, please install it")
-                self.memcached = None
-                exit(1)
         else:
             try:
                 self.memcached = subprocess.Popen(["memcached", "-d", "-p", "11211", "-I", "500m", "-m", "1024"], stdout=MemcachedStd(), stderr=MemcachedStd())
@@ -276,8 +272,6 @@ def parse_args():
 
 
 if __name__ == "__main__":
-    signal.signal(signal.SIGINT, lambda sig, frame: stop_bot_process())
-    signal.signal(signal.SIGTERM, lambda sig, frame: stop_bot_process())
     # Les logs sont envoyés dans la console
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(CustomFormatter(source="Bot"))
