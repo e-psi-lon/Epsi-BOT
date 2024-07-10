@@ -5,15 +5,15 @@ pydub==0.25.1
 aiocache[memcached]==0.12.2
 
 # Discord Stuff
-git+https://github.com/Pycord-Development/pycord.git
+py-cord==2.6.0
 pynacl==1.5.0
 brotlipy==0.7.0
 # cchardet==2.1.7
 
 # Web
-aiodns==3.1.1
-aiomultiprocess==0.9.0
-quart==0.19.4
+aiodns==3.2.0
+aiomultiprocess==0.9.1
+quart==0.19.6
 quart-session==3.0.0
 
 # Database
