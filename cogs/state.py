@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import threading
 from datetime import datetime
 
@@ -17,7 +16,8 @@ from utils import (Sinks,
                    Research,
                    play_song,
                    download,
-                   finished_record_callback
+                   finished_record_callback,
+                   get_logger
                    )
 
 
@@ -123,7 +123,7 @@ class State(commands.Cog):
                                                                       f" added to queue.",
                                                           color=0x00ff00))
             except Exception as e:
-                logging.error(f"Error while adding song to queue: {e}")
+                self.bot.logger.error(f"Error while adding song to queue: {e}")
                 return await ctx.respond(
                     embed=discord.Embed(title="Error", description=f"Error while adding song to queue. "
                                                                    f"(Error: {e})", color=0xff0000))
@@ -138,9 +138,8 @@ class State(commands.Cog):
                                     description=f'Select an audio to play for query `{query}` from the list below',
                                     color=0x00ff00), view=view)
 
-    @staticmethod
-    def _download(url: str):
-        asyncio.run(download(url, download_logger=logging.getLogger("Audio-Downloader")))
+    def _download(self, url: str):
+        asyncio.run(download(url, self.bot, download_logger=get_logger("Audio-Downloader")))
 
     @commands.slash_command(name="pause", description="Pauses the current song")
     async def pause(self, ctx: discord.ApplicationContext):

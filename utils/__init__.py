@@ -25,6 +25,7 @@ __all__ = [
     'get_queue_songs',
     'get_index_from_title',
     'play_song',
+    'parse_args',
     'FfmpegFormats',
     'convert',
     "check_video"
@@ -42,6 +43,8 @@ __all__ = [
     'EMBED_ERROR_NAME_TOO_LONG',
     'EMBED_ERROR_NO_RESULTS_FOUND',
     'EMBED_ERROR_VIDEO_TOO_LONG',
+    'Base64Serializer',
+    'get_logger'
 ]
 
 from .config import (Config,
@@ -72,9 +75,9 @@ from .utils import (download,
                     play_song,
                     FfmpegFormats,
                     convert,
-                    CustomFormatter,
                     get_lyrics,
-                    check_video
+                    check_video,
+                    Base64Serializer
                     )
 
 from .async_ import (AsyncTimer,
@@ -92,4 +95,9 @@ from .constants import (OWNER_ID,
                         EMBED_ERROR_NAME_TOO_LONG,
                         EMBED_ERROR_NO_RESULTS_FOUND,
                         EMBED_ERROR_VIDEO_TOO_LONG,
+                        )
+
+from .loggers import (CustomFormatter,
+                        parse_args,
+                        get_logger
                         )

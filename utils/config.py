@@ -1,15 +1,15 @@
 import asyncio
 import concurrent.futures
-import logging
 from enum import Enum
 from typing import Optional, Union, Any
 
 import aiosqlite
-from pypika import Table, Query, Field  # type: ignore
+from pypika import Table, Query, Field
+
+from utils.loggers import get_logger  # type: ignore
 
 from .type_ import type_checking
 
-logger = logging.getLogger("__main__")
 
 __all__ = ["Config", "UserPlaylistAccess", "Playlist", "Song", "Asker", "PlaylistType", "format_name"]
 
@@ -339,7 +339,7 @@ class DatabaseAccess:
         """
         async with aiosqlite.connect("database/database.db") as conn:
             cursor = await conn.cursor()
-            logger.debug(f"Executing query: {query}")
+            get_logger("Database").debug(f"Executing query: {query}")
             await cursor.execute(query)
             if not self._copy and commit:
                 await conn.commit()

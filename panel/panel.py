@@ -1,16 +1,17 @@
 import asyncio
+import datetime
 import logging
 import multiprocessing
 import os
 from logging.config import dictConfig
 import threading
-from typing import Awaitable, Callable, NoReturn, Optional
+from typing import NoReturn, Optional
 
 import aiohttp
+import discord
 import pytube  # type: ignore
 from dotenv import load_dotenv
 from quart import Quart, session, redirect, url_for, render_template, request
-from quart.logging import default_handler
 from quart_session import Session  # type: ignore
 
 from utils import (PanelToBotRequest,
@@ -23,7 +24,11 @@ from utils import (PanelToBotRequest,
                    Song,
                    Asker,
                    AsyncRequests as Requests,
+                   get_logger,
                    )
+
+from aiomultiprocess import Process
+from bot.bot import start, Bot
 
 load_dotenv()
 
@@ -44,10 +49,8 @@ dictConfig({
     }
 })
 
-
 class Panel(Quart):
     def __init__(self, secret_key: str, *args, **kwargs):
-        logging.getLogger(__name__).removeHandler(default_handler)
         super().__init__(*args, **kwargs)
         self.secret_key = secret_key
         self.API_ENDPOINT = "https://discord.com/api/v10"
@@ -55,18 +58,39 @@ class Panel(Quart):
         self.CLIENT_SECRET = os.environ['CLIENT_SECRET']
         self.REDIRECT_URI = "http://86.196.98.254/auth/discord/callback"
         self.timers: dict[int, AsyncTimer] = {}
-        self.queue: Optional[multiprocessing.Queue[PanelToBotRequest | GuildData | UserData | list[GuildData]]] = None
+        self.queue: Optional[multiprocessing.Queue[PanelToBotRequest | GuildData | UserData | list[GuildData]]] = multiprocessing.Queue()
         self.config['SESSION_TYPE'] = 'memcached'
         self.listener_thread: Optional[threading.Thread] = None
-        Session(self)
-
-    async def run_task(self, host: str = "127.0.0.1", port: int = 5000, debug: bool | None = None, ca_certs: str | None = None, certfile: str | None = None, keyfile: str | None = None, shutdown_trigger: Callable[..., Awaitable[None]] | None = None) -> None:
-        self.listener_thread = threading.Thread(target=self.receive, name="Listener")
+        self.start_time: Optional[datetime.datetime] = None
+        self.listener_thread = threading.Thread(target=self.receive)
         self.listener_thread.start()
-        return await super().run_task(host, port, debug, ca_certs, certfile, keyfile, shutdown_trigger)
+        Session(self)
+    
+    @property
+    def logger(self) -> logging.Logger:
+        return get_logger("Panel")
 
-    def set_queue(self, queue: multiprocessing.Queue):
-        self.queue = queue
+    def set_start_time(self, start_time: datetime.datetime):
+        self.start_time = start_time
+
+    @staticmethod
+    async def start_bot(queue: multiprocessing.Queue, start_time: datetime.datetime) -> NoReturn:
+        if not os.path.exists("database/database.db"):
+            if not os.path.exists("database/"):
+                os.mkdir("database/")
+            with open("database/database.db", "w") as f:
+                f.write("")
+            os.chdir("_others")
+            os.system("python generate_db.py")
+            os.chdir("..")
+        bot: Bot = Bot(queue, intents=discord.Intents.all())
+        await start(bot, start_time)
+
+    def run(self, host, port, use_reloader, *args, **kwargs) -> NoReturn:
+        self.bot_process: Process = Process(target=self.start_bot, args=(self.queue, self.start_time))
+        self.bot_process.start()
+        super().run(host=host, port=port, use_reloader=use_reloader, *args, **kwargs)
+        
 
     async def get_from_bot(self, content: str, **kwargs) -> GuildData | UserData | list[GuildData]:
         data = PanelToBotRequest.create(RequestType.GET, content, **kwargs)

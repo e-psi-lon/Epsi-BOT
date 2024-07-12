@@ -1,4 +1,3 @@
-import logging
 import io
 import contextlib
 import sys
@@ -14,7 +13,7 @@ class Listeners(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @commands.Cog.listener()
+    @commands.Cog.listener("on_message")
     async def on_message(self, message:discord.Message):
         if message.content.startswith("e!eval"):
             output = io.StringIO()
@@ -33,7 +32,7 @@ class Listeners(commands.Cog):
                     traceback_str = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
                     output.write(f"Uncaught {exc_type.__name__}: {exc_value}\n{traceback_str}")
                 finally:
-                    await message.reply(f"```{output.getvalue()[:1994]}```")
+                    await message.reply(f"```{output.getvalue()[:1994]}```", delete_after=10)
                 
 
     @commands.Cog.listener("on_voice_state_update")
@@ -43,11 +42,11 @@ class Listeners(commands.Cog):
         if after.channel is not None:
             if len(after.channel.members) == 1 and after.channel.members[0].id == self.bot.user.id:
                 await disconnect_from_channel(after, self.bot)
-                logging.info("Bot disconnected from channel, no more members in it")
+                self.bot.logger.info("Bot disconnected from channel, no more members in it")
         if before.channel is not None:
             if len(before.channel.members) == 1 and before.channel.members[0].id == self.bot.user.id:
                 await disconnect_from_channel(before, self.bot)
-                logging.info("Bot disconnected from channel, no more members in it")
+                self.bot.logger.info("Bot disconnected from channel, no more members in it")
 
     @commands.Cog.listener("on_guild_join")
     async def on_guild_join(self, guild: discord.Guild):

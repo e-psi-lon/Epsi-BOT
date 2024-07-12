@@ -23,32 +23,12 @@ from pytube.exceptions import RegexMatchError as PytubeRegexMatchError  # type: 
 from .async_ import AsyncRequests
 from .config import Config, Song, Asker, UserPlaylistAccess, format_name
 from .constants import EMBED_ERROR_BOT_NOT_CONNECTED
-
+from .loggers import get_logger
 
 pydub.AudioSegment.converter = "./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"
 
-class Base64Serializer(JsonSerializer):
-    def dumps(self, value):
-        if isinstance(value, io.BytesIO):
-            logger.debug(f"Audio size: {len(value.getvalue())} bytes")
-            compressed = zlib.compress(base64.b64encode(value.getvalue()))
-            logger.debug(f"Compressed audio size: {len(compressed)} bytes")
-            return binascii.hexlify(compressed).decode()
-        return super().dumps(value)
-
-    def loads(self, value: str):
-        try:
-            val = io.BytesIO(base64.b64decode(zlib.decompress(binascii.unhexlify(value.encode()))))
-            val.seek(0)
-            return val
-        except (TypeError, binascii.Error, zlib.error):
-            return super().loads(value)
-
-logger = logging.getLogger("__main__")
-
-cache = MemcachedCache(serializer=Base64Serializer())
-
 __all__ = [
+    "Base64Serializer"
     "download",
     "Sinks",
     "finished_record_callback",
@@ -63,11 +43,31 @@ __all__ = [
     "convert",
     "CustomFormatter",
     "get_lyrics",
-    "check_video",
+    "check_video"
 ]
 
 
-async def to_cache(url: str) -> io.BytesIO:
+class Base64Serializer(JsonSerializer):
+    def dumps(self, value):
+        if isinstance(value, io.BytesIO):
+            get_logger("Memcached").debug(f"Audio size: {len(value.getvalue())} bytes")
+            compressed = zlib.compress(base64.b64encode(value.getvalue()))
+            get_logger("Memcached").debug(f"Compressed audio size: {len(compressed)} bytes")
+            return binascii.hexlify(compressed).decode()
+        return super().dumps(value)
+
+    def loads(self, value: str):
+        try:
+            val = io.BytesIO(base64.b64decode(zlib.decompress(binascii.unhexlify(value.encode()))))
+            val.seek(0)
+            return val
+        except (TypeError, binascii.Error, zlib.error):
+            return super().loads(value)
+
+
+
+
+async def to_cache(url: str, bot: commands.Bot) -> io.BytesIO:
     """
     Download a video from a YouTube (or other) URL and save it in the cache, 
     or get it from the cache if it already exists.\n
@@ -83,38 +83,38 @@ async def to_cache(url: str) -> io.BytesIO:
     io.BytesIO
         The downloaded video
     """
-    global cache
-    if await cache.exists(url, namespace="audio"):
-        return await cache.get(url, namespace="audio")
-    buffer = io.BytesIO()
-    if not url.startswith("https://youtube.com/watch?v="):
-        r: bytes = await AsyncRequests.get(url, return_type="content")
-        buffer.write(r)
-    else:
-        stream = pytube.YouTube(url)
-        stream = stream.streams.filter(only_audio=True).first()
+    async with MemcachedCache(serializer=Base64Serializer()) as cache:
+        if await bot.loop.create_task(cache.exists(url, namespace="audio")):
+            return await bot.loop.create_task(cache.get(url, namespace="audio"))
         buffer = io.BytesIO()
-        stream.stream_to_buffer(buffer)
-    buffer.seek(0)
-    await cache.set(url, buffer, ttl=3600, namespace="audio")
+        if not url.startswith("https://youtube.com/watch?v="):
+            r: bytes = await AsyncRequests.get(url, return_type="content")
+            buffer.write(r)
+        else:
+            stream = pytube.YouTube(url)
+            stream = stream.streams.filter(only_audio=True).first()
+            buffer = io.BytesIO()
+            stream.stream_to_buffer(buffer)
+        buffer.seek(0)
+        await bot.loop.create_task(cache.set(url, buffer, ttl=3600, namespace="audio"))
     return buffer
 
 
 async def update_ttl(key: str, new_ttl: int, namespace: str):
-    global cache
     """Update the ttl of a key in the cache"""
-    buffer = await cache.get(key, namespace=namespace)
-    await cache.set(key, buffer, ttl=new_ttl, namespace=namespace)
+    async with MemcachedCache(serializer=Base64Serializer()) as cache:
+        buffer = await cache.get(key, namespace=namespace)
+        await cache.set(key, buffer, ttl=new_ttl, namespace=namespace)
 
 
 async def reset_ttl(key: str, namespace: str):
-    global cache
     """Reset the ttl of a key in the cache"""
-    buffer = await cache.get(key, namespace=namespace)
-    await cache.set(key, buffer, ttl=3600, namespace=namespace)
+    async with MemcachedCache(serializer=Base64Serializer()) as cache:
+        buffer = await cache.get(key, namespace=namespace)
+        await cache.set(key, buffer, ttl=3600, namespace=namespace)
 
 
-async def download(url: str, download_logger: logging.Logger = logger) -> Optional[io.BytesIO]:
+async def download(url: str, bot: commands.Bot, download_logger: logging.Logger = get_logger("Audio-Downloader")) -> Optional[io.BytesIO]:
     """
     Download a video from a YouTube (or other) URL.
     
@@ -131,7 +131,7 @@ async def download(url: str, download_logger: logging.Logger = logger) -> Option
         The downloaded video
     """
     if not url.startswith("https://youtube.com/watch?v="):
-        buffer: io.BytesIO = await to_cache(url)
+        buffer: io.BytesIO = await to_cache(url, bot)
         download_logger.info(f"Downloaded {url.split('/')[-1]}")
         return buffer
     else:
@@ -140,8 +140,8 @@ async def download(url: str, download_logger: logging.Logger = logger) -> Option
         if stream.age_restricted:
             download_logger.warning(f"Video {stream.title} is age restricted (video id: {video_id})")
             return None
-        buffer = await to_cache(url)
-        logger.info(f"Downloaded {stream.title}")
+        buffer = await to_cache(url, bot)
+        download_logger.info(f"Downloaded {stream.title}")
         new_buffer = io.BytesIO(buffer.getvalue())
         new_buffer.seek(0)
         return new_buffer
@@ -428,7 +428,7 @@ async def change_song(ctx: discord.ApplicationContext):
     try:
         await play_song(ctx, config.queue[config.position].url)
     except Exception as e:
-        logger.error(f"Error while playing song: {e}")
+        get_logger("Bot").error(f"Error while playing song: {e}")
 
 
 async def play_song(ctx: discord.ApplicationContext, url: str):
@@ -448,7 +448,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description=f"The video [{video.title}]({url}) is too long",
                                     color=0xff0000))
-        file = await download(url, download_logger=logging.getLogger("Audio-Downloader"))
+        file = await download(url, ctx.bot, download_logger=get_logger("Audio-Downloader"))
         buffer = io.BytesIO()
         stream = video.streams.filter(only_audio=True).first()
         stream.stream_to_buffer(buffer)
@@ -457,23 +457,23 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
             discord.FFmpegPCMAudio(file, executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg", pipe=True),
             config.volume / 100)
         try:
-            logger.info(f"Playing song {video.title}")
+            get_logger("Bot").info(f"Playing song {video.title}")
             ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
                                         wait_finish=True)
 
         except discord.errors.ClientException:
             while ctx.guild.voice_client.is_playing():
                 await asyncio.sleep(0.1)
-            logger.info(f"Playing song {video.title}")
+            get_logger("Bot").info(f"Playing song {video.title}")
             ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
                                         wait_finish=True)
     except PytubeRegexMatchError:
-        file = await download(url, download_logger=logging.getLogger("Audio-Downloader"))
+        file = await download(url, ctx.bot, download_logger=get_logger("Audio-Downloader"))
         player = discord.PCMVolumeTransformer(
             discord.FFmpegPCMAudio(file, executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg", pipe=True),
             config.volume / 100)
         try:
-            logger.info(f"Playing song {url}")
+            get_logger("Bot").info(f"Playing song {url}")
             ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
                                         wait_finish=True)
         except discord.errors.ClientException:
@@ -482,7 +482,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
             except discord.errors.ClientException:
                 pass
             await ctx.author.voice.channel.connect()
-            logger.info(f"Playing song {url}")
+            get_logger("Bot").info(f"Playing song {url}")
             ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
                                         wait_finish=True)
 
@@ -490,10 +490,10 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
 async def on_play_song_finished(ctx: discord.ApplicationContext, error=None):
     """Callback function to execute when a song is finished"""
     if error is not None and error:
-        logger.error("Error:", error)
+        get_logger("Bot").error("Error:", error)
         await ctx.respond(
             embed=discord.Embed(title="Error", description="An error occurred while playing the song.", color=0xff0000))
-    logger.info("Song finished")
+    get_logger("Bot").info("Song finished")
     await change_song(ctx)
 
 
@@ -506,14 +506,14 @@ class FfmpegFormats(Enum):
     WAV = ("-codec:a", "pcm_s16le")
 
 
-def convert(audio: io.BytesIO, file_format: FfmpegFormats, log: logging.Logger = logger,
+def convert(audio: io.BytesIO, file_format: FfmpegFormats, log: logging.Logger = get_logger("Audio-Converter"),
             executable: str = "./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg") -> io.BytesIO:
     """Convert an audio file to another format"""
     stream = ffmpeg.input("pipe:0")
     stream = ffmpeg.output(stream, "pipe:1", *file_format.value)
     process: subprocess.Popen = ffmpeg.run_async(stream, executable, pipe_stdin=True, pipe_stdout=True)
     buffer = io.BytesIO()
-    while audio:
+    while audio.readable():
         process.stdin.write(audio.read(1024))
     process.stdin.close()
     process.wait()
@@ -521,33 +521,6 @@ def convert(audio: io.BytesIO, file_format: FfmpegFormats, log: logging.Logger =
     buffer.seek(0)
     log.info(f"Converted audio to {file_format}")
     return buffer
-
-
-class CustomFormatter(logging.Formatter):
-    """Custom formatter for the bot and the panel's logs"""
-
-    def __init__(self, source: str, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.source = source
-
-    format_ = "[{asctime}] {source} {levelname} : {message} ({path}:{lineno})\033[0m"
-
-    FORMATS = {
-        logging.DEBUG: "\033[34m" + format_,  # Blue
-        logging.INFO: "\033[32m" + format_,  # Green
-        logging.WARNING: "\033[33m" + format_,  # Yellow
-        logging.ERROR: "\033[31m" + format_,  # Red
-        logging.CRITICAL: "\033[41m" + format_  # Red
-    }
-
-    def format(self, record):
-        log_fmt = self.FORMATS.get(record.levelno)
-        path = record.pathname.lower().replace(os.getcwd().lower() + "\\", "").replace("\\", "/").replace("/",
-                                                                                                          ".")[:-3]
-        path = path.replace(".venv.lib.site-packages.", "libs.")
-        formatter = logging.Formatter(log_fmt, "%d/%m/%Y %H:%M:%S", "{", True,
-                                      defaults={"source": self.source, "path": path})
-        return formatter.format(record)
 
 
 def get_lyrics(title: str):
@@ -570,8 +543,8 @@ def check_video(bot: commands.Bot, song: Song, ctx: discord.ApplicationContext, 
                                                     description=f"The video [{video.title}]({song.url}) is too long",
                                                     color=0xff0000)))
             else:
-                loop.run_until_complete(download(song.url, download_logger=logging.getLogger("Audio-Downloader")))
+                loop.create_task(download(song.url, bot, download_logger=get_logger("Audio-Downloader")))
         else:
-            loop.run_until_complete(download(song.url, download_logger=logging.getLogger("Audio-Downloader")))
+            loop.create_task(download(song.url, bot, download_logger=get_logger("Audio-Downloader")))
     except Exception as e:
-        logging.error(f"Error checking video availability: {e}")
+        bot.logger.error(f"Error checking video availability: {e}")

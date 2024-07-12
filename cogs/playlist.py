@@ -1,5 +1,4 @@
 from concurrent.futures import ThreadPoolExecutor
-import logging
 from typing import Union, Optional
 import asyncio
 
@@ -214,7 +213,7 @@ class Playlists(commands.Cog):
                     try:
                         await future
                     except Exception as e:
-                        logging.warning(f"Error while checking video: {e}")
+                        self.bot.logger.warning(f"Error while checking video: {e}")
 
                     
 
