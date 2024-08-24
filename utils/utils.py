@@ -3,7 +3,6 @@ import io
 import logging
 import os
 import random
-import subprocess
 import zlib
 import base64
 import binascii
@@ -47,12 +46,14 @@ __all__ = [
 ]
 
 
+
 class Base64Serializer(JsonSerializer):
     def dumps(self, value):
         if isinstance(value, io.BytesIO):
-            get_logger("Memcached").debug(f"Audio size: {len(value.getvalue())} bytes")
+            logger = get_logger("Memcached")
+            logger.debug(f"Audio size: {len(value.getvalue())} bytes")
             compressed = zlib.compress(base64.b64encode(value.getvalue()))
-            get_logger("Memcached").debug(f"Compressed audio size: {len(compressed)} bytes")
+            logger.debug(f"Compressed audio size: {len(compressed)} bytes")
             return binascii.hexlify(compressed).decode()
         return super().dumps(value)
 
@@ -438,6 +439,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
     if ctx.guild.voice_client.is_playing():
         ctx.guild.voice_client.stop()
     config = await Config.get_config(ctx.guild.id, True)
+    loop = asyncio.get_event_loop()
     try:
         video = pytube.YouTube(url)
         if video.age_restricted:
@@ -458,14 +460,14 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
             config.volume / 100)
         try:
             get_logger("Bot").info(f"Playing song {video.title}")
-            ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
+            ctx.guild.voice_client.play(player, after=lambda e: asyncio.run_coroutine_threadsafe(on_play_song_finished(ctx, e), loop),
                                         wait_finish=True)
 
         except discord.errors.ClientException:
             while ctx.guild.voice_client.is_playing():
                 await asyncio.sleep(0.1)
             get_logger("Bot").info(f"Playing song {video.title}")
-            ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
+            ctx.guild.voice_client.play(player, after=lambda e: asyncio.run_coroutine_threadsafe(on_play_song_finished(ctx, e), loop),
                                         wait_finish=True)
     except PytubeRegexMatchError:
         file = await download(url, ctx.bot, download_logger=get_logger("Audio-Downloader"))
@@ -474,7 +476,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
             config.volume / 100)
         try:
             get_logger("Bot").info(f"Playing song {url}")
-            ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
+            ctx.guild.voice_client.play(player, after=lambda e: asyncio.run_coroutine_threadsafe(on_play_song_finished(ctx, e), loop),
                                         wait_finish=True)
         except discord.errors.ClientException:
             try:
@@ -483,7 +485,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
                 pass
             await ctx.author.voice.channel.connect()
             get_logger("Bot").info(f"Playing song {url}")
-            ctx.guild.voice_client.play(player, after=lambda e: asyncio.run(on_play_song_finished(ctx, e)),
+            ctx.guild.voice_client.play(player, after=lambda e: asyncio.run_coroutine_threadsafe(on_play_song_finished(ctx, e), loop),
                                         wait_finish=True)
 
 
@@ -509,18 +511,16 @@ class FfmpegFormats(Enum):
 def convert(audio: io.BytesIO, file_format: FfmpegFormats, log: logging.Logger = get_logger("Audio-Converter"),
             executable: str = "./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg") -> io.BytesIO:
     """Convert an audio file to another format"""
-    stream = ffmpeg.input("pipe:0")
-    stream = ffmpeg.output(stream, "pipe:1", *file_format.value)
-    process: subprocess.Popen = ffmpeg.run_async(stream, executable, pipe_stdin=True, pipe_stdout=True)
-    buffer = io.BytesIO()
-    while audio.readable():
-        process.stdin.write(audio.read(1024))
-    process.stdin.close()
-    process.wait()
-    buffer.write(process.stdout.read())
-    buffer.seek(0)
+    process = (
+        ffmpeg
+        .input('pipe:0')
+        .output(filename="pipe:1", **file_format.value)
+        .run_async(pipe_stdin=True, pipe_stdout=True, pipe_stderr=True, executable=executable)
+    )
+    
+    output, _ = process.communicate(input=audio.read())  # Envoyez les données à ffmpeg et récupérez la sortie
     log.info(f"Converted audio to {file_format}")
-    return buffer
+    return io.BytesIO(output)
 
 
 def get_lyrics(title: str):
