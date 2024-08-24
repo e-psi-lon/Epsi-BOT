@@ -147,9 +147,6 @@ class Todo(commands.Cog):
                                                            "effectuer pour améliorer le bot",
                                                fields=lines))
         line = message.embeds[0].fields[index - 1]
-        embed = discord.Embed(title="Assignation d'une ligne", description=f"La ligne {line.name} a été assignée à "
-                                                                           f"{user.mention} dans le message {message.jump_url}")
-        await ctx.respond(embed=embed, delete_after=30)
 
     @todo.command(name="tuto", description="Sends a tutorial on how to use the to-do list")
     async def tuto(self, ctx: discord.ApplicationContext):

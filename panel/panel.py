@@ -23,7 +23,7 @@ from utils import (PanelToBotRequest,
                    Config,
                    Song,
                    Asker,
-                   AsyncRequests as Requests,
+                   AsyncRequests,
                    get_logger,
                    )
 
@@ -169,7 +169,7 @@ async def panel():
         return redirect(url_for('login'))
     token = session['token']
     if 'user' not in session:
-        user = await Requests.get(f"{app.API_ENDPOINT}/users/@me",
+        user = await AsyncRequests.get(f"{app.API_ENDPOINT}/users/@me",
                                   headers={"Authorization": f"Bearer {token['access_token']}"})
         user = UserData.from_api_response(user)
         session['guilds'] = await app.get_from_bot("guilds", user_id=session['user_id'])
@@ -242,7 +242,7 @@ async def callback():
         timer = AsyncTimer(token['expires_in'], refresh_token, [token['refresh_token']])
         timer.start()
         session['token'] = token
-        user = await Requests.get(f"{app.API_ENDPOINT}/users/@me",
+        user = await AsyncRequests.get(f"{app.API_ENDPOINT}/users/@me",
                                   headers={"Authorization": f"Bearer {token['access_token']}"})
         session['user_id'] = user['id']
         app.timers[user['id']] = timer
@@ -273,7 +273,7 @@ async def token_from_code(code):
     headers = {
         "Content-Type": "application/x-www-form-urlencoded"
     }
-    r = await Requests.post(f"{app.API_ENDPOINT}/oauth2/token", data=data, headers=headers,
+    r = await AsyncRequests.post(f"{app.API_ENDPOINT}/oauth2/token", data=data, headers=headers,
                             auth=aiohttp.BasicAuth(str(app.CLIENT_ID), str(app.CLIENT_SECRET)))
     return r
 
@@ -286,7 +286,7 @@ async def refresh_token(token):
     headers = {
         "Content-Type": "application/x-www-form-urlencoded"
     }
-    r = await Requests.post(f"{app.API_ENDPOINT}/oauth2/token", data=data, headers=headers,
+    r = await AsyncRequests.post(f"{app.API_ENDPOINT}/oauth2/token", data=data, headers=headers,
                             auth=aiohttp.BasicAuth(str(app.CLIENT_ID), str(app.CLIENT_SECRET)))
     session['token'] = r
     user_id = session['user'].id
@@ -305,5 +305,5 @@ async def revoke_access_token(access_token):
     headers = {
         "Content-Type": "application/x-www-form-urlencoded"
     }
-    await Requests.post(f"{app.API_ENDPOINT}/oauth2/token/revoke", data=data, headers=headers,
+    await AsyncRequests.post(f"{app.API_ENDPOINT}/oauth2/token/revoke", data=data, headers=headers,
                         auth=aiohttp.BasicAuth(str(app.CLIENT_ID), str(app.CLIENT_SECRET)))
