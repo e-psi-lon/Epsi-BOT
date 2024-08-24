@@ -23,8 +23,9 @@ class CustomFormatter(logging.Formatter):
 
     def format(self, record):
         log_fmt = self.FORMATS.get(record.levelno)
-        path = record.pathname.lower().replace(os.getcwd().lower() + "\\", "").replace("\\", "/").replace("/",
-                                                                                                          ".")[:-3]
+        path = os.path.relpath(record.pathname, os.getcwd()).replace(os.sep, ".").lower()
+        if path.endswith(".py"):
+            path = path[:-3]
         path = path.replace(".venv.lib.site-packages.", "libs.")
         formatter = logging.Formatter(log_fmt, "%d/%m/%Y %H:%M:%S", "{", True,
                                       defaults={"source": self.source, "path": path})
@@ -35,7 +36,10 @@ class CustomFormatter(logging.Formatter):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--log-level", type=str, default="INFO", help="The log level of the bot", required=False)
-    return parser.parse_known_args()[0]
+    parsed = parser.parse_known_args()[0]
+    if not hasattr(parsed, "log_level") or parsed.log_level.upper() not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
+        setattr(parsed, "log_level", "INFO")
+    return parsed
 
 configured_loggers = set()
 
