@@ -27,9 +27,9 @@ class Others(commands.Cog):
                 # On convertit l'audio dans le format demandé
                 match file_format:
                     case "mp3":
-                        buffer = convert(buffer, FfmpegFormats.MP3)
+                        buffer = await convert(buffer, FfmpegFormats.MP3)
                     case "ogg":
-                        buffer = convert(buffer, FfmpegFormats.OGG)
+                        buffer = await convert(buffer, FfmpegFormats.OGG)
                     case _:
                         return await ctx.respond(
                             embed=discord.Embed(title="Error", description="Invalid file_format.", color=0xff0000)

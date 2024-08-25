@@ -1,6 +1,6 @@
 # Audio
 pytube==15.0.0
-ffmpeg-python==0.2.0
+python-ffmpeg==2.0.12
 pydub==0.25.1
 aiocache[memcached]==0.12.2
 

@@ -11,7 +11,7 @@ from typing import Optional
 
 import discord
 import discord.ext.pages
-import ffmpeg  # type: ignore
+from ffmpeg.asyncio import FFmpeg
 import pydub  # type: ignore
 import pytube  # type: ignore
 from aiocache import MemcachedCache  # type: ignore
@@ -508,19 +508,17 @@ class FfmpegFormats(Enum):
     WAV = ("-codec:a", "pcm_s16le")
 
 
-def convert(audio: io.BytesIO, file_format: FfmpegFormats, log: logging.Logger = get_logger("Audio-Converter"),
+async def convert(audio: io.BytesIO, file_format: FfmpegFormats, log: logging.Logger = get_logger("Audio-Converter"),
             executable: str = "./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg") -> io.BytesIO:
     """Convert an audio file to another format"""
-    process = (
-        ffmpeg
+    ffmpeg = (
+        FFmpeg(executable)
         .input('pipe:0')
-        .output(filename="pipe:1", **file_format.value)
-        .run_async(pipe_stdin=True, pipe_stdout=True, pipe_stderr=True, executable=executable)
+        .output("pipe:1", file_format.value, f=file_format.name.lower())
     )
-    
-    output, _ = process.communicate(input=audio.read())  # Envoyez les données à ffmpeg et récupérez la sortie
+    bytes = await ffmpeg.execute(audio.getvalue())
     log.info(f"Converted audio to {file_format}")
-    return io.BytesIO(output)
+    return io.BytesIO(bytes)
 
 
 def get_lyrics(title: str):
