@@ -12,7 +12,8 @@ __all__ = [
     'ChannelData',
     'UserData',
     'GuildData',
-    'PanelToBotRequest',
+    'PanelBotReqest',
+    'PanelBotResponse',
     'RequestType',
     'ConfigData',
     'download',
@@ -33,6 +34,10 @@ __all__ = [
     'get_lyrics',
     'AsyncTimer',
     'AsyncRequests',
+    'run_async',
+    'run_sync',
+    'Event',
+    'set_callback',
     'type_checking',
     'OWNER_ID',
     'EMBED_ERROR_QUEUE_EMPTY',
@@ -44,7 +49,9 @@ __all__ = [
     'EMBED_ERROR_NO_RESULTS_FOUND',
     'EMBED_ERROR_VIDEO_TOO_LONG',
     'Base64Serializer',
-    'get_logger'
+    'get_logger',
+    'check_video',
+    'CustomFormatter',
 ]
 
 from .config import (Config,
@@ -58,7 +65,8 @@ from .config import (Config,
 from .panel_ import (ChannelData,
                      UserData,
                      GuildData,
-                     PanelToBotRequest,
+                     PanelBotReqest,
+                     PanelBotResponse,
                      RequestType,
                      ConfigData
                      )
@@ -81,8 +89,12 @@ from .utils import (download,
                     )
 
 from .async_ import (AsyncTimer,
-                     AsyncRequests
-                     )
+                     AsyncRequests,
+                     run_async,
+                     run_sync,
+                     Event,
+                     set_callback
+                    )
 
 from .type_ import (type_checking, )
 

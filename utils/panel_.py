@@ -1,49 +1,49 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Optional, TypeVar
 
 from discord import Guild, User
 from discord.abc import GuildChannel
 
 from .config import Song
 
-__all__ = ["RequestType", "PanelToBotRequest", "ChannelData", "UserData", "GuildData", "ConfigData"]
+__all__ = ["RequestType", "PanelBotReqest", "PanelBotResponse", "ChannelData", "UserData", "GuildData", "ConfigData"]
 
 
 class RequestType(Enum):
-    """Enum to represent the type of request from the panel to the bot."""
+    """Enum to represent the type of request from one side to the other."""
     GET = 'GET'
     POST = 'POST'
 
 
 @dataclass
-class PanelToBotRequest:
-    """Dataclass to represent a request from the panel to the bot.
+class PanelBotReqest:
+    """Dataclass to represent a request from one side to the other.
     
     Attributes
     ----------
     type : RequestType
         The type of request
-    content : Any
+    content : T
         The content of the request
     extra : Optional[dict]
         Extra data for the request. Default is an empty dictionary.
 
     Methods
     -------
-    create(type_: RequestType, content: Any, **kwargs) -> PanelToBotRequest (classmethod)
-        Class method to create a PanelToBotRequest instance.
+    create(type_: RequestType, content: Any, **kwargs) -> PanelBotReqest (classmethod)
+        Class method to create a PanelBotReqest instance.
     """
     type: RequestType
-    content: Any
+    content: str
     extra: Optional[dict] = field(default_factory=dict)
 
     def __str__(self) -> str:
         return f"Type: {self.type}, Content: {self.content}, Extra data: {self.extra}"
 
     @classmethod
-    def create(cls, type_: RequestType, content: Any, **kwargs):
-        """Class method to create a PanelToBotRequest instance.
+    def create(cls, type_: RequestType, content: str, **kwargs):
+        """Class method to create a PanelBotReqest instance.
         
         Parameters
         ----------
@@ -56,11 +56,57 @@ class PanelToBotRequest:
 
         Returns
         -------
-        PanelToBotRequest
-            The PanelToBotRequest instance
+        PanelBotReqest
+            The PanelBotReqest instance
         """
         return cls(type_, content, kwargs)
 
+
+T = TypeVar("T")
+@dataclass
+class PanelBotResponse:
+    """Dataclass to represent a response from one side to the other.
+    
+    Attributes
+    ----------
+    type : RequestType
+        The type of the request that was responded to
+    content : T
+        The content of the response
+    extra : Optional[dict]
+        Extra data for the response. Default is an empty dictionary.
+
+    Methods
+    -------
+    create(type_: RequestType, content: Any, **kwargs) -> PanelBotResponse (classmethod)
+        Class method to create a PanelBotResponse instance.
+    """
+    type: RequestType
+    content: T
+    extra: Optional[dict] = field(default_factory=dict)
+
+    def __str__(self) -> str:
+        return f"Type: {self.type}, Content: {self.content}, Extra data: {self.extra}"
+
+    @classmethod
+    def create(cls, type_: RequestType, content: T, **kwargs):
+        """Class method to create a PanelBotResponse instance.
+        
+        Parameters
+        ----------
+        type_ : RequestType
+            The type of the request that was responded to
+        content : Any
+            The content of the response
+        **kwargs : dict
+            Extra data for the response
+
+        Returns
+        -------
+        PanelBotResponse
+            The PanelBotResponse instance
+        """
+        return cls(type_, content, kwargs)
 
 @dataclass
 class ChannelData:

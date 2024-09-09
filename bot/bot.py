@@ -5,12 +5,12 @@ import asyncio
 import datetime
 import traceback
 import subprocess
-import threading
 from multiprocessing import Queue as mpQueue
 from typing import Optional
-from utils import GuildData, UserData, PanelToBotRequest, RequestType, config, get_logger
+from utils import GuildData, UserData, PanelBotReqest, PanelBotResponse, RequestType, config, get_logger, Event, set_callback
 from discord.ext import commands
 from discord.ext import tasks
+
 from .memcached_std import MemcachedStd
 
 @tasks.loop(hours=5)
@@ -26,10 +26,11 @@ async def check_update():
 
 
 class Bot(commands.Bot):
-    def __init__(self, queue, *args, **options):
+    def __init__(self, queue, event, bot_event, *args, **options):
         super().__init__(*args, **options)
-        self.queue: mpQueue[PanelToBotRequest | GuildData | UserData | list[GuildData]] = queue
-        self.listener_thread: Optional[threading.Thread] = None
+        self.queue: mpQueue[PanelBotReqest | PanelBotResponse] = queue
+        self.panel_event: Event = event
+        self.event_listener: Event = bot_event
         self.memcached: Optional[subprocess.Popen] = None
         self.logger = get_logger("Bot")
         self.start_time: Optional[datetime.datetime] = None
@@ -39,13 +40,12 @@ class Bot(commands.Bot):
             activity=discord.Activity(type=discord.ActivityType.watching, name=f"/help | {len(self.guilds)} servers"))
         if os.popen("git branch --show-current").read().strip() == "main":
             check_update.start()
-        self.listener_thread = threading.Thread(target=self.start_listening, name="Listener")
-        self.listener_thread.start()
+        set_callback(self.event_listener, self.read_queue(), self.loop)
         if os.name == "nt":
             self.memcached = subprocess.Popen(["wsl", "memcached", "d", "-p", "11211", "-I", "500m", "-m", "1024"], stdout=MemcachedStd(), stderr=MemcachedStd("stderr"))
         else:
             try:
-                self.memcached = subprocess.Popen(["memcached", "-d", "-p", "11211", "-I", "500m", "-m", "1024"], stdout=MemcachedStd(), stderr=MemcachedStd())
+                self.memcached = subprocess.Popen(["memcached", "-d", "-p", "11211", "-I", "500m", "-m", "1024"], stdout=MemcachedStd(), stderr=MemcachedStd("stderr"))
             except FileNotFoundError:
                 self.logger.error("Memcached not found, please install it")
                 self.memcached = None
@@ -56,51 +56,61 @@ class Bot(commands.Bot):
             if not await config.Config.config_exists(guild.id):
                 await config.Config.create_config(guild.id)
 
-    def start_listening(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        future = asyncio.ensure_future(self.listen_to_queue())
-        loop.run_until_complete(future)
+    async def get_from_panel(self, content: str, **kwargs):
+        data = PanelBotReqest.create(RequestType.GET, content, **kwargs)
+        if self.queue is None:
+            raise ValueError("Queue is not set")
+        self.queue.put(data)
+        self.panel_event.set()
+        self.logger.info(f"Getting {data} from panel")
+        await self.event_listener.wait()
+        response = self.queue.get()
+        self.logger.info(f"Got {response} from panel")
+        return response
+    
+    async def post_to_panel(self, data: dict | str):
+        request_ = PanelBotReqest.create(RequestType.POST, data)
+        if self.queue is None:
+            raise ValueError("Queue is not set")
+        self.queue.put(request_)
+        self.panel_event.set()
+        self.logger.info(f"Posting {request_} to panel")
 
-    async def listen_to_queue(self):
-        while True:
-            if self.queue.empty():
-                continue
-            else:
-                message = self.queue.get()
-            if not isinstance(message, PanelToBotRequest):
-                self.queue.put(message)
-                continue
-            match message.type:
-                case RequestType.GET:
-                    match message.content:
-                        case "guilds":
-                            guilds = []
-                            if message.extra.get("user_id", None) is None or int(
-                                    message.extra["user_id"]) == 708006478807695450:
-                                guilds = [GuildData.from_guild(guild) for guild in self.guilds]
-                            else:
-                                guilds = [GuildData.from_guild(guild) for guild in self.guilds if
-                                          int(message.extra["user_id"]) in [member.id for member in guild.members]]
-                            self.logger.info("Got a request for all guilds of a user")
-                            self.queue.put(guilds)
-                            await asyncio.sleep(0.1)
-                        case "guild":
-                            guild = self.get_guild(int(message.extra["server_id"]))
-                            guild = GuildData.from_guild(guild)
-                            self.logger.info(f"Got a request for a specific guild : {message.extra['server_id']}")
-                            self.queue.put(guild)
-                            await asyncio.sleep(0.1)
-                        case "user":
-                            user = self.get_user(int(message.extra["user_id"]))
-                            user = UserData.from_user(user)
-                            self.logger.info(f"Got a request for a specific user : {message.extra['user_id']}")
-                            self.queue.put(user)
-                            await asyncio.sleep(0.1)
-                        case _:
-                            self.logger.error(f"Unknown request {message}")
-                case RequestType.POST:
-                    pass
+    async def read_queue(self):
+        message = self.queue.get()
+        match message.type:
+            case RequestType.GET:
+                match message.content:
+                    case "guilds":
+                        guilds = []
+                        if message.extra.get("user_id", None) is None or int(
+                                message.extra["user_id"]) == 708006478807695450:
+                            guilds = [GuildData.from_guild(guild) for guild in self.guilds]
+                        else:
+                            guilds = [GuildData.from_guild(guild) for guild in self.guilds if
+                                        int(message.extra["user_id"]) in [member.id for member in guild.members]]
+                        self.logger.info("Got a request for all guilds of a user")
+                        self.queue.put(PanelBotResponse.create(RequestType.GET, guilds))
+                        self.panel_event.set(True)
+                        await asyncio.sleep(0.1)
+                    case "guild":
+                        guild = self.get_guild(int(message.extra["server_id"]))
+                        guild = GuildData.from_guild(guild)
+                        self.logger.info(f"Got a request for a specific guild : {message.extra['server_id']}")
+                        self.queue.put(PanelBotResponse.create(RequestType.GET, guild))
+                        self.panel_event.set(True)
+                        await asyncio.sleep(0.1)
+                    case "user":
+                        user = self.get_user(int(message.extra["user_id"]))
+                        user = UserData.from_user(user)
+                        self.logger.info(f"Got a request for a specific user : {message.extra['user_id']}")
+                        self.queue.put(PanelBotResponse.create(RequestType.GET, user))
+                        self.panel_event.set(True)
+                        await asyncio.sleep(0.1)
+                    case _:
+                        self.logger.error(f"Unknown request {message}")
+            case RequestType.POST:
+                pass
 
     async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
         exc_type, exc_value, exc_traceback = type(error), error, error.__traceback__
@@ -183,7 +193,7 @@ async def start(instance: Bot, start_time: datetime.datetime):
         await ctx.respond(content="Arrêt en cours...", ephemeral=True)
         await instance.close()
         instance.memcached.terminate()
-        exit(0)
+        instance.post_to_panel("stop")
 
 
     @send_message.error

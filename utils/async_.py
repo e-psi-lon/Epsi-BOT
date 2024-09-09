@@ -1,10 +1,11 @@
 import asyncio
 import concurrent.futures
+from multiprocessing import Event as _Event
 from typing import Literal, Optional, Union, Callable, Coroutine, Any
 
 import aiohttp
 
-__all__ = ["run_sync", "run_async", "AsyncTimer", "AsyncRequests"]
+__all__ = ["run_sync", "run_async", "AsyncTimer", "AsyncRequests", "Event", "set_callback"]
 
 
 def run_sync(coro: Coroutine):
@@ -221,3 +222,42 @@ class AsyncRequests:
                         return await response.content.read()
                     case _:
                         return await response.text()
+
+class Event:
+    def __init__(self) -> None:
+        self._event = _Event()
+        self.is_response = None
+
+    async def wait(self) -> None:
+        while not self._event.is_set():
+            await asyncio.sleep(0.005)
+
+    def __await__(self) -> Any:
+        return self.wait().__await__()
+    
+    async def set(self, is_response: bool = False) -> None:
+        self._event.set()
+        self.is_response = is_response
+
+    async def clear(self) -> None:
+        self._event.clear()
+        self.is_response = None
+
+
+    def is_set(self) -> bool:
+        return self._event.is_set()
+    
+    def __repr__(self) -> str:
+        return f"<Event {'set' if self.is_set() else 'clear'} is_response={self.is_response}>"
+    
+
+async def set_callback(event: Event, callback: Callable, event_loop: Optional[asyncio.AbstractEventLoop] = None):
+    """"
+    """
+    async def _callback():
+        while True:
+            await event.wait()
+            if event.is_response:
+                await callback()
+                await event.clear()
+    asyncio.run_coroutine_threadsafe(_callback(), event_loop or asyncio.get_event_loop())

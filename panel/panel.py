@@ -4,17 +4,18 @@ import logging
 import multiprocessing
 import os
 from logging.config import dictConfig
-import threading
 from typing import NoReturn, Optional
 
 import aiohttp
 import discord
+import multiprocessing
 import pytube  # type: ignore
 from dotenv import load_dotenv
 from quart import Quart, session, redirect, url_for, render_template, request
 from quart_session import Session  # type: ignore
 
-from utils import (PanelToBotRequest,
+from utils import (PanelBotReqest,
+                   PanelBotResponse,
                    GuildData,
                    UserData,
                    RequestType,
@@ -24,8 +25,10 @@ from utils import (PanelToBotRequest,
                    Song,
                    Asker,
                    AsyncRequests,
-                   get_logger,
-                   )
+                   get_logger, 
+                   Event,
+                   set_callback
+                )
 
 from aiomultiprocess import Process
 from bot.bot import start, Bot
@@ -58,14 +61,14 @@ class Panel(Quart):
         self.CLIENT_SECRET = os.environ['CLIENT_SECRET']
         self.REDIRECT_URI = "http://86.196.98.254/auth/discord/callback"
         self.timers: dict[int, AsyncTimer] = {}
-        self.queue: Optional[multiprocessing.Queue[PanelToBotRequest | GuildData | UserData | list[GuildData]]] = multiprocessing.Queue()
+        self.queue: Optional[multiprocessing.Queue[PanelBotReqest | PanelBotResponse]] = multiprocessing.Queue()
         self.config['SESSION_TYPE'] = 'memcached'
-        self.listener_thread: Optional[threading.Thread] = None
         self.start_time: Optional[datetime.datetime] = None
-        self.listener_thread = threading.Thread(target=self.receive)
-        self.listener_thread.start()
+        self.bot_event = Event()
+        self.event = Event()
+        set_callback(self.event, self.read_queue, asyncio.get_event_loop())
         Session(self)
-    
+
     @property
     def logger(self) -> logging.Logger:
         return get_logger("Panel")
@@ -73,17 +76,16 @@ class Panel(Quart):
     def set_start_time(self, start_time: datetime.datetime):
         self.start_time = start_time
 
-    @staticmethod
-    async def start_bot(queue: multiprocessing.Queue, start_time: datetime.datetime) -> NoReturn:
+    async def start_bot(self, queue: multiprocessing.Queue, start_time: datetime.datetime) -> NoReturn:
         if not os.path.exists("database/database.db"):
             if not os.path.exists("database/"):
                 os.mkdir("database/")
             with open("database/database.db", "w") as f:
                 f.write("")
-            os.chdir("_others")
+            os.chdir("utils")
             os.system("python generate_db.py")
             os.chdir("..")
-        bot: Bot = Bot(queue, intents=discord.Intents.all())
+        bot: Bot = Bot(queue, self.event, self.bot_event, intents=discord.Intents.all())
         await start(bot, start_time)
 
     def run(self, host, port, use_reloader, *args, **kwargs) -> NoReturn:
@@ -93,50 +95,38 @@ class Panel(Quart):
         
 
     async def get_from_bot(self, content: str, **kwargs) -> GuildData | UserData | list[GuildData]:
-        data = PanelToBotRequest.create(RequestType.GET, content, **kwargs)
+        data = PanelBotReqest.create(RequestType.GET, content, **kwargs)
         if self.queue is None:
             raise ValueError("Queue is not set")
         self.queue.put(data)
-        self.logger.info(f"Getting {data} from queue")
-        response = None
-        while self.queue.qsize() == 1:
-            continue
-        while self.queue.empty():
-            continue
+        self.bot_event.set()
+        self.logger.info(f"Getting {data} from bot")
+        await self.event.wait()
         response = self.queue.get()
-        self.logger.info(f"Got {response} from queue")
+        self.logger.info(f"Got {response} from bot")
         return response
 
     async def post_to_bot(self, data: dict):
-        request_ = PanelToBotRequest.create(RequestType.POST, data)
+        request_ = PanelBotReqest.create(RequestType.POST, data)
         if self.queue is None:
             raise ValueError("Queue is not set")
         self.queue.put(request_)
-        self.logger.info(f"Posting {request_} to conn")
+        self.bot_event.set()
+        self.logger.info(f"Posting {request_} to bot")
 
-    def receive(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        future = asyncio.ensure_future(self.receive_from_bot())
-        loop.run_until_complete(future)
-
-    async def receive_from_bot(self) -> Optional[NoReturn]:
-        if self.queue is None:
-            raise ValueError("Queue is not set")
-        while self.queue.empty():
-            continue
-        response = self.queue.get()
-        self.logger.info(f"Got {response} from conn")
-        if isinstance(response, PanelToBotRequest):
-            match response.type:
-                case RequestType.GET:
-                    return self.queue.put(response)
-                case RequestType.POST:
-                    if response.content == "stop":
-                        await self.shutdown()
-                        exit(0)
-                    return self.queue.put(response)
-        return self.queue.put(response)
+    async def read_queue(self) -> Optional[NoReturn]:
+        message = self.queue.get()
+        self.logger.info(f"Got {message} from connection")
+        if not isinstance(message, PanelBotReqest):
+            raise TypeError("")
+        match message.type:
+            case RequestType.GET:
+                return self.queue.put(message)
+            case RequestType.POST:
+                if message.content == "stop":
+                    await self.shutdown()
+                    exit(0)
+                return self.queue.put(message)
 
 
 app = Panel(os.environ['PANEL_SECRET_KEY'], __name__)
