@@ -66,7 +66,6 @@ class Panel(Quart):
         self.start_time: Optional[datetime.datetime] = None
         self.bot_event = Event()
         self.event = Event()
-        set_callback(self.event, self.read_queue, asyncio.get_event_loop())
         Session(self)
 
     @property
@@ -85,6 +84,7 @@ class Panel(Quart):
             os.chdir("utils")
             os.system("python generate_db.py")
             os.chdir("..")
+        set_callback(self.event, self.read_queue, asyncio.get_event_loop())
         bot: Bot = Bot(queue, self.event, self.bot_event, intents=discord.Intents.all())
         await start(bot, start_time)
 

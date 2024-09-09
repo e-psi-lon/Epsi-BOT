@@ -40,7 +40,7 @@ class Bot(commands.Bot):
             activity=discord.Activity(type=discord.ActivityType.watching, name=f"/help | {len(self.guilds)} servers"))
         if os.popen("git branch --show-current").read().strip() == "main":
             check_update.start()
-        set_callback(self.event_listener, self.read_queue(), self.loop)
+        await set_callback(self.event_listener, self.read_queue, self.loop)
         if os.name == "nt":
             self.memcached = subprocess.Popen(["wsl", "memcached", "d", "-p", "11211", "-I", "500m", "-m", "1024"], stdout=MemcachedStd(), stderr=MemcachedStd("stderr"))
         else:
