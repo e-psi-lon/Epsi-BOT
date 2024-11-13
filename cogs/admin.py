@@ -51,6 +51,16 @@ class Admin(commands.Cog):
         embed = discord.Embed(title="Clean", description=f"Cleaned {count} messages.", color=0x00ff00)
         await ctx.respond(embed=embed, delete_after=30)
 
+    @commands.slash_command(name="reload", description="Reloads the cogs", guild_ids=[761485410596552736])
+    async def reload(self, ctx: discord.ApplicationContext):
+        await ctx.response.defer()
+        if ctx.author.id != OWNER_ID:
+            return await ctx.respond(embed=EMBED_ERROR_NOT_BOT_OWNER, delete_after=30)
+        for cog in self.bot.cogs:
+            self.bot.reload_extension(f"cogs.{cog}")
+        embed = discord.Embed(title="Reload", description="Reloaded the cogs.", color=0x00ff00)
+        await ctx.respond(embed=embed, delete_after=30)
+
 
 def setup(bot):
     bot.add_cog(Admin(bot))
