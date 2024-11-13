@@ -3,7 +3,7 @@ import asyncio
 import discord
 from discord.ext import commands
 
-from utils import Config, OWNER_ID, Base64Serializer
+from utils import Config, OWNER_ID, Base64Serializer, EMBED_ERROR_NOT_BOT_OWNER
 from aiocache import MemcachedCache
 
 removed_count = 0
@@ -17,8 +17,7 @@ class Admin(commands.Cog):
     async def remove_cache(self, ctx: discord.ApplicationContext):
         await ctx.response.defer()
         if ctx.author.id != OWNER_ID:
-            embed = discord.Embed(title="Error", description="You are not the owner of the bot.", color=0xff0000)
-            return await ctx.respond(embed=embed, delete_after=30)
+            return await ctx.respond(embed=EMBED_ERROR_NOT_BOT_OWNER, delete_after=30)
         temp_config = await Config.get_config(ctx.guild.id, False)
         temp_config2 = await Config.get_config(ctx.guild.id, False)
         await temp_config.clear_queue()
@@ -40,8 +39,7 @@ class Admin(commands.Cog):
         global removed_count
         await ctx.response.defer()
         if ctx.author.id != OWNER_ID:
-            embed = discord.Embed(title="Error", description="You are not the owner of the bot.", color=0xff0000)
-            return await ctx.respond(embed=embed, delete_after=30)
+            return await ctx.respond(embed=EMBED_ERROR_NOT_BOT_OWNER, delete_after=30)
         removed_count = 0
 
         def check(m: discord.Message):

@@ -8,7 +8,8 @@ __all__ = [
     "EMBED_ERROR_INDEX_TOO_HIGH", 
     "EMBED_ERROR_NAME_TOO_LONG", 
     "EMBED_ERROR_NO_RESULTS_FOUND", 
-    "EMBED_ERROR_VIDEO_TOO_LONG", 
+    "EMBED_ERROR_VIDEO_TOO_LONG",
+    "EMBED_ERROR_NOT_BOT_OWNER",
     "OWNER_ID"
 ]
 
@@ -24,3 +25,4 @@ EMBED_ERROR_INDEX_TOO_HIGH = discord.Embed(title="Error", description="The index
 EMBED_ERROR_NAME_TOO_LONG = discord.Embed(title="Error", description="The name is too long.", color=0xff0000)
 EMBED_ERROR_NO_RESULTS_FOUND = discord.Embed(title="Error", description="No results found.", color=0xff0000)
 EMBED_ERROR_VIDEO_TOO_LONG = discord.Embed(title="Error", description="The video is too long.", color=0xff0000)
+EMBED_ERROR_NOT_BOT_OWNER = discord.Embed(title="Error", description="You are not the owner of the bot.", color=0xff0000)

@@ -48,6 +48,7 @@ __all__ = [
     'EMBED_ERROR_NAME_TOO_LONG',
     'EMBED_ERROR_NO_RESULTS_FOUND',
     'EMBED_ERROR_VIDEO_TOO_LONG',
+    'EMBED_ERROR_NOT_BOT_OWNER',
     'Base64Serializer',
     'get_logger',
     'check_video',
@@ -107,6 +108,7 @@ from .constants import (OWNER_ID,
                         EMBED_ERROR_NAME_TOO_LONG,
                         EMBED_ERROR_NO_RESULTS_FOUND,
                         EMBED_ERROR_VIDEO_TOO_LONG,
+                        EMBED_ERROR_NOT_BOT_OWNER
                         )
 
 from .loggers import (CustomFormatter,
