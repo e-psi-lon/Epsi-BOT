@@ -13,12 +13,12 @@ load_dotenv()
 start_time = datetime.datetime.now()
 
 if __name__ == "__main__":
-    os.system("cls" if os.name == "nt" else "clear")
-    app.set_start_time(start_time)
-    # Default logger
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(CustomFormatter("Root"))
-    log_level = getattr(logging, parse_args().log_level.upper(), logging.INFO)
-    handler.setLevel(log_level)
-    logging.basicConfig(level=log_level, handlers=[handler])
-    app.run(host="0.0.0.0", port=8080, use_reloader=False)
+	os.system("cls" if os.name == "nt" else "clear")
+	app.set_start_time(start_time)
+	# Default logger
+	handler = logging.StreamHandler(sys.stdout)
+	handler.setFormatter(CustomFormatter("Root"))
+	log_level = getattr(logging, parse_args().log_level.upper(), logging.INFO)
+	handler.setLevel(log_level)
+	logging.basicConfig(level=log_level, handlers=[handler])
+	app.run(host="0.0.0.0", port=8080, use_reloader=False)

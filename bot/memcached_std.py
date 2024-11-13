@@ -5,31 +5,31 @@ from typing import Literal
 from utils import get_logger
 
 class MemcachedStd(io.TextIOBase):
-    def __init__(self, std_type: Literal["stdout", "stderr"] = "stdout", *args, **kwargs):
-        self.type = std_type
-        self.logger = get_logger("Memcached")
-        super().__init__(*args, **kwargs)
+	def __init__(self, std_type: Literal["stdout", "stderr"] = "stdout", *args, **kwargs):
+		self.type = std_type
+		self.logger = get_logger("Memcached")
+		super().__init__(*args, **kwargs)
 
-    def write(self, string: str) -> int:
-        match self.type:
-            case "stdout":
-                self.logger.info(string)
-            case "stderr":
-                self.logger.error(string)
-        return len(string)
+	def write(self, string: str) -> int:
+		match self.type:
+			case "stdout":
+				self.logger.info(string)
+			case "stderr":
+				self.logger.error(string)
+		return len(string)
 
-    def writelines(self, lines: list[str]) -> None:
-        for line in lines:
-            self.write(line)
+	def writelines(self, lines: list[str]) -> None:
+		for line in lines:
+			self.write(line)
 
-    def fileno(self) -> int:
-        return sys.stdout.fileno()
-    
-    def isatty(self) -> bool:
-        return sys.stdout.isatty()
-    
-    def readable(self) -> bool:
-        return True
-    
-    def writable(self) -> bool:
-        return True
+	def fileno(self) -> int:
+		return sys.stdout.fileno()
+	
+	def isatty(self) -> bool:
+		return sys.stdout.isatty()
+	
+	def readable(self) -> bool:
+		return True
+	
+	def writable(self) -> bool:
+		return True
