@@ -3,10 +3,10 @@ import threading
 from datetime import datetime
 
 import discord
-import pytube
+import pytubefix
 from discord.commands import SlashCommandGroup
 from discord.ext import commands
-from pytube.exceptions import RegexMatchError as PytubeRegexMatchError
+from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError
 
 from utils import (Sinks,
                    EMBED_ERROR_BOT_NOT_CONNECTED,
@@ -94,32 +94,32 @@ class State(commands.Cog):
         if ctx.guild.voice_client is None:
             return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
         try:
-            url = pytube.YouTube(query).watch_url
+            url = pytubefix.YouTube(query).watch_url
             try:
                 config = await Config.get_config(ctx.guild.id, False)
-                if pytube.YouTube(url).length > 12000:
+                if pytubefix.YouTube(url).length > 12000:
                     return await ctx.respond(
                         discord.Embed(title="Error",
-                                      description=f"The video [{pytube.YouTube(url).title}]({url}) is too long",
+                                      description=f"The video [{pytubefix.YouTube(url).title}]({url}) is too long",
                                       color=0xff0000))
                 if not config.queue:
                     config.position = 0
-                    await config.add_to_queue(await Song.create(pytube.YouTube(query).title, url,
+                    await config.add_to_queue(await Song.create(pytubefix.YouTube(query).title, url,
                                                                 await Asker.from_id(ctx.author.id)))
                 else:
-                    await config.add_to_queue(await Song.create(pytube.YouTube(query).title, url,
+                    await config.add_to_queue(await Song.create(pytubefix.YouTube(query).title, url,
                                                                 await Asker.from_id(ctx.author.id)))
                 if not ctx.guild.voice_client.is_playing():
                     await ctx.respond(embed=discord.Embed(title="Play",
                                                           description=f"Playing song "
-                                                                      f"[{pytube.YouTube(url).title}]({url})",
+                                                                      f"[{pytubefix.YouTube(url).title}]({url})",
                                                           color=0x00ff00))
                     await play_song(ctx, url)
                 else:
-                    video = pytube.YouTube(url)
+                    video = pytubefix.YouTube(url)
                     threading.Thread(target=self._download, args=(url,), name=f"Download-{video.video_id}").start()
                     await ctx.respond(embed=discord.Embed(title="Queue",
-                                                          description=f"Song [{pytube.YouTube(url).title}]({url})"
+                                                          description=f"Song [{pytubefix.YouTube(url).title}]({url})"
                                                                       f" added to queue.",
                                                           color=0x00ff00))
             except Exception as e:
@@ -128,7 +128,7 @@ class State(commands.Cog):
                     embed=discord.Embed(title="Error", description=f"Error while adding song to queue. "
                                                                    f"(Error: {e})", color=0xff0000))
         except PytubeRegexMatchError:
-            videos = pytube.Search(query).results
+            videos = pytubefix.Search(query).results
             if not videos:
                 return await ctx.respond(
                     embed=discord.Embed(title="Error", description="No results found.", color=0xff0000))

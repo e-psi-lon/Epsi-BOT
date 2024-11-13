@@ -13,11 +13,11 @@ import discord
 import discord.ext.pages
 from ffmpeg.asyncio import FFmpeg
 import pydub  # type: ignore
-import pytube  # type: ignore
+import pytubefix  # type: ignore
 from aiocache import MemcachedCache  # type: ignore
 from aiocache.serializers import JsonSerializer  # type: ignore
 from discord.ext import commands
-from pytube.exceptions import RegexMatchError as PytubeRegexMatchError  # type: ignore
+from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError  # type: ignore
 
 from .async_ import AsyncRequests
 from .config import Config, Song, Asker, UserPlaylistAccess, format_name
@@ -92,7 +92,7 @@ async def to_cache(url: str, bot: commands.Bot) -> io.BytesIO:
             r: bytes = await AsyncRequests.get(url, return_type="content")
             buffer.write(r)
         else:
-            stream = pytube.YouTube(url)
+            stream = pytubefix.YouTube(url)
             stream = stream.streams.filter(only_audio=True).first()
             buffer = io.BytesIO()
             stream.stream_to_buffer(buffer)
@@ -136,7 +136,7 @@ async def download(url: str, bot: commands.Bot, download_logger: logging.Logger 
         download_logger.info(f"Downloaded {url.split('/')[-1]}")
         return buffer
     else:
-        stream = pytube.YouTube(url)
+        stream = pytubefix.YouTube(url)
         video_id = stream.video_id
         if stream.age_restricted:
             download_logger.warning(f"Video {stream.title} is age restricted (video id: {video_id})")
@@ -224,7 +224,7 @@ class SelectVideo(discord.ui.Select):
     
     Parameters
     ----------
-    videos : list[pytube.YouTube]
+    videos : list[pytubefix.YouTube]
         The list of videos to select from
     ctx : discord.ApplicationContext
         The context of the command
@@ -241,7 +241,7 @@ class SelectVideo(discord.ui.Select):
         The callback function to execute when a video is selected
     """
 
-    def __init__(self, videos: list[pytube.YouTube], ctx: discord.ApplicationContext, download_file: bool, *args,
+    def __init__(self, videos: list[pytubefix.YouTube], ctx: discord.ApplicationContext, download_file: bool, *args,
                  **kwargs):
         super().__init__(*args, **kwargs)
         self.placeholder = "Select an audio to play"
@@ -265,11 +265,11 @@ class SelectVideo(discord.ui.Select):
                                 color=0x00ff00), view=None)
         config = await Config.get_config(interaction.guild.id, False)
         if self.download:
-            stream = pytube.YouTube(self.values[0]).streams.filter(only_audio=True).first()
-            if pytube.YouTube(self.values[0]).length > 12000:
+            stream = pytubefix.YouTube(self.values[0]).streams.filter(only_audio=True).first()
+            if pytubefix.YouTube(self.values[0]).length > 12000:
                 return await interaction.message.edit(embed=discord.Embed(title="Error",
                                                                           description=f"The video "
-                                                                                      f"""[{pytube.YouTube(self.values[0])
+                                                                                      f"""[{pytubefix.YouTube(self.values[0])
                                                                           .title}]({self.values[0]}) is too long""",
                                                                           color=0xff0000))
             buffer = io.BytesIO()
@@ -291,14 +291,14 @@ class SelectVideo(discord.ui.Select):
         if not interaction.guild.voice_client.is_playing():
             await interaction.message.edit(embed=discord.Embed(title="Play",
                                                                description=f"Playing song "
-                                                                           f"[{pytube.YouTube(self.values[0]).title}]"
+                                                                           f"[{pytubefix.YouTube(self.values[0]).title}]"
                                                                            f"({self.values[0]})",
                                                                color=0x00ff00))
             await play_song(self.ctx, config.queue[config.position].url)
         else:
             await interaction.message.edit(embed=discord.Embed(title="Queue",
                                                                description=f"Song "
-                                                                           f"[{pytube.YouTube(self.values[0]).title}]"
+                                                                           f"[{pytubefix.YouTube(self.values[0]).title}]"
                                                                            f"({self.values[0]}) added to queue.",
                                                                color=0x00ff00))
 
@@ -309,7 +309,7 @@ class Research(discord.ui.View):
 
     Parameters
     ----------
-    videos : list[pytube.YouTube]
+    videos : list[pytubefix.YouTube]
         The list of videos to select from
     ctx : discord.ApplicationContext
         The context of the command
@@ -328,7 +328,7 @@ class Research(discord.ui.View):
         The callback function to execute when a video is selected
     """
 
-    def __init__(self, videos: list[pytube.YouTube], ctx: discord.ApplicationContext, download_file: bool, *items,
+    def __init__(self, videos: list[pytubefix.YouTube], ctx: discord.ApplicationContext, download_file: bool, *items,
                  timeout: float | None = 180, disable_on_timeout: bool = False):
         super().__init__(*items, timeout=timeout, disable_on_timeout=disable_on_timeout)
         self.add_item(SelectVideo(videos, ctx, download_file))
@@ -441,7 +441,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
     config = await Config.get_config(ctx.guild.id, True)
     loop = asyncio.get_event_loop()
     try:
-        video = pytube.YouTube(url)
+        video = pytubefix.YouTube(url)
         if video.age_restricted:
             return await ctx.respond(
                 embed=discord.Embed(title="Error", description=f"The [video]({url}) is age restricted",
@@ -529,7 +529,7 @@ def get_lyrics(title: str):
 def check_video(bot: commands.Bot, song: Song, ctx: discord.ApplicationContext, loop: asyncio.AbstractEventLoop):
     try:
         if song.url.startswith("https://youtube.com/watch?v="):
-            video = pytube.YouTube(song.url)
+            video = pytubefix.YouTube(song.url)
             if video.age_restricted:
                 bot.loop.create_task(
                     ctx.respond(embed=discord.Embed(title="Error",

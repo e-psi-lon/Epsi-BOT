@@ -3,10 +3,10 @@ from typing import Union, Optional
 import asyncio
 
 import discord
-import pytube
+import pytubefix
 from discord.commands import SlashCommandGroup
 from discord.ext import commands
-from pytube.exceptions import RegexMatchError as PytubeRegexMatchError
+from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError
 
 from utils import (Playlist,
                    PlaylistType,
@@ -69,7 +69,7 @@ class Playlists(commands.Cog):
                                                                 default="server")):  # type: ignore
         await ctx.response.defer()
         try:
-            playlist = pytube.Playlist(url)
+            playlist = pytubefix.Playlist(url)
             if name is None:
                 name = playlist.title
             if len(name) > 20:
@@ -137,10 +137,10 @@ class Playlists(commands.Cog):
         if config is None:
             return
         try:
-            url = pytube.YouTube(query).watch_url
+            url = pytubefix.YouTube(query).watch_url
             try:
                 await [playlist for playlist in config.playlists if playlist.name == name][0].add_song(
-                    await Song.create(pytube.YouTube(query).title, url, await Asker.from_id(ctx.user.id)))
+                    await Song.create(pytubefix.YouTube(query).title, url, await Asker.from_id(ctx.user.id)))
                 await ctx.respond(embed=discord.Embed(title="Playlist", description=f"Song added to playlist {name}.",
                                                       color=0x00ff00))
             except IndexError:

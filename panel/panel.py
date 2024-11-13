@@ -9,7 +9,7 @@ from typing import NoReturn, Optional
 import aiohttp
 import discord
 import multiprocessing
-import pytube  # type: ignore
+import pytubefix  # type: ignore
 from dotenv import load_dotenv
 from quart import Quart, session, redirect, url_for, render_template, request
 from quart_session import Session  # type: ignore
@@ -197,8 +197,8 @@ async def server(server_id):
                    "position": config.position, "queue": config.queue, "id": server_id,
                    "name": (await app.get_from_bot("guild", server_id=server_id)).name}
     server_data = ConfigData(config.loop_song, config.loop_queue, config.random, config.position, config.queue,
-                             server_id, (await app.get_from_bot("guild", server_id=server_id)).name)
-    return await render_template('server.html', server=server_data, app=app, pytube=pytube)
+                             server_id, (await app.get_from_bot("guild", server_id=server_id)).content.name)
+    return await render_template('server.html', server=server_data, app=app, pytubefix=pytubefix)
 
 
 @app.route('/server/<int:server_id>/clear')
@@ -211,7 +211,7 @@ async def clear(server_id):
 @app.route('/server/<int:server_id>/add', methods=['POST'])
 async def add(server_id):
     config = await Config.get_config(server_id, False)
-    await config.add_to_queue(await Song.create(pytube.YouTube((await request.form)['url']).title,
+    await config.add_to_queue(await Song.create(pytubefix.YouTube((await request.form)['url']).title,
                                                 (await request.form)['url'],
                                                 await Asker.from_id(session['user'].id)))
     return redirect(url_for('server', server_id=server_id))

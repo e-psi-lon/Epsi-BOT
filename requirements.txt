@@ -1,5 +1,5 @@
 # Audio
-git+https://github.com/pytube/pytube.git
+pytubefix==8.2.0
 python-ffmpeg==2.0.12
 pydub==0.25.1
 aiocache[memcached]==0.12.2
