@@ -61,7 +61,7 @@ class Bot(commands.Bot):
         if self.queue is None:
             raise ValueError("Queue is not set")
         self.queue.put(data)
-        self.panel_event.set()
+        await self.panel_event.set()
         self.logger.info(f"Getting {data} from panel")
         await self.event_listener.wait()
         response = self.queue.get()
@@ -73,7 +73,7 @@ class Bot(commands.Bot):
         if self.queue is None:
             raise ValueError("Queue is not set")
         self.queue.put(request_)
-        self.panel_event.set()
+        await self.panel_event.set()
         self.logger.info(f"Posting {request_} to panel")
 
     async def read_queue(self):
@@ -91,21 +91,21 @@ class Bot(commands.Bot):
                                         int(message.extra["user_id"]) in [member.id for member in guild.members]]
                         self.logger.info("Got a request for all guilds of a user")
                         self.queue.put(PanelBotResponse.create(RequestType.GET, guilds))
-                        self.panel_event.set(True)
+                        await self.panel_event.set(True)
                         await asyncio.sleep(0.1)
                     case "guild":
                         guild = self.get_guild(int(message.extra["server_id"]))
                         guild = GuildData.from_guild(guild)
                         self.logger.info(f"Got a request for a specific guild : {message.extra['server_id']}")
                         self.queue.put(PanelBotResponse.create(RequestType.GET, guild))
-                        self.panel_event.set(True)
+                        await self.panel_event.set(True)
                         await asyncio.sleep(0.1)
                     case "user":
                         user = self.get_user(int(message.extra["user_id"]))
                         user = UserData.from_user(user)
                         self.logger.info(f"Got a request for a specific user : {message.extra['user_id']}")
                         self.queue.put(PanelBotResponse.create(RequestType.GET, user))
-                        self.panel_event.set(True)
+                        await self.panel_event.set(True)
                         await asyncio.sleep(0.1)
                     case _:
                         self.logger.error(f"Unknown request {message}")
@@ -193,7 +193,7 @@ async def start(instance: Bot, start_time: datetime.datetime):
         await ctx.respond(content="Arrêt en cours...", ephemeral=True)
         await instance.close()
         instance.memcached.terminate()
-        instance.post_to_panel("stop")
+        await instance.post_to_panel("stop")
 
 
     @send_message.error

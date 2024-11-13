@@ -1,10 +1,9 @@
 import asyncio
 import datetime
 import logging
-import multiprocessing
 import os
 from logging.config import dictConfig
-from typing import NoReturn, Optional
+from typing import NoReturn, Optional, Any
 
 import aiohttp
 import discord
@@ -55,6 +54,7 @@ dictConfig({
 class Panel(Quart):
     def __init__(self, secret_key: str, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.bot_process: Optional[Process] = None
         self.secret_key = secret_key
         self.API_ENDPOINT = "https://discord.com/api/v10"
         self.CLIENT_ID = 1167171085343666216
@@ -88,21 +88,33 @@ class Panel(Quart):
         bot: Bot = Bot(queue, self.event, self.bot_event, intents=discord.Intents.all())
         await start(bot, start_time)
 
-    def run(self, host, port, use_reloader, *args, **kwargs) -> NoReturn:
+    def run(
+            self,
+            host: str | None = None,
+            port: int | None = None,
+            debug: bool | None = None,
+            use_reloader: bool = True,
+            loop: asyncio.AbstractEventLoop | None = None,
+            ca_certs: str | None = None,
+            certfile: str | None = None,
+            keyfile: str | None = None,
+            **kwargs: Any,
+    ) -> None:
         self.bot_process: Process = Process(target=self.start_bot, args=(self.queue, self.start_time))
         self.bot_process.start()
-        super().run(host=host, port=port, use_reloader=use_reloader, *args, **kwargs)
+        super().run(host=host, port=port, use_reloader=use_reloader, loop=loop, ca_certs=ca_certs, certfile=certfile,
+                    keyfile=keyfile, **kwargs)
         
 
-    async def get_from_bot(self, content: str, **kwargs) -> GuildData | UserData | list[GuildData]:
+    async def get_from_bot(self, content: str, **kwargs) -> PanelBotResponse:
         data = PanelBotReqest.create(RequestType.GET, content, **kwargs)
         if self.queue is None:
             raise ValueError("Queue is not set")
         self.queue.put(data)
-        self.bot_event.set()
+        await self.bot_event.set()
         self.logger.info(f"Getting {data} from bot")
         await self.event.wait()
-        response = self.queue.get()
+        response: PanelBotResponse = self.queue.get()
         self.logger.info(f"Got {response} from bot")
         return response
 
@@ -111,7 +123,7 @@ class Panel(Quart):
         if self.queue is None:
             raise ValueError("Queue is not set")
         self.queue.put(request_)
-        self.bot_event.set()
+        await self.bot_event.set()
         self.logger.info(f"Posting {request_} to bot")
 
     async def read_queue(self) -> Optional[NoReturn]:
@@ -193,9 +205,6 @@ async def server(server_id):
                 [await Song.create(song['title'], song['url'], await Asker.from_id(song['asker_id'])) for song in
                  values['queue']])
         return redirect(url_for('server', server_id=server_id))
-    server_data = {"loop_song": config.loop_song, "loop_queue": config.loop_queue, "random": config.random,
-                   "position": config.position, "queue": config.queue, "id": server_id,
-                   "name": (await app.get_from_bot("guild", server_id=server_id)).name}
     server_data = ConfigData(config.loop_song, config.loop_queue, config.random, config.position, config.queue,
                              server_id, (await app.get_from_bot("guild", server_id=server_id)).content.name)
     return await render_template('server.html', server=server_data, app=app, pytubefix=pytubefix)
@@ -237,7 +246,7 @@ async def callback():
         session['user_id'] = user['id']
         app.timers[user['id']] = timer
         return redirect(url_for('panel'))
-    except aiohttp.ClientResponseError as e:
+    except aiohttp.ClientResponseError:
         return redirect(url_for('index'))
 
 

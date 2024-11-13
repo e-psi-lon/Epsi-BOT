@@ -300,7 +300,7 @@ class Playlists(commands.Cog):
         if isinstance(config, Config):
             await (await UserPlaylistAccess.from_id(ctx.user.id)).add_playlist(new_playlist)
         else:
-            await Config.get_config(ctx.guild.id, False).add_playlist(new_playlist)
+            await (await Config.get_config(ctx.guild.id, False)).add_playlist(new_playlist)
         await ctx.respond(embed=discord.Embed(title="Playlist", description=f"Playlist {name} copied.",
                                                 color=0x00ff00))
     @staticmethod

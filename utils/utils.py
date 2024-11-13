@@ -27,7 +27,7 @@ from .loggers import get_logger
 pydub.AudioSegment.converter = "./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"
 
 __all__ = [
-    "Base64Serializer"
+    "Base64Serializer",
     "download",
     "Sinks",
     "finished_record_callback",
@@ -456,7 +456,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
         stream.stream_to_buffer(buffer)
         buffer.seek(0)
         player = discord.PCMVolumeTransformer(
-            discord.FFmpegPCMAudio(file, executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg", pipe=True),
+            discord.FFmpegPCMAudio(file, executable="ffmpeg", pipe=True),
             config.volume / 100)
         try:
             get_logger("Bot").info(f"Playing song {video.title}")
@@ -516,9 +516,9 @@ async def convert(audio: io.BytesIO, file_format: FfmpegFormats, log: logging.Lo
         .input('pipe:0')
         .output("pipe:1", file_format.value, f=file_format.name.lower())
     )
-    bytes = await ffmpeg.execute(audio.getvalue())
+    byte = await ffmpeg.execute(audio.getvalue())
     log.info(f"Converted audio to {file_format}")
-    return io.BytesIO(bytes)
+    return io.BytesIO(byte)
 
 
 def get_lyrics(title: str):
