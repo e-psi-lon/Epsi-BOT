@@ -15,7 +15,7 @@ __all__ = ["Config", "UserPlaylistAccess", "Playlist", "Song", "Asker", "Playlis
 
 
 def format_name(name: str):
-    """Replace |, /, backslash, <, >, :, ;, *, ?, ", and ' with a character with their unicode"""
+    """Replace |, /, backslash, <, >, :, ;, *, ?, ", and ' with a character with their Unicode"""
     return name.replace("|", "u01C0") \
         .replace("/", "u2215") \
         .replace("\\", "u2216") \
@@ -30,7 +30,7 @@ def format_name(name: str):
 
 
 def unformat_name(name: str):
-    """Replace unicode characters with |, /, backslash, <, >, :, ;, *, ?, ", and '"""
+    """Replace Unicode characters with |, /, backslash, <, >, :, ;, *, ?, ", and '"""
     return name.replace("u01C0", "|") \
         .replace("u2215", "/") \
         .replace("u2216", "\\") \

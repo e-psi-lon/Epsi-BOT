@@ -1,11 +1,12 @@
 import io
 import sys
+from typing import Literal
 
 from utils import get_logger
 
 class MemcachedStd(io.TextIOBase):
-    def __init__(self, type: str = "stdout", *args, **kwargs):
-        self.type = type
+    def __init__(self, std_type: Literal["stdout", "stderr"] = "stdout", *args, **kwargs):
+        self.type = std_type
         self.logger = get_logger("Memcached")
         super().__init__(*args, **kwargs)
 

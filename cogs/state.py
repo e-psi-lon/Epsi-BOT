@@ -135,7 +135,7 @@ class State(commands.Cog):
             view = Research(videos, ctx, False)
             await ctx.respond(
                 embed=discord.Embed(title="Select audio",
-                                    description=f'Select an audio to play for query `{query}` from the list below',
+                                    description=f"Select an audio to play for query `{query}` from the list below",
                                     color=0x00ff00), view=view)
 
     def _download(self, url: str):

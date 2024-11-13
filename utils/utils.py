@@ -281,10 +281,10 @@ class SelectVideo(discord.ui.Select):
                 view=None)
         if not config.queue:
             config.position = 0
-            await config.add_to_queue(await Song.create(pytube.YouTube(self.values[0]).title, self.values[0],
+            await config.add_to_queue(await Song.create(pytubefix.YouTube(self.values[0]).title, self.values[0],
                                                         await Asker.from_id(interaction.user.id)))
         else:
-            await config.add_to_queue(await Song.create(pytube.YouTube(self.values[0]).title, self.values[0],
+            await config.add_to_queue(await Song.create(pytubefix.YouTube(self.values[0]).title, self.values[0],
                                                         await Asker.from_id(interaction.user.id)))
         if interaction.guild.voice_client is None:
             return await interaction.message.edit(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
