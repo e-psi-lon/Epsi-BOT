@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional, TypeVar
+from typing import Generic, Optional, TypeVar
 
 from discord import Guild, User
 from discord.abc import GuildChannel
@@ -42,7 +42,7 @@ class PanelBotReqest:
 		return f"Type: {self.type}, Content: {self.content}, Extra data: {self.extra}"
 
 	@classmethod
-	def create(cls, type_: RequestType, content: str, **kwargs):
+	def create(cls, type_: RequestType, content: str, **kwargs) -> "PanelBotReqest":
 		"""Class method to create a PanelBotReqest instance.
 		
 		Parameters
@@ -82,14 +82,14 @@ class PanelBotResponse:
 		Class method to create a PanelBotResponse instance.
 	"""
 	type: RequestType
-	content: T
+	content: Generic[T]
 	extra: Optional[dict] = field(default_factory=dict)
 
 	def __str__(self) -> str:
 		return f"Type: {self.type}, Content: {self.content}, Extra data: {self.extra}"
 
 	@classmethod
-	def create(cls, type_: RequestType, content: T, **kwargs):
+	def create(cls, type_: RequestType, content: T, **kwargs) -> "PanelBotResponse":
 		"""Class method to create a PanelBotResponse instance.
 		
 		Parameters
@@ -133,7 +133,7 @@ class ChannelData:
 	type: str
 
 	@classmethod
-	def from_channel(cls, channel: GuildChannel):
+	def from_channel(cls, channel: GuildChannel) -> "ChannelData":
 		"""
 		Class method to create a ChannelData instance from a discord.abc.GuildChannel instance.
 		
@@ -205,7 +205,7 @@ class UserData:
 	avatar: str
 
 	@classmethod
-	def from_user(cls, user: User):
+	def from_user(cls, user: User) -> "UserData":
 		"""
 		Class method to create a UserData instance from a discord.User instance.
 		
@@ -221,13 +221,13 @@ class UserData:
 		"""
 		return cls(
 			name=user.name,
-			global_name=user.global_name if hasattr(user, "global_name") else user.name,
+			global_name=user.global_name if hasattr(user, "global_name") else user.name,  # type: ignore
 			id=user.id,
 			avatar=getattr(user.avatar, "url", "")
 		)
 
 	@classmethod
-	def from_api_response(cls, response: dict):
+	def from_api_response(cls, response: dict) -> "UserData":
 		"""
 		Class method to create a UserData instance from a discord API response.
 
@@ -250,7 +250,7 @@ class UserData:
 		)
 
 	@classmethod
-	def from_dict(cls, dict_: dict):
+	def from_dict(cls, dict_: dict) -> "UserData":
 		"""
 		Class method to create a UserData instance from a dictionary.
 
@@ -300,7 +300,7 @@ class GuildData:
 	channels: list[ChannelData] = field(default_factory=list)
 
 	@classmethod
-	def from_guild(cls, guild: Guild):
+	def from_guild(cls, guild: Guild) -> "GuildData":
 		"""
 		Class method to create a GuildData instance from a discord.Guild instance.
 
@@ -370,7 +370,7 @@ class ConfigData:
 	"""
 
 	def __init__(self, loop_song: bool, loop_queue: bool, random: bool, position: int, queue: list[Song],
-				 server_id: int, name: str):
+				 server_id: int, name: str) -> None:
 		self.loop_song = loop_song
 		self.loop_queue = loop_queue
 		self.random = random
@@ -389,7 +389,7 @@ class ConfigData:
 	def __str__(self) -> str:
 		return str(self.__getstate__())
 
-	def to_dict(self):
+	def to_dict(self) -> object:
 		"""
 		Method to convert the ConfigData instance to a dictionary.
 		

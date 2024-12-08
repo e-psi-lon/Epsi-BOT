@@ -1,13 +1,13 @@
 import argparse
 import logging
 import os
-from typing import Optional
+from typing import Optional, Any
 
 
 class CustomFormatter(logging.Formatter):
 	"""Custom formatter for the bot and the panel's logs"""
 
-	def __init__(self, source: str, *args, **kwargs):
+	def __init__(self, source: str, *args: Any, **kwargs: Any) -> None:
 		super().__init__(*args, **kwargs)
 		self.source = source
 
@@ -21,7 +21,7 @@ class CustomFormatter(logging.Formatter):
 		logging.CRITICAL: "\033[41m" + format_  # Red
 	}
 
-	def format(self, record):
+	def format(self, record: logging.LogRecord) -> str:
 		log_fmt = self.FORMATS.get(record.levelno)
 		path = os.path.relpath(record.pathname, os.getcwd()).replace(os.sep, ".").lower()
 		if path.endswith(".py"):
@@ -33,7 +33,7 @@ class CustomFormatter(logging.Formatter):
 
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--log-level", type=str, default="INFO", help="The log level of the bot", required=False)
 	parsed = parser.parse_known_args()[0]

@@ -14,7 +14,7 @@ from discord.ext import tasks
 from .memcached_std import MemcachedStd
 
 @tasks.loop(hours=5)
-async def check_update():
+async def check_update() -> None:
 	current_hash = os.popen("git rev-parse HEAD").read().strip()
 	origin_hash = os.popen("git ls-remote origin main | awk '{print $1}'").read().strip()
 	if current_hash != origin_hash:
@@ -26,7 +26,7 @@ async def check_update():
 
 
 class Bot(commands.Bot):
-	def __init__(self, queue, event, bot_event, *args, **options):
+	def __init__(self, queue, event: Event, bot_event: Event, *args, **options) -> None:
 		super().__init__(*args, **options)
 		self.queue: mpQueue[PanelBotReqest | PanelBotResponse] = queue
 		self.panel_event: Event = event
@@ -35,7 +35,7 @@ class Bot(commands.Bot):
 		self.logger = get_logger("Bot")
 		self.start_time: Optional[datetime.datetime] = None
 
-	async def on_ready(self):
+	async def on_ready(self) -> None:
 		await self.change_presence(
 			activity=discord.Activity(type=discord.ActivityType.watching, name=f"/help | {len(self.guilds)} servers"))
 		if os.popen("git branch --show-current").read().strip() == "main":

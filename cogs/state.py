@@ -247,7 +247,6 @@ class State(commands.Cog):
 
 		if vc.channel.voice_states[vc.client.user.id].self_deaf:
 			return await ctx.respond(embed=discord.Embed(title="Error", description="Bot is deafened.", color=0xff0000))
-		timer = asyncio.TimerHandle(time, finished_record, args=[], loop=self.bot.loop)
 		vc.start_recording(
 			file_format.value,
 			finished_record_callback,
@@ -267,7 +266,7 @@ class State(commands.Cog):
 								description=f"Recording for {time} seconds. The record will stop at "
 											f"<t:{int(time + datetime.now().timestamp())}:R>.",
 								color=0x00ff00))
-		timer.start()
+		self.bot.loop.call_later(time, finished_record)
 
 	@commands.slash_command(name="stop_record", description="Arrête l'enregistrement")
 	async def stop_record(self, ctx: discord.ApplicationContext):

@@ -1,7 +1,7 @@
 import asyncio
 import concurrent.futures
 from enum import Enum
-from typing import Optional, Union, Any
+from typing import Optional, Union, Any, Coroutine
 
 import aiosqlite
 from pypika import Table, Query, Field
@@ -14,7 +14,7 @@ from .type_ import type_checking
 __all__ = ["Config", "UserPlaylistAccess", "Playlist", "Song", "Asker", "PlaylistType", "format_name"]
 
 
-def format_name(name: str):
+def format_name(name: str) -> str:
 	"""Replace |, /, backslash, <, >, :, ;, *, ?, ", and ' with a character with their Unicode"""
 	return name.replace("|", "u01C0") \
 		.replace("/", "u2215") \
@@ -29,7 +29,7 @@ def format_name(name: str):
 		.replace("'", "u0027")
 
 
-def unformat_name(name: str):
+def unformat_name(name: str) -> str:
 	"""Replace Unicode characters with |, /, backslash, <, >, :, ;, *, ?, ", and '"""
 	return name.replace("u01C0", "|") \
 		.replace("u2215", "/") \
@@ -68,13 +68,13 @@ class JoinCondition:
 		The name of the column of the second table to use to join.
 	"""
 
-	def __init__(self, first_table: str, second_table: str, first_column: str, second_column: str):
+	def __init__(self, first_table: str, second_table: str, first_column: str, second_column: str) -> None:
 		self.first_table = first_table
 		self.second_table = second_table
 		self.first_column = first_column
 		self.second_column = second_column
 
-	def to_query(self, query: Query):
+	def to_query(self, query: Query) -> Query:
 		table1 = Table(self.first_table)
 		table2 = Table(self.second_table)
 		query = query.join(table2).on(
@@ -88,21 +88,21 @@ class DatabaseAccess:
 	A base class that implement a basic query wrapper for the bot's database.
 	"""
 
-	def __init__(self, copy: bool):
+	def __init__(self, copy: bool) -> None:
 		self._copy = copy
 
 	@staticmethod
-	def _run_sync(coro):
+	def _run_sync(coro: Coroutine) -> Any:
 		with concurrent.futures.ThreadPoolExecutor() as pool:
 			future = pool.submit(asyncio.run, coro)
 			concurrent.futures.wait([future])
 			return future.result()
 
-	async def _song_exists(self, **song_data) -> bool:
+	async def _song_exists(self, **song_data: Any) -> bool:
 		"""Check if a song exists in the database."""
 		return await self._get_db('SONG', 'song_id', **song_data) is not None
 
-	def _sync_song_exists(self, **song_data) -> bool:
+	def _sync_song_exists(self, **song_data: Any) -> bool:
 		"""Provide a synchronous version of _song_exists."""
 		return self._run_sync(self._song_exists(**song_data))
 
@@ -310,7 +310,7 @@ class DatabaseAccess:
 		return self._run_sync(self._delete_db(table, **where))
 
 	async def _query(self, query: str, commit: bool = False, return_results: bool = False,
-					 return_all: bool = False):
+					 return_all: bool = False) -> Any:
 		"""
 		Execute a query.
 
@@ -347,7 +347,7 @@ class DatabaseAccess:
 				return await cursor.fetchall() if return_all else await cursor.fetchone()
 
 	def _sync_query(self, query: str, commit: bool = False, return_results: bool = False,
-					return_all: bool = False):
+					return_all: bool = False) -> Any:
 		"""Provide a synchronous version of _query."""
 		return self._run_sync(self._query(query, commit=commit, return_results=return_results, return_all=return_all))
 
@@ -481,6 +481,7 @@ class Song(DatabaseAccess):
 		if await self._song_exists(url=url):
 			song = await self._get_db('SONG', 'song_id', 'name', 'url', name=format_name(name), url=url)
 			type_checking(song, tuple, int, str, str)
+			song: tuple[int, str, str]
 			self._id, self._name, self._url = song
 			if self._name is not None:
 				self._name = unformat_name(self._name)

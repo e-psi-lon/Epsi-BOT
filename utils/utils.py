@@ -329,7 +329,7 @@ class Research(discord.ui.View):
 	"""
 
 	def __init__(self, videos: list[pytubefix.YouTube], ctx: discord.ApplicationContext, download_file: bool, *items,
-				 timeout: float | None = 180, disable_on_timeout: bool = False):
+				 timeout: float | None = 180, disable_on_timeout: bool = False) -> None:
 		super().__init__(*items, timeout=timeout, disable_on_timeout=disable_on_timeout)
 		self.add_item(SelectVideo(videos, ctx, download_file))
 

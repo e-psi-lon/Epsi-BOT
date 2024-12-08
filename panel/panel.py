@@ -16,7 +16,6 @@ from quart_session import Session  # type: ignore
 
 from utils import (PanelBotReqest,
 				   PanelBotResponse,
-				   GuildData,
 				   UserData,
 				   RequestType,
 				   ConfigData,
