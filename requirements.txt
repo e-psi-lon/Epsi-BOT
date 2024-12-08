@@ -1,19 +1,19 @@
 # Audio
-pytubefix==8.2.0
+pytubefix==8.5.1
 python-ffmpeg==2.0.12
 pydub==0.25.1
-aiocache[memcached]==0.12.2
+aiocache[memcached]==0.12.3
 
 # Discord Stuff
 py-cord==2.6.1
 pynacl==1.5.0
 brotlipy==0.7.0
-# cchardet==2.1.7
+charset-normalizer==3.4.0
 
 # Web
 aiodns==3.2.0
 aiomultiprocess==0.9.1
-quart==0.19.8
+quart==0.19.9
 quart-session==3.0.0
 
 # Database
