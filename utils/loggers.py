@@ -43,7 +43,7 @@ def parse_args() -> argparse.Namespace:
 
 configured_loggers = set()
 
-def get_logger(name: str, level: Optional[int] = parse_args().log_level) -> logging.Logger:
+def get_logger(name: str, level: Optional[int] = parse_args().log_level.upper()) -> logging.Logger:
 	"""Get a logger with the specified name and level"""
 	logger = logging.getLogger(name)
 	if name in configured_loggers:

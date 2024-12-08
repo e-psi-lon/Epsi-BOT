@@ -40,7 +40,6 @@ __all__ = [
 	"play_song",
 	"FfmpegFormats",
 	"convert",
-	"CustomFormatter",
 	"get_lyrics",
 	"check_video"
 ]
@@ -78,6 +77,8 @@ async def to_cache(url: str, bot: commands.Bot) -> io.BytesIO:
 	----------
 	url : str
 		The URL of the video to download
+	bot : commands.Bot
+		The bot instance
 
 	Returns
 	-------
@@ -123,6 +124,8 @@ async def download(url: str, bot: commands.Bot, download_logger: logging.Logger 
 	----------
 	url : str
 		The URL of the video to download
+	bot : commands.Bot
+		The bot instance
 	download_logger : logging.Logger
 		The logger to log the download
 	
