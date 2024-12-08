@@ -5,7 +5,7 @@ from typing import Literal, Optional, Union, Callable, Coroutine, Any
 
 import aiohttp
 
-__all__ = ["run_sync", "run_async", "AsyncTimer", "AsyncRequests", "Event", "set_callback"]
+__all__ = ["run_sync", "run_async", "AsyncRequests", "Event", "set_callback"]
 
 
 def run_sync(coro: Coroutine):
@@ -43,81 +43,6 @@ async def run_async(func: Callable):
 		The result of the function
 	"""
 	return await asyncio.get_event_loop().run_in_executor(None, func)
-
-
-class AsyncTimer:
-	"""
-	Class to create an asynchronous timer
-
-	Attributes
-	----------
-	is_running : bool
-		Whether the timer is running or not
-	
-	Methods
-	-------
-	start
-		A method that starts the timer
-	cancel
-		A method that cancel the timer
-	restart
-		A method that restart the timer
-
-	Parameters
-	----------
-	delay : Union[int, float]
-		The delay of the timer
-	callback : Callable
-		The callback to call after the delay
-	*args
-		The arguments for the callback
-	**kwargs
-		The keyword arguments for the callback
-	"""
-
-	def __init__(self, delay: Union[int, float], callback: Callable, *args, **kwargs):
-		self._delay = delay
-		self._callback = callback
-		self._args = args
-		self._kwargs = kwargs
-		self._future = None
-
-	async def _job(self):
-		await asyncio.sleep(self._delay)
-		if asyncio.iscoroutinefunction(self._callback):
-			await self._callback(*self._args, **self._kwargs)
-		else:
-			self._callback(*self._args, **self._kwargs)
-
-	def start(self):
-		"""
-		Start the timer
-		"""
-		with concurrent.futures.ThreadPoolExecutor() as pool:
-			self._future = pool.submit(run_sync, self._job())
-
-	def cancel(self):
-		"""
-		Cancel the timer
-		"""
-		if self._future is not None:
-			self._future.cancel()
-			self._future = None
-
-	@property
-	def is_running(self):
-		"""
-		Whether the timer is running or not
-		"""
-		return self._future is not None and not self._future.done()
-
-	def restart(self):
-		"""
-		Restart the timer
-		"""
-		self.cancel()
-		self.start()
-
 
 class AsyncRequests:
 	"""

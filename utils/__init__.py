@@ -32,7 +32,6 @@ __all__ = [
 	"check_video"
 	'CustomFormatter',
 	'get_lyrics',
-	'AsyncTimer',
 	'AsyncRequests',
 	'run_async',
 	'run_sync',
@@ -89,8 +88,7 @@ from .utils import (download,
 					Base64Serializer
 					)
 
-from .async_ import (AsyncTimer,
-					 AsyncRequests,
+from .async_ import (AsyncRequests,
 					 run_async,
 					 run_sync,
 					 Event,

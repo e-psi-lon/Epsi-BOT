@@ -2,6 +2,7 @@ import asyncio
 import datetime
 import logging
 import os
+from asyncio import TimerHandle
 from logging.config import dictConfig
 from typing import NoReturn, Optional, Any
 
@@ -19,7 +20,6 @@ from utils import (PanelBotReqest,
 				   UserData,
 				   RequestType,
 				   ConfigData,
-				   AsyncTimer,
 				   Config,
 				   Song,
 				   Asker,
@@ -60,7 +60,7 @@ class Panel(Quart):
 		self.CLIENT_ID = 1167171085343666216
 		self.CLIENT_SECRET = os.environ['CLIENT_SECRET']
 		self.REDIRECT_URI = "http://86.196.98.254/auth/discord/callback"
-		self.timers: dict[int, AsyncTimer] = {}
+		self.timers: dict[int, TimerHandle] = {}
 		self.queue: Optional[multiprocessing.Queue[PanelBotReqest | PanelBotResponse]] = multiprocessing.Queue()
 		self.config['SESSION_TYPE'] = 'memcached'
 		self.start_time: Optional[datetime.datetime] = None
@@ -238,8 +238,7 @@ async def callback():
 	code = request.args.get('code')
 	try:
 		token = await token_from_code(code)
-		timer = AsyncTimer(token['expires_in'], refresh_token, [token['refresh_token']])
-		timer.start()
+		timer = asyncio.get_event_loop().call_later(token['expires_in'], refresh_token, token['refresh_token'])
 		session['token'] = token
 		user = await AsyncRequests.get(f"{app.API_ENDPOINT}/users/@me",
 									   headers={"Authorization": f"Bearer {token['access_token']}"})
@@ -290,8 +289,8 @@ async def refresh_token(token):
 	session['token'] = r
 	user_id = session['user'].id
 	session["user_id"] = user_id
-	timer = AsyncTimer(session['token']['expires_in'], refresh_token, session['token']['refresh_token'])
-	timer.start()
+	timer = asyncio.get_event_loop().call_later(session['token']['expires_in'], refresh_token,
+											   session['token']['refresh_token'])
 	app.timers[user_id] = timer
 	return r
 
