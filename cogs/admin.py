@@ -3,6 +3,7 @@ import asyncio
 import discord
 from discord.ext import commands
 
+from bot.bot import Bot
 from utils import Config, OWNER_ID, Base64Serializer, EMBED_ERROR_NOT_BOT_OWNER
 from aiocache import MemcachedCache
 
@@ -10,7 +11,7 @@ removed_count = 0
 
 
 class Admin(commands.Cog):
-	def __init__(self, bot: commands.Bot):
+	def __init__(self, bot: Bot):
 		self.bot = bot
 
 	@commands.slash_command(name="remove_cache", description="Removes the audio cache", guild_ids=[761485410596552736])

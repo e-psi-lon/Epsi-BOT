@@ -4,9 +4,11 @@ import discord
 from discord.commands import SlashCommandGroup
 from discord.ext import commands
 
+from bot.bot import Bot
+
 
 class Todo(commands.Cog):
-	def __init__(self, bot: commands.Bot):
+	def __init__(self, bot: Bot):
 		self.bot = bot
 
 	todo = SlashCommandGroup(name="todo", description="Commands related to the to-do list",

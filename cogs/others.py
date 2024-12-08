@@ -4,11 +4,12 @@ import discord
 import pytubefix.exceptions
 from discord.ext import commands
 
+from bot.bot import Bot
 from utils import Config, EMBED_ERROR_BOT_NOT_CONNECTED, convert, Research, get_lyrics, FfmpegFormats
 
 
 class Others(commands.Cog):
-	def __init__(self, bot: commands.Bot):
+	def __init__(self, bot: Bot):
 		self.bot = bot
 
 	@commands.slash_command(name="download_file", description="Download the audio of a youtube video")

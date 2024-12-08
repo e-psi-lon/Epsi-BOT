@@ -6,11 +6,12 @@ import traceback
 import discord
 from discord.ext import commands
 
+from bot.bot import Bot
 from utils import disconnect_from_channel
 
 
 class Listeners(commands.Cog):
-	def __init__(self, bot: commands.Bot):
+	def __init__(self, bot: Bot):
 		self.bot = bot
 
 	@commands.Cog.listener("on_message")

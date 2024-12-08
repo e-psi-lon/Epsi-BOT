@@ -4,12 +4,13 @@ import discord
 from discord.commands import SlashCommandGroup
 from discord.ext import commands
 
+from bot.bot import Bot
 from utils import Config, EMBED_ERROR_QUEUE_EMPTY, EMBED_ERROR_BOT_NOT_CONNECTED, get_queue_songs, get_index_from_title, \
 	Song
 
 
 class Queue(commands.Cog):
-	def __init__(self, bot: commands.Bot):
+	def __init__(self, bot: Bot):
 		self.bot = bot
 
 	@commands.slash_command(name="queue", description="Shows the current queue")

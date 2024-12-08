@@ -4,11 +4,12 @@ from concurrent.futures import ThreadPoolExecutor
 import discord
 from discord.ext import commands
 
+from bot.bot import Bot
 from utils import Config, EMBED_ERROR_BOT_NOT_CONNECTED, play_song, check_video
 
 
 class Channel(commands.Cog):
-	def __init__(self, bot: commands.Bot):
+	def __init__(self, bot: Bot):
 		self.bot = bot
 
 	@commands.slash_command(name="leave", description="Leaves the voice channel")

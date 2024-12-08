@@ -8,6 +8,7 @@ from discord.commands import SlashCommandGroup
 from discord.ext import commands
 from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError
 
+from bot.bot import Bot
 from utils import (Sinks,
 				   EMBED_ERROR_BOT_NOT_CONNECTED,
 				   Song,
@@ -22,7 +23,7 @@ from utils import (Sinks,
 
 
 class State(commands.Cog):
-	def __init__(self, bot: commands.Bot):
+	def __init__(self, bot: Bot):
 		self.bot = bot
 		self.connections = {}
 

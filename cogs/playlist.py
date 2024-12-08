@@ -8,6 +8,7 @@ from discord.commands import SlashCommandGroup
 from discord.ext import commands
 from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError
 
+from bot.bot import Bot
 from utils import (Playlist,
 				   PlaylistType,
 				   Config,
@@ -25,7 +26,7 @@ from utils import (Playlist,
 				   )
 
 class Playlists(commands.Cog):
-	def __init__(self, bot: commands.Bot):
+	def __init__(self, bot: Bot):
 		self.bot = bot
 
 	playlist = SlashCommandGroup(name="playlist", description="Commands related to playlists")
