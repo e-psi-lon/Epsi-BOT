@@ -41,15 +41,18 @@ class Bot(commands.Bot):
 		if os.popen("git branch --show-current").read().strip() == "main":
 			check_update.start()
 		await set_callback(self.event_listener, self.read_queue, self.loop)
-		if os.name == "nt":
-			self.memcached = subprocess.Popen(["wsl", "memcached", "d", "-p", "11211", "-I", "500m", "-m", "1024"], stdout=MemcachedStd(), stderr=MemcachedStd("stderr"))
-		else:
-			try:
-				self.memcached = subprocess.Popen(["memcached", "-d", "-p", "11211", "-I", "500m", "-m", "1024"], stdout=MemcachedStd(), stderr=MemcachedStd("stderr"))
-			except FileNotFoundError:
-				self.logger.error("Memcached not found, please install it")
-				self.memcached = None
-				exit(1)
+		try:
+			# noinspection PyTypeChecker
+			self.memcached = subprocess.Popen(
+				args= ["-d", "-p", "11211", "-I", "500m", "-m", "1024"],
+				executable="/usr/bin/memcached",
+				stdout=MemcachedStd(),
+				stderr=MemcachedStd("stderr")
+			)
+		except FileNotFoundError:
+			self.logger.error("Memcached not found, please install it")
+			self.memcached = None
+			exit(1)
 		self.logger.info(f"Bot ready in {datetime.datetime.now() - self.start_time}")
 		for guild in self.guilds:
 			# Si la guilde n'existe pas dans la db, on l'ajoute avec les paramètres par défaut
@@ -82,7 +85,6 @@ class Bot(commands.Bot):
 			case RequestType.GET:
 				match message.content:
 					case "guilds":
-						guilds = []
 						if message.extra.get("user_id", None) is None or int(
 								message.extra["user_id"]) == 708006478807695450:
 							guilds = [GuildData.from_guild(guild) for guild in self.guilds]
