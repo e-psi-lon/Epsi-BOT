@@ -154,7 +154,7 @@ class ChannelData:
 		)
 
 	@classmethod
-	def from_dict(cls, dict_: dict):
+	def from_dict(cls, dict_: dict) -> "ChannelData":
 		"""
 		Class method to create a ChannelData instance from a dictionary.
 
@@ -321,7 +321,7 @@ class GuildData:
 		)
 
 	@classmethod
-	def from_dict(cls, dict_: dict):
+	def from_dict(cls, dict_: dict) -> "GuildData":
 		"""
 		Class method to create a GuildData instance from a dictionary.
 

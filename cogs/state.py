@@ -134,6 +134,7 @@ class State(commands.Cog):
 				return await ctx.respond(
 					embed=discord.Embed(title="Error", description="No results found.", color=0xff0000))
 			view = Research(videos, ctx, False)
+			# noinspection SqlDialectInspection
 			await ctx.respond(
 				embed=discord.Embed(title="Select audio",
 									description=f"Select an audio to play for query `{query}` from the list below",
