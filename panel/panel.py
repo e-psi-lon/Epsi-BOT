@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import json
 import logging
 import os
 from asyncio import TimerHandle
@@ -118,7 +119,7 @@ class Panel(Quart):
 		return response
 
 	async def post_to_bot(self, data: dict):
-		request_ = PanelBotReqest.create(RequestType.POST, data)
+		request_ = PanelBotReqest.create(RequestType.POST, json.dumps(data))
 		if self.queue is None:
 			raise ValueError("Queue is not set")
 		self.queue.put(request_)
