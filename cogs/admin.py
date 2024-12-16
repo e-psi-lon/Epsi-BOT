@@ -1,13 +1,19 @@
-import asyncio
-
 import discord
 from discord.ext import commands
 
 from bot.bot import Bot
-from utils import Config, OWNER_ID, Base64Serializer, EMBED_ERROR_NOT_BOT_OWNER
+from utils import OWNER_ID, Base64Serializer, EMBED_ERROR_NOT_BOT_OWNER, Server
 from aiocache import MemcachedCache
 
 removed_count = 0
+
+
+def cogs_autocomplete(ctx: discord.AutocompleteContext):
+	cogs = []
+	for _, cog in ctx.bot.cogs.items():
+		cogs.append(cog.qualified_name)
+	cogs.append("all")
+	return cogs
 
 
 class Admin(commands.Cog):
@@ -19,15 +25,11 @@ class Admin(commands.Cog):
 		await ctx.response.defer()
 		if ctx.author.id != OWNER_ID:
 			return await ctx.respond(embed=EMBED_ERROR_NOT_BOT_OWNER, delete_after=30)
-		temp_config = await Config.get_config(ctx.guild.id, False)
-		temp_config2 = await Config.get_config(ctx.guild.id, False)
-		await temp_config.clear_queue()
-		temp_config.position = 0
+		server: Server = Server.get(server_id=ctx.guild.id)
 		if ctx.voice_client is not None and ctx.voice_client.is_playing():
 			ctx.voice_client.stop()
-		await asyncio.sleep(1)
-		await temp_config2.clear_queue()
-		temp_config.position = 0
+		for queue_elem in server.queue:
+			queue_elem.delete().execute()
 		async with MemcachedCache(serializer=Base64Serializer()) as cache:
 			await cache.clear()
 		embed = discord.Embed(title="Cache removed", description="Removed the audio cache.", color=0x00ff00)
@@ -53,14 +55,26 @@ class Admin(commands.Cog):
 		await ctx.respond(embed=embed, delete_after=30)
 
 	@commands.slash_command(name="reload", description="Reloads the cogs", guild_ids=[761485410596552736])
-	async def reload(self, ctx: discord.ApplicationContext):
-		await ctx.response.defer()
-		if ctx.author.id != OWNER_ID:
-			return await ctx.respond(embed=EMBED_ERROR_NOT_BOT_OWNER, delete_after=30)
-		for cog in self.bot.cogs:
+	async def reload(self, ctx: discord.ApplicationContext, cog: discord.Option(str, description="The cog to reload",
+																			autocomplete=discord.utils.basic_autocomplete(cogs_autocomplete),
+																			default="all")):
+		if cog == "all":
+			await ctx.response.defer()
+			if ctx.author.id != OWNER_ID:
+				return await ctx.respond(embed=EMBED_ERROR_NOT_BOT_OWNER, delete_after=30)
+			for cog in self.bot.cogs:
+				if cog == "admin":
+					continue
+				self.bot.reload_extension(f"cogs.{cog}")
+			embed = discord.Embed(title="Reload", description="Reloaded the cogs.", color=0x00ff00)
+			await ctx.respond(embed=embed, delete_after=30)
+		else:
+			await ctx.response.defer()
+			if ctx.author.id != OWNER_ID:
+				return await ctx.respond(embed=EMBED_ERROR_NOT_BOT_OWNER, delete_after=30)
 			self.bot.reload_extension(f"cogs.{cog}")
-		embed = discord.Embed(title="Reload", description="Reloaded the cogs.", color=0x00ff00)
-		await ctx.respond(embed=embed, delete_after=30)
+			embed = discord.Embed(title="Reload", description=f"Reloaded the {cog} cog.", color=0x00ff00)
+			await ctx.respond(embed=embed, delete_after=30)
 
 
 def setup(bot):

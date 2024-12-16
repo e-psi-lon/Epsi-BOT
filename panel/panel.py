@@ -20,15 +20,14 @@ from utils import (PanelBotReqest,
 				   UserData,
 				   RequestType,
 				   ConfigData,
-				   Config,
-				   Song,
-				   Asker,
 				   AsyncRequests,
 				   get_logger,
 				   Event,
-				   set_callback
+				   set_callback,
 				   )
 
+from utils.loggers import parse_args
+import utils.models as models
 from aiomultiprocess import Process
 from bot.bot import start, Bot
 
@@ -92,7 +91,7 @@ class Panel(Quart):
 			self,
 			host: str | None = None,
 			port: int | None = None,
-			debug: bool | None = None,
+			debug: bool | None = parse_args().log_level.upper() == "DEBUG",
 			use_reloader: bool = True,
 			loop: asyncio.AbstractEventLoop | None = None,
 			ca_certs: str | None = None,
@@ -102,7 +101,7 @@ class Panel(Quart):
 	) -> None:
 		self.bot_process: Process = Process(target=self.start_bot, args=(self.queue, self.start_time))
 		self.bot_process.start()
-		super().run(host=host, port=port, use_reloader=use_reloader, loop=loop, ca_certs=ca_certs, certfile=certfile,
+		super().run(host=host, port=port, use_reloader=use_reloader, loop=loop, ca_certs=ca_certs, certfile=certfile, debug=debug,
 					keyfile=keyfile, **kwargs)
 
 
@@ -183,7 +182,7 @@ async def panel():
 
 @app.route('/server/<int:server_id>', methods=['GET', 'POST'])
 async def server(server_id):
-	config = await Config.get_config(server_id, request.method != 'POST')
+	config: models.Server = models.Server.get(server_id=server_id)
 	if server_id not in [guild["id"] for guild in
 						 session.get(session['guilds'], [])] or 'token' not in session or config is None:
 		return redirect(url_for('panel'))
@@ -200,29 +199,30 @@ async def server(server_id):
 			config.random = values['random']
 		if config.position != values['position']:
 			config.position = values['position']
-		if config.queue_dict != values['queue']:
-			await config.edit_queue(
-				[await Song.create(song['title'], song['url'], await Asker.from_id(song['asker_id'])) for song in
-				 values['queue']])
+		if config.queue != values['queue']:
+			new_queue = [{"name": song['title'], "url": song['url'], "asker": song['asker_id']} for song in values['queue']]
+			config.queue = new_queue
+		config.save()
 		return redirect(url_for('server', server_id=server_id))
-	server_data = ConfigData(config.loop_song, config.loop_queue, config.random, config.position, config.queue,
-							 server_id, (await app.get_from_bot("guild", server_id=server_id)).content.name)
+	server_data = ConfigData(config.loop_song, config.loop_queue, config.random, config.position, list(map(lambda x: x.song, config.queue)),
+							 server_id, (await app.get_from_bot("guild", server_id=server_id)).content.name, config.volume)
 	return await render_template('server.html', server=server_data, app=app, pytubefix=pytubefix)
 
 
 @app.route('/server/<int:server_id>/clear')
 async def clear(server_id):
-	config = await Config.get_config(server_id, False)
-	await config.clear_queue()
+	config: models.Server = models.Server.get(server_id=server_id)
+	for song in config.queue:
+		song.delete().execute()
 	return redirect(url_for('server', server_id=server_id))
 
 
 @app.route('/server/<int:server_id>/add', methods=['POST'])
 async def add(server_id):
-	config = await Config.get_config(server_id, False)
-	await config.add_to_queue(await Song.create(pytubefix.YouTube((await request.form)['url']).title,
-												(await request.form)['url'],
-												await Asker.from_id(session['user'].id)))
+	config = models.Server.get(server_id=server_id)
+	song: models.Song = models.Song.get_or_create(name=(await request.form)['name'], url=(await request.form)['url'])
+	asker: models.Asker = models.Asker.get_or_create(discord_id=session['user'].id)
+	models.Queue.create(server=config, song=song, asker=asker).save()
 	return redirect(url_for('server', server_id=server_id))
 
 

@@ -5,7 +5,7 @@ import pytubefix.exceptions
 from discord.ext import commands
 
 from bot.bot import Bot
-from utils import Config, EMBED_ERROR_BOT_NOT_CONNECTED, convert, Research, get_lyrics, FfmpegFormats
+from utils import Server, EMBED_ERROR_BOT_NOT_CONNECTED, convert, Research, get_lyrics, FfmpegFormats
 
 
 class Others(commands.Cog):
@@ -38,7 +38,7 @@ class Others(commands.Cog):
 				await ctx.respond(embed=discord.Embed(title="Download", description="Song downloaded.", color=0x00ff00),
 								  file=discord.File(buffer,
 													filename=f"{video.title}.{file_format}"))
-			except pytubefix.exceptions.PytubeError:
+			except pytubefix.exceptions.PytubeFixError:
 				return await ctx.respond(
 					embed=discord.Embed(title="Error", description="Error while downloading song.", color=0xff0000))
 		except pytubefix.exceptions.RegexMatchError:
@@ -53,17 +53,17 @@ class Others(commands.Cog):
 	@commands.slash_command(name="lyrics", description="Shows the lyrics of the current song")
 	async def lyrics(self, ctx: discord.ApplicationContext):
 		await ctx.response.defer()
-		config = await Config.get_config(ctx.guild.id, True)
+		server = Server.get(server_id=ctx.guild.id)
 		if ctx.guild.voice_client is None:
 			return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
-		if not config.queue:
+		if not server.queue:
 			return await ctx.respond(
 				embed=discord.Embed(title="Error", description="No song is currently playing.", color=0xff0000))
-		if not config.queue[config.position].url.startswith("https://www.youtube.com/watch?v="):
+		if not server.queue[server.position].song.url.startswith("https://www.youtube.com/watch?v="):
 			return await ctx.respond(
 				embed=discord.Embed(title="Error", description="This command is only available for youtube videos.",
 									color=0xff0000))
-		video = pytubefix.YouTube(config.queue[config.position].url)
+		video = pytubefix.YouTube(server.queue[server.position].song.url)
 		lyrics = get_lyrics(video.title)
 		if not lyrics:
 			return await ctx.respond(embed=discord.Embed(title="Error", description="No lyrics found.", color=0xff0000))

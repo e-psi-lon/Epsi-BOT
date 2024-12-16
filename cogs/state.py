@@ -13,7 +13,8 @@ from utils import (Sinks,
 				   EMBED_ERROR_BOT_NOT_CONNECTED,
 				   Song,
 				   Asker,
-				   Config,
+				   Server,
+				   Queue,
 				   Research,
 				   play_song,
 				   download,
@@ -46,18 +47,17 @@ class State(commands.Cog):
 			return await ctx.respond(embed=discord.Embed(title="Error", description="Invalid URL.", color=0xff0000))
 		if url.split('/')[-1].split('.')[-1].split("?")[0] not in ['mp3', 'wav', 'ogg', 'mp4']:
 			return await ctx.respond(embed=discord.Embed(title="Error", description="Invalid URL.", color=0xff0000))
-		config = await Config.get_config(ctx.guild.id, False)
-		if not config.queue:
-			await config.add_to_queue(
-				await Song.create(url.split('/')[-1].split('?')[0], url, await Asker.from_id(ctx.author.id)))
+		server: Server = Server.get(server_id=ctx.guild.id)
+		if not server.queue:
+			song = Song.get_or_create(name=url.split('/')[-1].split('?')[0], url=url)
+			Queue.create(server=server, song=song[0], position=0, asker=Asker.get_or_create(discord_id=ctx.author.id)[0])
 			await ctx.respond(embed=discord.Embed(title="Play",
 												  description=f"Playing song "
 															  f"[{url.split('/')[-1].split('?')[0]}]({url})",
 												  color=0x00ff00))
 			await play_song(ctx, url)
 			return await asyncio.sleep(1)
-		await config.add_to_queue(
-			await Song.create(url.split('/')[-1].split('?')[0], url, await Asker.from_id(ctx.author.id)))
+		Queue.create(server=server, song=Song.get_or_create(name=url.split('/')[-1].split('?')[0], url=url)[0], position=0, asker=Asker.get_or_create(discord_id=ctx.author.id)[0])
 		await ctx.respond(embed=discord.Embed(title="Queue",
 											  description=f"Song [{url.split('/')[-1].split('?')[0]}]({url})"
 														  f" added to queue.",
@@ -75,15 +75,16 @@ class State(commands.Cog):
 		if file.size > 10000000:
 			return await ctx.respond(embed=discord.Embed(title="Error", description="File is too big.", color=0xff0000))
 		url = file.url
-		config = await Config.get_config(ctx.guild.id, False)
-		if not config.queue:
-			await config.add_to_queue(await Song.create(file.filename, url, await Asker.from_id(ctx.author.id)))
+		server: Server = Server.get(server_id=ctx.guild.id)
+		if not server.queue:
+			song = Song.get_or_create(name=file.filename, url=url)
+			Queue.create(server=server, song=song[0], position=0, asker=Asker.get_or_create(discord_id=ctx.author.id)[0])
 			await ctx.respond(embed=discord.Embed(title="Play",
 												  description=f"Playing song [{file.filename}]({url})",
 												  color=0x00ff00))
 			await play_song(ctx, url)
 			return await asyncio.sleep(1)
-		await config.add_to_queue(await Song.create(file.filename, url, await Asker.from_id(ctx.author.id)))
+		Queue.create(server=server, song=Song.get_or_create(name=file.filename, url=url)[0], position=0, asker=Asker.get_or_create(discord_id=ctx.author.id)[0])
 		await ctx.respond(embed=discord.Embed(title="Queue",
 											  description=f"Song [{file.filename}]({url}) added to queue.",
 											  color=0x00ff00))
@@ -97,19 +98,21 @@ class State(commands.Cog):
 		try:
 			url = pytubefix.YouTube(query).watch_url
 			try:
-				config = await Config.get_config(ctx.guild.id, False)
+				server: Server = Server.get(server_id=ctx.guild.id)
 				if pytubefix.YouTube(url).length > 12000:
 					return await ctx.respond(
 						discord.Embed(title="Error",
 									  description=f"The video [{pytubefix.YouTube(url).title}]({url}) is too long",
 									  color=0xff0000))
-				if not config.queue:
-					config.position = 0
-					await config.add_to_queue(await Song.create(pytubefix.YouTube(query).title, url,
-																await Asker.from_id(ctx.author.id)))
+				if not server.queue:
+					server.position = 0
+					song = Song.get_or_create(name=pytubefix.YouTube(url).title, url=url)
+					Queue.create(server=server, song=song[0], position=0,
+								 asker=Asker.get_or_create(discord_id=ctx.author.id)[0])
 				else:
-					await config.add_to_queue(await Song.create(pytubefix.YouTube(query).title, url,
-																await Asker.from_id(ctx.author.id)))
+					song = Song.get_or_create(name=pytubefix.YouTube(url).title, url=url)
+					Queue.create(server=server, song=song[0], position=len(server.queue),
+								 asker=Asker.get_or_create(discord_id=ctx.author.id)[0])
 				if not ctx.guild.voice_client.is_playing():
 					await ctx.respond(embed=discord.Embed(title="Play",
 														  description=f"Playing song "
@@ -176,9 +179,10 @@ class State(commands.Cog):
 		if not ctx.guild.voice_client.is_playing():
 			return await ctx.respond(
 				embed=discord.Embed(title="Error", description="There is no song playing.", color=0xff0000))
-		config = await Config.get_config(ctx.guild.id, False)
-		config.position = 0
-		await config.clear_queue()
+		server: Server = Server.get(server_id=ctx.guild.id)
+		server.position = 0
+		server.queue = []
+		server.save()
 		ctx.guild.voice_client.stop()
 		await ctx.respond(embed=discord.Embed(title="Stop", description="Song stopped.", color=0x00ff00))
 
@@ -199,8 +203,9 @@ class State(commands.Cog):
 				ctx.guild.voice_client.source.volume = volume / 100
 			except AttributeError:
 				pass
-			config = await Config.get_config(ctx.guild.id, False)
-			config.volume = volume
+			server = Server.get(server_id=ctx.guild.id)
+			server.volume = volume
+			server.save()
 			return await ctx.respond(embed=discord.Embed(title="Volume", description=f"Volume set to {volume}%",
 														 color=0x00ff00))
 
@@ -210,10 +215,11 @@ class State(commands.Cog):
 															  f"{ctx.guild.voice_client.source.volume * 100}%",
 												  color=0x00ff00))
 		except AttributeError:
+			# noinspection PyBroadException
 			try:
-				config = await Config.get_config(ctx.guild.id, True)
+				server: Server = await Server.get(server_id=ctx.guild.id)
 				await ctx.respond(embed=discord.Embed(title="Volume",
-													  description=f"Volume is {config.volume}%",
+													  description=f"Volume is {server.volume}%",
 													  color=0x00ff00))
 			except Exception:
 				await ctx.respond(

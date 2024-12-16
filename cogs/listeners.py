@@ -7,7 +7,7 @@ import discord
 from discord.ext import commands
 
 from bot.bot import Bot
-from utils import disconnect_from_channel
+from utils import disconnect_from_channel, Server
 
 
 class Listeners(commands.Cog):
@@ -54,7 +54,7 @@ class Listeners(commands.Cog):
 		channel = guild.system_channel
 		text = 'Hey, je suis un bot de musique en cours de développement fait par ' \
 			   '<@!708006478807695450>, je permet de jouer de la musique depuis YouTube dans un channel ' \
-			   'vocal. Pour l\'instant, il est encore bugué donc en ' \
+			   'vocal. Pour l\'instant, je suis encore bugué donc en ' \
 			   'test'
 		if channel is not None:
 			try:
@@ -69,6 +69,7 @@ class Listeners(commands.Cog):
 				await guild.text_channels[0].send(text)
 			except discord.Forbidden:
 				pass
+		Server.get_or_create(server_id=guild.id)
 
 
 def setup(bot: commands.Bot):

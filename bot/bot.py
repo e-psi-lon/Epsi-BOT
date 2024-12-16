@@ -7,7 +7,8 @@ import traceback
 import subprocess
 from multiprocessing import Queue as mpQueue
 from typing import Optional
-from utils import GuildData, UserData, PanelBotReqest, PanelBotResponse, RequestType, config, get_logger, Event, set_callback
+from utils import GuildData, UserData, PanelBotReqest, PanelBotResponse, RequestType, get_logger, Event, set_callback, \
+	Server
 from discord.ext import commands
 from discord.ext import tasks
 
@@ -56,8 +57,8 @@ class Bot(commands.Bot):
 		self.logger.info(f"Bot ready in {datetime.datetime.now() - self.start_time}")
 		for guild in self.guilds:
 			# Si la guilde n'existe pas dans la db, on l'ajoute avec les paramètres par défaut
-			if not await config.Config.config_exists(guild.id):
-				await config.Config.create_config(guild.id)
+			Server.get_or_create(server_id=guild.id)
+
 
 	async def get_from_panel(self, content: str, **kwargs):
 		data = PanelBotReqest.create(RequestType.GET, content, **kwargs)

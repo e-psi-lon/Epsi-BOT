@@ -5,7 +5,7 @@ import discord
 from discord.ext import commands
 
 from bot.bot import Bot
-from utils import Config, EMBED_ERROR_BOT_NOT_CONNECTED, play_song, check_video
+from utils import EMBED_ERROR_BOT_NOT_CONNECTED, play_song, check_video, Server
 
 
 class Channel(commands.Cog):
@@ -20,9 +20,10 @@ class Channel(commands.Cog):
 		await ctx.guild.voice_client.disconnect(force=True)
 		await ctx.respond(embed=discord.Embed(title="Leave", description="Bot left the voice channel.",
 											  color=0x00ff00))
-		config = await Config.get_config(ctx.guild.id, False)
-		await config.edit_queue([])
-		config.position = 0
+		server: Server = await Server.get(server_id=ctx.guild.id)
+		server.queue = []
+		server.position = 0
+		server.save()
 
 	@commands.slash_command(name='join', description='Join the voice channel you are in.')
 	async def join(self, ctx: discord.ApplicationContext):
@@ -32,7 +33,7 @@ class Channel(commands.Cog):
 				embed=discord.Embed(title="Error", description="Bot is already connected to a voice "
 															   "channel.", color=0xff0000))
 
-		config = await Config.get_config(ctx.guild.id, False)
+		server: Server = Server.get(server_id=ctx.guild.id)
 		if ctx.author.voice is None:
 			return await ctx.respond(embed=discord.Embed(title="Error", description="You must be in a voice channel.",
 														 color=0xff0000))
@@ -40,17 +41,18 @@ class Channel(commands.Cog):
 		await ctx.author.voice.channel.connect()
 		await ctx.respond(
 			embed=discord.Embed(title="Join", description="Bot joined the voice channel.", color=0x00ff00))
-		if config.queue:
-			if config.position > len(config.queue) - 1:
-				config.position = 0
+		if server.queue:
+			if server.position > len(server.queue) - 1:
+				server.position = 0
+				server.save()
 
-			await play_song(ctx, config.queue[config.position].url)
+			await play_song(ctx, server.queue[server.position].song.url)
 			futures: list[asyncio.Future] = []
-			if len(config.queue) > 1:
+			if len(server.queue) > 1:
 				with ThreadPoolExecutor() as pool:
-					for song in config.queue[1:]:
+					for queue_elem in server.queue[1:]:
 						loop = asyncio.get_event_loop()
-						futures.append(loop.run_in_executor(pool, check_video, self.bot, song, ctx, loop))
+						futures.append(loop.run_in_executor(pool, check_video, self.bot, queue_elem.song, ctx, loop))
 					for future in asyncio.as_completed(futures):
 						try:
 							await future

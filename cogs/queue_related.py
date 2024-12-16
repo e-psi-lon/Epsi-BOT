@@ -5,8 +5,8 @@ from discord.commands import SlashCommandGroup
 from discord.ext import commands
 
 from bot.bot import Bot
-from utils import Config, EMBED_ERROR_QUEUE_EMPTY, EMBED_ERROR_BOT_NOT_CONNECTED, get_queue_songs, get_index_from_title, \
-	Song
+from utils import Server, EMBED_ERROR_QUEUE_EMPTY, EMBED_ERROR_BOT_NOT_CONNECTED, get_queue_songs, get_index_from_title, \
+	Song, Queue as ModelQueue
 
 
 class Queue(commands.Cog):
@@ -16,22 +16,23 @@ class Queue(commands.Cog):
 	@commands.slash_command(name="queue", description="Shows the current queue")
 	async def queue(self, ctx: discord.ApplicationContext):
 		await ctx.response.defer()
-		config = await Config.get_config(ctx.guild.id, True)
-		if not config.queue:
+		server: Server =Server.get(server_id=ctx.guild.id)
+		if not server.queue:
 			return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
 		embed = discord.Embed(title="Queue",
-							  description=f"- Current position: {config.position + 1} out of {len(config.queue)}\n"
-										  f"- Loop song: {'`on`' if config.loop_song else '`off`'}\n"
-										  f"- Loop queue: {'`on`' if config.loop_queue else '`off`'}\n"
-										  f"- Random: {'`on`' if config.random else '`off`'}\n"
-										  f"- Volume: {config.volume}",
+							  description=f"- Current position: {server.position + 1} out of {len(server.queue)}\n"
+										  f"- Loop song: `{'on' if server.loop_song else 'off'}`\n"
+										  f"- Loop queue: `{'on' if server.loop_queue else 'off'}`\n"
+										  f"- Random: `{'on' if server.random else 'off'}`\n"
+										  f"- Volume: {server.volume}",
 							  color=0x00ff00)
-		for i, song in enumerate(config.queue):
-			if i == config.position:
+		for i, queue_elem in enumerate(server.queue):
+			song: Song = queue_elem.song
+			if i == server.position:
 				embed.add_field(name=f"{i + 1}. {song.name} - __**Now Playing**__",
-								value=f"{song.url} asked by <@{song.asker.discord_id}>", inline=False)
+								value=f"{song.url} asked by <@{queue_elem.asker.discord_id}>", inline=False)
 			else:
-				embed.add_field(name=f"{i + 1}. {song.name}", value=f"{song.url} asked by <@{song.asker.discord_id}>",
+				embed.add_field(name=f"{i + 1}. {song.name}", value=f"{song.url} asked by <@{queue_elem.asker.discord_id}>",
 								inline=False)
 		await ctx.respond(embed=embed)
 
@@ -39,33 +40,34 @@ class Queue(commands.Cog):
 	async def skip(self, ctx: discord.ApplicationContext,
 				   by: discord.Option(int, "How many songs to skip", required=False)):  # type: ignore
 		await ctx.response.defer()
-		config = await Config.get_config(ctx.guild.id, False)
-		loop_song = config.loop_song
-		loop_queue = config.loop_queue
-		config.loop_song = False
-		config.loop_queue = False
-		if not config.queue:
-			config.loop_song = loop_song
-			config.loop_queue = loop_queue
+		server: Server = Server.get(server_id=ctx.guild.id)
+		loop_song = server.loop_song
+		loop_queue = server.loop_queue
+		server.loop_song = False
+		server.loop_queue = False
+		if not server.queue:
+			server.loop_song = loop_song
+			server.loop_queue = loop_queue
 			return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
 		if ctx.guild.voice_client is None:
-			config.loop_song = loop_song
-			config.loop_queue = loop_queue
+			server.loop_song = loop_song
+			server.loop_queue = loop_queue
 			return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
 		if by is None:
 			ctx.guild.voice_client.stop()
-			config.loop_song = loop_song
-			config.loop_queue = loop_queue
+			server.loop_song = loop_song
+			server.loop_queue = loop_queue
 			return await ctx.respond(embed=discord.Embed(title="Skip", description="Song skipped.", color=0x00ff00))
-		if by < 0 or by >= len(config.queue) or config.position + by >= len(config.queue):
-			config.loop_song = loop_song
-			config.loop_queue = loop_queue
+		if by < 0 or by >= len(server.queue) or server.position + by >= len(server.queue):
+			server.loop_song = loop_song
+			server.loop_queue = loop_queue
 			return await ctx.respond(
 				embed=discord.Embed(title="Error", description=f"Index {by} out of range.", color=0xff0000))
-		config.position = config.position + by - 1
+		server.position = server.position + by - 1
 		ctx.guild.voice_client.stop()
-		config.loop_song = loop_song
-		config.loop_queue = loop_queue
+		server.loop_song = loop_song
+		server.loop_queue = loop_queue
+		server.save()
 		await ctx.respond(embed=discord.Embed(title="Skip", description=f"Skipped {by} songs.", color=0x00ff00))
 
 	loop = SlashCommandGroup(name="loop", description="Commands related to looping songs")
@@ -74,12 +76,13 @@ class Queue(commands.Cog):
 	async def loop_song(self, ctx: discord.ApplicationContext,
 						state: discord.Option(bool, "The loop state", required=False)):  # type: ignore
 		await ctx.response.defer()
-		config = await Config.get_config(ctx.guild.id, False)
+		server: Server = Server.get(server_id=ctx.guild.id)
 		if state is None:
-			state = not config.loop_song
-		config.loop_song = state
-		if config.loop_queue and state:
-			config.loop_queue = False
+			state = not server.loop_song
+		server.loop_song = state
+		if server.loop_queue and state:
+			server.loop_queue = False
+		server.save()
 		await ctx.respond(embed=discord.Embed(title="Loop", description=f"Loop song set to {'on' if state else 'off'}.",
 											  color=0x00ff00))
 
@@ -87,12 +90,13 @@ class Queue(commands.Cog):
 	async def loop_queue(self, ctx: discord.ApplicationContext,
 						 state: discord.Option(bool, "The loop state", required=False)):  # type: ignore
 		await ctx.response.defer()
-		config = await Config.get_config(ctx.guild.id, False)
+		server: Server = Server.get(server_id=ctx.guild.id)
 		if state is None:
-			state = not config.loop_queue
-		config.loop_queue = state
-		if config.loop_song and state:
-			config.loop_song = False
+			state = not server.loop_queue
+		server.loop_queue = state
+		if server.loop_song and state:
+			server.loop_song = False
+		server.save()
 		await ctx.respond(
 			embed=discord.Embed(title="Loop", description=f"Loop queue set to {'on' if state else 'off'}.",
 								color=0x00ff00))
@@ -100,12 +104,13 @@ class Queue(commands.Cog):
 	@commands.slash_command(name="now", description="Shows the current song")
 	async def now(self, ctx: discord.ApplicationContext):
 		await ctx.response.defer()
-		config = await Config.get_config(ctx.guild.id, True)
-		if not config.queue:
+		server: Server = Server.get(server_id=ctx.guild.id)
+		if not server.queue:
 			return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
-		song = config.queue[config.position]
+		queue_elem = server.queue[server.position]
+		song: Song = queue_elem.song
 		embed = discord.Embed(title="Now Playing",
-							  description=f"[{song.name}]({song.url}) asked by <@{song.asker.discord_id}>",
+							  description=f"[{song.name}]({song.url}) asked by <@{queue_elem.asker.discord_id}>",
 							  color=0x00ff00)
 		await ctx.respond(embed=embed)
 
@@ -117,10 +122,12 @@ class Queue(commands.Cog):
 											   autocomplete=discord.utils.basic_autocomplete(
 												   get_queue_songs))):  # type: ignore
 		await ctx.response.defer()
-		config = await Config.get_config(ctx.guild.id, False)
-		if not config.queue:
+		server: Server= Server.get(server_id=ctx.guild.id)
+		if not server.queue:
 			return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
-		await config.remove_from_queue([songs for songs in config.queue if songs.name == song][0])
+		# Remove the song from the queue but using the ORM
+		queue_elem: ModelQueue = ModelQueue.get(server=server, song=Song.get(name=song))
+		queue_elem.delete().execute()
 		await ctx.respond(
 			embed=discord.Embed(title="Remove", description=f"Removed {song} from the queue.", color=0x00ff00))
 
@@ -129,23 +136,27 @@ class Queue(commands.Cog):
 						   index: discord.Option(int, "The index of the song to remove",
 												 required=True)):  # type: ignore
 		await ctx.response.defer()
-		config = await Config.get_config(ctx.guild.id, False)
-		if index < 0 or index >= len(config.queue):
+		server: Server= Server.get(server_id=ctx.guild.id)
+		if index < 0 or index >= len(server.queue):
 			return await ctx.respond(embed=discord.Embed(title="Error", description=f"Index {index} out of range.",
 														 color=0xff0000))
-		song: Song = config.queue[index - 1]
-		await config.remove_from_queue(song)
+		# Remove the song from the queue but using the ORM
+		queue_elem: ModelQueue = ModelQueue.get(server=server, position=index)
+		song: Song = queue_elem.song
+		queue_elem.delete().execute()
 		await ctx.respond(
 			embed=discord.Embed(title="Remove", description=f"Removed {song.name} from the queue.", color=0x00ff00))
 
 	@commands.slash_command(name="clear", description="Clears the queue")
 	async def clear(self, ctx: discord.ApplicationContext):
 		await ctx.response.defer()
-		config = await Config.get_config(ctx.guild.id, False)
-		if not config.queue:
+		server: Server= Server.get(server_id=ctx.guild.id)
+		if not server.queue:
 			return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
-		await config.clear_queue()
-		config.position = 0
+		server.queue = []
+
+		server.position = 0
+		server.save()
 		if ctx.guild.voice_client is not None:
 			try:
 				ctx.guild.voice_client.stop()
@@ -156,39 +167,40 @@ class Queue(commands.Cog):
 	@commands.slash_command(name="back", description="Goes back to the previous song")
 	async def back(self, ctx: discord.ApplicationContext):
 		await ctx.response.defer()
-		config = await Config.get_config(ctx.guild.id, False)
-		loop_song = config.loop_song
-		loop_queue = config.loop_queue
-		config.loop_song = False
-		config.loop_queue = False
-		if not config.queue:
-			config.loop_song = loop_song
-			config.loop_queue = loop_queue
+		server: Server = Server.get(server_id=ctx.guild.id)
+		loop_song = server.loop_song
+		loop_queue = server.loop_queue
+		server.loop_song = False
+		server.loop_queue = False
+		if not server.queue:
+			server.loop_song = loop_song
+			server.loop_queue = loop_queue
 			return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
 		if ctx.guild.voice_client is None:
-			config.loop_song = loop_song
-			config.loop_queue = loop_queue
+			server.loop_song = loop_song
+			server.loop_queue = loop_queue
 			return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
-		if config.position == 0:
-			config.loop_song = loop_song
-			config.loop_queue = loop_queue
+		if server.position == 0:
+			server.loop_song = loop_song
+			server.loop_queue = loop_queue
 			return await ctx.respond(
 				embed=discord.Embed(title="Error", description="There is no previous song.", color=0xff0000))
-		config.position = config.position - 2
+		server.position = server.position - 2
 		ctx.guild.voice_client.stop()
-		config.loop_song = loop_song
-		config.loop_queue = loop_queue
+		server.loop_song = loop_song
+		server.loop_queue = loop_queue
+		server.save()
 		await ctx.respond(embed=discord.Embed(title="Back", description="Playing previous song.", color=0x00ff00))
 
 	@commands.slash_command(name="shuffle", description="Shuffles the queue")
 	async def shuffle(self, ctx: discord.ApplicationContext):
 		await ctx.response.defer()
-		config = await Config.get_config(ctx.guild.id, False)
-		if not config.queue:
+		server: Server = Server.get(server_id=ctx.guild.id)
+		if not server.queue:
 			return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
-		temp_queue = config.queue.copy()
+		temp_queue = server.queue.copy()
 		random.shuffle(temp_queue)
-		await config.edit_queue(temp_queue)
+		server.queue = [{"name": queue_elem.song.name, "url": queue_elem.song.url, "asker": queue_elem.asker.discord_id} for queue_elem in temp_queue]
 		await ctx.respond(embed=discord.Embed(title="Shuffle", description="Queue shuffled.", color=0x00ff00))
 
 	random_command = SlashCommandGroup(name="random", description="Commands related to random mode")
@@ -197,10 +209,11 @@ class Queue(commands.Cog):
 	async def random_toggle(self, ctx: discord.ApplicationContext,
 							state: discord.Option(bool, "The random state", required=False)):  # type: ignore
 		await ctx.response.defer()
-		config = await Config.get_config(ctx.guild.id, False)
+		server: Server= Server.get(server_id=ctx.guild.id)
 		if state is None:
-			state = not config.random
-		config.random = state
+			state = not server.random
+		server.random = state
+		server.save()
 		await ctx.respond(
 			embed=discord.Embed(title="Random", description=f"Random mode set to {'on' if state else 'off'}.",
 								color=0x00ff00))
@@ -208,9 +221,9 @@ class Queue(commands.Cog):
 	@random_command.command(name="query", description="Shows the current random state")
 	async def random(self, ctx: discord.ApplicationContext):
 		await ctx.response.defer()
-		config = await Config.get_config(ctx.guild.id, True)
+		server: Server= Server.get(server_id=ctx.guild.id)
 		await ctx.respond(
-			embed=discord.Embed(title="Random", description=f"Random mode is {'on' if config.random else 'off'}.",
+			embed=discord.Embed(title="Random", description=f"Random mode is {'on' if server.random else 'off'}.",
 								color=0x00ff00))
 
 	play = SlashCommandGroup(name="play-queue", description="Commands related to playing songs from the queue")
@@ -221,17 +234,18 @@ class Queue(commands.Cog):
 												   autocomplete=discord.utils.basic_autocomplete(
 													   get_queue_songs))):  # type: ignore
 		await ctx.response.defer()
-		config = await Config.get_config(ctx.guild.id, False)
-		if not config.queue:
+		server: Server= Server.get(server_id=ctx.guild.id)
+		if not server.queue:
 			return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
-		index = get_index_from_title(song, config.queue)
+		index = get_index_from_title(song, [queue_elem.song for queue_elem in server.queue])
 		if index == -1:
 			return await ctx.respond(
 				embed=discord.Embed(title="Error", description=f"Song {song} not found in the queue.", color=0xff0000))
-		config.position = index - 1
+		server.position = index - 1
+		server.save()
 		ctx.guild.voice_client.stop()
 		await ctx.respond(
-			embed=discord.Embed(title="Play", description=f"Playing [{song}]({config.queue[index].url}).",
+			embed=discord.Embed(title="Play", description=f"Playing [{song}]({server.queue[index].song.url}).",
 								color=0x00ff00))
 
 	@play.command(name="number", description="Plays a song from the queue")
@@ -239,18 +253,19 @@ class Queue(commands.Cog):
 							   index: discord.Option(int, "The index of the song to play",
 													 required=True)):  # type: ignore
 		await ctx.response.defer()
-		config = await Config.get_config(ctx.guild.id, False)
-		if not config.queue:
+		server: Server = Server.get(server_id=ctx.guild.id)
+		if not server.queue:
 			return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
-		if index < 0 or index > len(config.queue):
+		if index < 0 or index > len(server.queue):
 			return await ctx.respond(
 				embed=discord.Embed(title="Error", description=f"Index {index} out of range.", color=0xff0000))
-		config.position = index - 2
+		server.position = index - 2
+		server.save()
 		ctx.guild.voice_client.stop()
 		await ctx.respond(
 			embed=discord.Embed(title="Play",
-								description=f"Playing [{config.queue[index - 1].title}]"
-											f"({config.queue[index - 1].url}).",
+								description=f"Playing [{server.queue[index - 1].song.title}]"
+											f"({server.queue[index - 1].song.url}).",
 								color=0x00ff00))
 
 

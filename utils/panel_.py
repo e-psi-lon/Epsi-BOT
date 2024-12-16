@@ -4,10 +4,12 @@ from typing import Generic, Optional, TypeVar
 
 from discord import Guild, User
 from discord.abc import GuildChannel
+import aiomcache
 
-from .config import Song
+from .models import Song
 
 __all__ = ["RequestType", "PanelBotReqest", "PanelBotResponse", "ChannelData", "UserData", "GuildData", "ConfigData"]
+
 
 
 class RequestType(Enum):
@@ -370,14 +372,15 @@ class ConfigData:
 	"""
 
 	def __init__(self, loop_song: bool, loop_queue: bool, random: bool, position: int, queue: list[Song],
-				 server_id: int, name: str) -> None:
+				 server_id: int, name: str, volume: int):
 		self.loop_song = loop_song
 		self.loop_queue = loop_queue
 		self.random = random
 		self.position = position
 		self.queue = queue
-		self.id = server_id
+		self.guild_id = server_id
 		self.name = name
+		self.volume = volume
 
 	def __getstate__(self) -> object:
 		return self.__dict__
