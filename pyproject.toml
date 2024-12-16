@@ -1,0 +1,28 @@
+[project]
+name = "epsi-bot"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+authors = [
+    {name = "e-psi-lon"}
+]
+dependencies = [
+    "aiocache[memcached]>=0.12.3",
+    "aiodns>=3.2.0",
+    "aiomultiprocess>=0.9.1",
+    "aiosqlite>=0.20.0",
+    "audioop-lts>=0.2.1",
+    "brotlipy>=0.7.0",
+    "charset-normalizer>=3.4.0",
+    "peewee>=3.17.8",
+    "py-cord>=2.6.1",
+    "pydub>=0.25.1",
+    "pynacl>=1.5.0",
+    "pypika>=0.48.9",
+    "python-dotenv>=1.0.1",
+    "python-ffmpeg>=2.0.12",
+    "pytubefix>=8.8.1",
+    "quart>=0.19.9",
+    "quart-session>=3.0.0",
+]
