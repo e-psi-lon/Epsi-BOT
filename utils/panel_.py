@@ -8,8 +8,8 @@ import aiomcache
 
 from .models import Song
 
-__all__ = ["RequestType", "PanelBotReqest", "PanelBotResponse", "ChannelData", "UserData", "GuildData", "ConfigData"]
 
+__all__ = ["RequestType", "PanelBotReqest", "PanelBotResponse", "ChannelData", "UserData", "GuildData", "ConfigData", "get_cache_stats"]
 
 
 class RequestType(Enum):
@@ -402,3 +402,17 @@ class ConfigData:
 			The dictionary representation of the ConfigData instance.
 		"""
 		return self.__getstate__()
+
+
+async def get_cache_stats() -> dict:
+	"""Function to get the cache statistics.
+
+	Returns
+	-------
+	dict
+		The cache statistics.
+	"""
+	mc = aiomcache.Client("127.0.0.1", 11211)
+	stats = await mc.stats()
+	await mc.close()
+	return stats

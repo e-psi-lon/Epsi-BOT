@@ -12,7 +12,7 @@ import discord
 import multiprocessing
 import pytubefix  # type: ignore
 from dotenv import load_dotenv
-from quart import Quart, session, redirect, url_for, render_template, request
+from quart import Quart, jsonify, session, redirect, url_for, render_template, request
 from quart_session import Session  # type: ignore
 
 from utils import (PanelBotReqest,
@@ -25,11 +25,12 @@ from utils import (PanelBotReqest,
 				   Event,
 				   set_callback,
 				   )
-
 from utils.loggers import parse_args
 import utils.models as models
 from aiomultiprocess import Process
 from bot.bot import start, Bot
+from utils.models import BaseModel
+from utils.panel_ import get_cache_stats
 
 load_dotenv()
 
@@ -262,6 +263,42 @@ async def logout():
 	return redirect(url_for('index'))
 
 
+@app.route('/admin')
+async def admin():
+	tables = models.database.get_tables()
+	tables = list(table for table in tables if table not in ("sqlite_sequence", "sqlite_master"))
+	app.logger.debug(tables)
+	# On crée un dict de tuples avec les colonnes (cles = nom de la table, valeurs = liste des colonnes).
+	columns = format_table_info({table: models.database.get_columns(table) for table in tables})
+	app.logger.debug(columns)
+	values = {}
+	for table in (models.Asker, models.Playlist, models.PlaylistSong, models.Queue, models.Server, models.ServerPlaylist, models.Song, models.UserPlaylist):
+		table: models.BaseModel
+		table_data = []  # List to store all rows
+		table_columns = [col for col in columns[table._meta.table_name]]
+		rows = table.select(*[getattr(table, col) for col in table_columns])
+		app.logger.debug(f"Querying {table._meta.table_name} with columns: {table_columns}")
+		
+		for row in rows:
+			row_data = {}  # Dictionary for current row
+			for column in table_columns:
+				row_data[column] = getattr(row, column)
+			table_data.append(row_data)  # Add row to table data
+		
+		values[table._meta.table_name] = table_data  # Store all rows for this table
+
+	app.logger.debug(f"Values: {values}")
+	is_url = lambda x: isinstance(x, str) and (x.startswith("http://") or x.startswith("https://"))
+	stats = {key.decode(): value.decode() for key, value in (await get_cache_stats()).items()}
+	app.logger.debug(stats)
+	return await render_template('admin.html', tables=tables, columns=columns, values=values, is_url=is_url, stats=stats)
+
+@app.route('/api/admin/cache')
+async def api_admin_cache():
+	stats = {key.decode(): value.decode() for key, value in (await get_cache_stats()).items()}
+	return jsonify(stats)
+
+
 async def token_from_code(code):
 	data = {
 		"grant_type": "authorization_code",
@@ -305,3 +342,12 @@ async def revoke_access_token(access_token):
 	}
 	await AsyncRequests.post(f"{app.API_ENDPOINT}/oauth2/token/revoke", data=data, headers=headers,
 							 auth=aiohttp.BasicAuth(str(app.CLIENT_ID), str(app.CLIENT_SECRET)))
+
+def format_table_info(tables_metadata: dict[BaseModel, list]) -> dict[BaseModel, dict[str, bool]]:
+	formatted = {}
+	for table_name, columns in tables_metadata.items():
+		formatted[table_name] = {
+			col.name: col.primary_key
+			for col in columns
+        }
+	return formatted
