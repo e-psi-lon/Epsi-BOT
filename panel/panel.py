@@ -12,7 +12,7 @@ import discord
 import multiprocessing
 import pytubefix  # type: ignore
 from dotenv import load_dotenv
-from quart import Quart, jsonify, session, redirect, url_for, render_template, request
+from quart import Quart, session, redirect, url_for, render_template, request, websocket
 from quart_session import Session  # type: ignore
 
 from utils import (PanelBotReqest,
@@ -265,6 +265,9 @@ async def logout():
 
 @app.route('/admin')
 async def admin():
+	app.logger.info(f"Admin page requested by {request.remote_addr}")
+	if not request.remote_addr.startswith("192.168.1."):
+		return 403
 	tables = models.database.get_tables()
 	tables = list(table for table in tables if table not in ("sqlite_sequence", "sqlite_master"))
 	app.logger.debug(tables)
@@ -293,11 +296,39 @@ async def admin():
 	app.logger.debug(stats)
 	return await render_template('admin.html', tables=tables, columns=columns, values=values, is_url=is_url, stats=stats)
 
-@app.route('/api/admin/cache')
-async def api_admin_cache():
-	stats = {key.decode(): value.decode() for key, value in (await get_cache_stats()).items()}
-	return jsonify(stats)
+@app.websocket('/admin')
+async def admin_ws():
+	app.logger.info(f"Admin websocket requested by {websocket.remote_addr}")
+	if not websocket.remote_addr.startswith("192.168.1."):
+		return 403
+	try:
+		while True:
+			# Get cache stats and convert bytes to strings
+			stats = {key.decode(): value.decode() 
+					for key, value in (await get_cache_stats()).items()}
 
+			# Send stats as JSON
+			await websocket.send_json(stats)
+
+			# Wait 30 seconds
+			await asyncio.sleep(30)
+	except Exception as e:
+		app.logger.error(f"WebSocket error: {e}")
+		await websocket.close()
+
+def register_error_handlers(app):
+	for code in range(400, 500):
+		try:
+			@app.errorhandler(code)
+			async def _error_page(e):
+				# Si c'est une resource (fichier) qui n'est pas trouvée
+				if e.name == "NotFound":
+					return 404
+				return await render_template('error.html', code=code), code
+		except ValueError:
+			continue
+
+register_error_handlers(app)
 
 async def token_from_code(code):
 	data = {

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<meta charset="UTF-8">
+	<title>Epsi BOT - Erreur {{ code }}</title>
+	<link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet" type="text/css">
+</head>
+<body>
+<h1>Epsi BOT</h1>
+<div class="main">
+    <p>Une erreur est survenue lors du chargement de la page.</p>
+    {% if code == 404 %}
+        <p class="center">La page demandée n'existe pas.</p>
+    {% elif code == 403 %}
+        <p class="center">Vous n'avez pas la permission d'accéder à cette page.</p>
+    {% else %}
+        <p class="center">Code d'erreur : {{ code }}</p>
+    {% endif %}
+    <button class="center connect" onclick="window.location.href='{{ url_for('index') }}'">Retour à l'accueil</button>
+</div>
+</body>
+</html>

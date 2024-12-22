@@ -166,12 +166,11 @@
                         maintainAspectRatio: true
                     }
                 });
-                
-                async function updateStats() {
+
+                const socket = new WebSocket(`ws://${window.location.host}/admin`);
+                socket.onmessage = function(event) {
+                    const stats = JSON.parse(event.data);
                     try {
-                        const response = await fetch("{{ url_for('api_admin_cache') }}");
-                        const stats = await response.json();
-                        
                         // Update Performance Widget
                         document.querySelector('.stats-widget:nth-child(1) .stats-value:nth-child(2)').textContent = stats.get_hits;
                         document.querySelector('.stats-widget:nth-child(1) .stats-value:nth-child(4)').textContent = stats.get_misses;
@@ -200,12 +199,15 @@
                     } catch (error) {
                         console.error('Failed to update stats:', error);
                     }
-                }
+                };
+                
+                socket.onclose = function(event) {
+                    console.log('Socket closed:', event);
+                };
 
-                // Update every 30 seconds
-                updateStats();
-                setInterval(updateStats, 30000);
-
+                socket.onerror = function(error) {
+                    console.error('Socket error:', error);
+                };
             </script>
         </div>
     </body>

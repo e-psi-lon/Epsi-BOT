@@ -404,7 +404,7 @@ class ConfigData:
 		return self.__getstate__()
 
 
-async def get_cache_stats() -> dict:
+async def get_cache_stats() -> dict[bytes, bytes]:
 	"""Function to get the cache statistics.
 
 	Returns
