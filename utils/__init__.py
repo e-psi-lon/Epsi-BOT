@@ -55,7 +55,9 @@ __all__ = [
 	'get_logger',
 	'check_video',
 	'CustomFormatter',
-    'get_cache_stats'
+    'get_cache_stats',
+    "update_ttl",
+    "cache_exists"
 ]
 
 from .models import (Asker,
@@ -93,7 +95,9 @@ from .utils import (download,
 					convert,
 					get_lyrics,
 					check_video,
-					Base64Serializer
+					Base64Serializer,
+                    update_ttl,
+                    cache_exists
 					)
 
 from .async_ import (AsyncRequests,

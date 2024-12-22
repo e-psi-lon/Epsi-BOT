@@ -80,5 +80,13 @@ CREATE TABLE IF NOT EXISTS USER_PLAYLIST (
 );
 ''')
 
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS SONG_LISTEN_COUNT (
+	song_id INTEGER,
+	count INTEGER,
+	FOREIGN KEY (song_id) REFERENCES SONG(song_id)
+);
+''')
+
 conn.commit()
 conn.close()

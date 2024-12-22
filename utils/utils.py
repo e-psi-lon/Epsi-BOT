@@ -22,7 +22,7 @@ from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError
 from .constants import EMBED_ERROR_BOT_NOT_CONNECTED
 
 from .async_ import AsyncRequests
-from .models import Asker, Server, Song, Playlist, Queue, get_user_playlists
+from .models import Asker, Server, Song, Playlist, Queue, SongListenCount, get_user_playlists
 
 from .loggers import get_logger
 
@@ -43,7 +43,9 @@ __all__ = [
 	"FfmpegFormats",
 	"convert",
 	"get_lyrics",
-	"check_video"
+	"check_video",
+	"update_ttl",
+	"cache_exists"
 ]
 
 
@@ -116,6 +118,11 @@ async def reset_ttl(key: str, namespace: str):
 	async with MemcachedCache(serializer=Base64Serializer()) as cache:
 		buffer = await cache.get(key, namespace=namespace)
 		await cache.set(key, buffer, ttl=3600, namespace=namespace)
+
+async def cache_exists(key: str, namespace: str) -> bool:
+	"""Check if a key exists in the cache"""
+	async with MemcachedCache(serializer=Base64Serializer()) as cache:
+		return await cache.exists(key, namespace=namespace)
 
 
 async def download(url: str, bot: commands.Bot, download_logger: logging.Logger = get_logger("Audio-Downloader")) -> Optional[io.BytesIO]:
@@ -455,6 +462,13 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
 		ctx.guild.voice_client.stop()
 	server: Server = Server.get(server_id=ctx.guild.id)
 	loop = asyncio.get_event_loop()
+	song_listen_lount: SongListenCount | None = SongListenCount.get_or_none(url=url)
+	if song_listen_lount is not None:
+		song_listen_lount.count += 1
+		
+		song_listen_lount.save()
+	else:
+		SongListenCount.create(url=url, count=1)
 	try:
 		video = pytubefix.YouTube(url)
 		if video.age_restricted:

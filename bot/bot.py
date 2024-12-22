@@ -8,9 +8,11 @@ import subprocess
 from multiprocessing import Queue as mpQueue
 from typing import Optional
 from utils import GuildData, UserData, PanelBotReqest, PanelBotResponse, RequestType, get_logger, Event, set_callback, \
-	Server
+	Server, update_ttl, cache_exists, download
 from discord.ext import commands
 from discord.ext import tasks
+from utils.models import Song, SongListenCount
+from datetime import datetime
 
 from .memcached_std import MemcachedStd
 
@@ -25,6 +27,29 @@ async def check_update() -> None:
 	else:
 		get_logger("Updater").info("Bot is already up to date")
 
+@tasks.loop(hours=36)
+async def update_top_songs(self: 'Bot') -> None:
+		# Calculate top 5 songs
+		top_songs: list[SongListenCount] = SongListenCount \
+			.select()\
+			.order_by(SongListenCount.count.desc())\
+			.limit(5)\
+			.prefetch(Song)
+		
+		top_songs_data = [
+			{"name": song.song.name, "url": song.song.url, "listen_count": song.count}
+			for song in top_songs
+		]
+
+		for song in top_songs_data:
+			if cache_exists(song["url"], namespace="audio"):
+				update_ttl(song["url"], 60*60*24*3, namespace="audio") 
+			else:
+				await download(song["url"], self)
+		self.logger.info("Top 5 songs updated and cached.")
+		# Reset listen counts
+		SongListenCount.delete().execute()
+
 
 class Bot(commands.Bot):
 	def __init__(self, queue, event: Event, bot_event: Event, *args, **options) -> None:
@@ -34,7 +59,7 @@ class Bot(commands.Bot):
 		self.event_listener: Event = bot_event
 		self.memcached: Optional[subprocess.Popen] = None
 		self.logger = get_logger("Bot")
-		self.start_time: Optional[datetime.datetime] = None
+		self.start_time: Optional[datetime] = None
 
 	async def on_ready(self) -> None:
 		await self.change_presence(
@@ -54,10 +79,11 @@ class Bot(commands.Bot):
 			self.logger.error("Memcached not found, please install it")
 			self.memcached = None
 			exit(1)
-		self.logger.info(f"Bot ready in {datetime.datetime.now() - self.start_time}")
+		self.logger.info(f"Bot ready in {datetime.now() - self.start_time}")
 		for guild in self.guilds:
 			# Si la guilde n'existe pas dans la db, on l'ajoute avec les paramètres par défaut
 			Server.get_or_create(server_id=guild.id)
+		update_top_songs.start(self)
 
 
 	async def get_from_panel(self, content: str, **kwargs):
@@ -172,7 +198,7 @@ class Bot(commands.Bot):
 
 
 
-async def start(instance: Bot, start_time: datetime.datetime):
+async def start(instance: Bot, start_time: datetime):
 	instance.start_time = start_time
 	instance.owner_id = 708006478807695450
 	@instance.slash_command(name="send", description="Envoie un message dans un salon")

@@ -8,10 +8,9 @@ from peewee import (AutoField,
                     TextField
                 )
 
-
 database = SqliteDatabase('./database/database.db')
 
-__all__ = ['Asker', 'Playlist', 'Song', 'PlaylistSong', 'Server', 'Queue', 'ServerPlaylist', 'UserPlaylist', 'get_user_playlists', "BaseModel"]
+__all__ = ['Asker', 'Playlist', 'Song', 'PlaylistSong', 'Server', 'Queue', 'ServerPlaylist', 'UserPlaylist', 'get_user_playlists', "BaseModel", "SongListenCount"]
 
 class BaseModel(Model):
     class Meta:
@@ -39,7 +38,6 @@ class Song(BaseModel):
     name = CharField(null=True)
     song_id = AutoField(null=True, primary_key=True)
     url = TextField(null=True)
-
     class Meta:
         table_name = 'SONG'
 
@@ -104,6 +102,14 @@ class UserPlaylist(BaseModel):
 
     class Meta:
         table_name = 'USER_PLAYLIST'
+        primary_key = False
+
+class SongListenCount(BaseModel):
+    song = ForeignKeyField(column_name='song_id', field='song_id', model=Song, null=True)
+    count = IntegerField(default=0)
+
+    class Meta:
+        table_name = 'SONG_LISTEN_COUNT'
         primary_key = False
 
 def get_user_playlists(user_id: int) -> list['Playlist']:

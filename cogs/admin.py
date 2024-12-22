@@ -57,7 +57,7 @@ class Admin(commands.Cog):
 	@commands.slash_command(name="reload", description="Reloads the cogs", guild_ids=[761485410596552736])
 	async def reload(self, ctx: discord.ApplicationContext, cog: discord.Option(str, description="The cog to reload",
 																			autocomplete=discord.utils.basic_autocomplete(cogs_autocomplete),
-																			default="all")):
+																			default="all")): # type: ignore
 		if cog == "all":
 			await ctx.response.defer()
 			if ctx.author.id != OWNER_ID:

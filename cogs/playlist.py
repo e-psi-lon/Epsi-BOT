@@ -166,7 +166,7 @@ class Playlists(commands.Cog):
 										  autocomplete=discord.utils.basic_autocomplete(get_playlists)),  # type: ignore
 					 song: discord.Option(str, "The name of the song", required=True,
 										  autocomplete=discord.utils.basic_autocomplete(
-											  get_playlists_songs))):
+											  get_playlists_songs))): # type: ignore
 		await ctx.response.defer()
 		if name.endswith(" - SERVER"):
 			name = name[:-9]
