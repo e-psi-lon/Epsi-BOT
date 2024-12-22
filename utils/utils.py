@@ -295,12 +295,14 @@ class SelectVideo(discord.ui.Select):
 		if not server.queue:
 			server.position = 0
 			server.save()
-			song: Song = Song.get_or_create(name=pytubefix.YouTube(self.values[0]).title, url=self.values[0])
-			asker: Asker = Asker.get_or_create(user_id=interaction.user.id)
+			yt_video = pytubefix.YouTube(self.values[0])
+			song, _ = Song.get_or_create_important(["url"], url=self.values[0], name=yt_video.title)
+			asker, _ = Asker.get_or_create(discord_id=interaction.user.id)
 			Queue.create(song=song, asker=asker, position=0, server=server)
 		else:
-			song: Song = Song.get_or_create(name=pytubefix.YouTube(self.values[0]).title, url=self.values[0])
-			asker: Asker = Asker.get_or_create(user_id=interaction.user.id)
+			yt_video = pytubefix.YouTube(self.values[0])
+			song, _ = Song.get_or_create_important(["url"], url=self.values[0], name=yt_video.title)
+			asker, _ = Asker.get_or_create(discord_id=interaction.user.id)
 			Queue.create(song=song, asker=asker, position=len(server.queue), server=server)
 		if interaction.guild.voice_client is None:
 			return await interaction.message.edit(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
@@ -464,13 +466,14 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
 		ctx.guild.voice_client.stop()
 	server: Server = Server.get(server_id=ctx.guild.id)
 	loop = asyncio.get_event_loop()
-	song_listen_lount: SongListenCount | None = SongListenCount.get_or_none(url=url)
+	song = Song.get(url=url)
+	song_listen_lount: SongListenCount | None = SongListenCount.get_or_none(song=song)
 	if song_listen_lount is not None:
 		song_listen_lount.count += 1
 		
 		song_listen_lount.save()
 	else:
-		SongListenCount.create(url=url, count=1)
+		SongListenCount.create(song=song, count=1)
 	try:
 		video = pytubefix.YouTube(url)
 		if video.age_restricted:

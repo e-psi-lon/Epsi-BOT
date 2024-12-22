@@ -42,8 +42,8 @@ async def update_top_songs(self: 'Bot') -> None:
 		]
 
 		for song in top_songs_data:
-			if cache_exists(song["url"], namespace="audio"):
-				update_ttl(song["url"], 60*60*24*3, namespace="audio") 
+			if await cache_exists(song["url"], namespace="audio"):
+				await update_ttl(song["url"], 60*60*24*3, namespace="audio") 
 			else:
 				await download(song["url"], self)
 		self.logger.info("Top 5 songs updated and cached.")

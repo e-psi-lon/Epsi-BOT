@@ -5,7 +5,8 @@ from peewee import (AutoField,
                     IntegerField, 
                     Model, 
                     SqliteDatabase, 
-                    TextField
+                    TextField,
+                    OperationalError
                 )
 
 from utils.loggers import get_logger
@@ -18,7 +19,7 @@ class BaseModel(Model):
     class Meta:
         database = database
 
-    def save(self, force_insert = ..., only = ...):
+    def save(self, force_insert=False, only=None):
         logger = get_logger("Database")
         try:
             out = super().save(force_insert=force_insert, only=only)
@@ -26,6 +27,32 @@ class BaseModel(Model):
             return out
         except Exception as e:
             logger.error(f"Error while saving {self}: {e}")
+
+
+    @classmethod
+    def get_or_create_important(cls, important_fields: list[str], **kwargs) -> tuple['BaseModel', bool]:
+        importants = {key: kwargs.pop(key) for key in important_fields}
+        item = cls.get_or_create(**importants)
+        if not item[1]:
+            return item
+        for key, value in kwargs.items():
+            setattr(item[0], key, value)
+        item[0].save()
+        return item
+
+    def __repr__(self):
+        return str(self)
+    
+    def __str__(self):
+        class_name = self.__class__.__name__
+        elements = []
+        for elem in self._meta.fields:
+            try:
+                elements.append(f"{elem}={getattr(self, elem)}")
+            except OperationalError:
+                elements.append(f"{elem}=None")
+        return f"{class_name}({', '.join(elements)})"
+        
 
 class Asker(BaseModel):
     asker_id = AutoField(null=True, primary_key=True)
