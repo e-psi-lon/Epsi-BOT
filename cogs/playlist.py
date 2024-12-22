@@ -246,15 +246,15 @@ class Playlists(commands.Cog):
 														  choices=["server", "user"],
 														  default="server")):  # type: ignore
 		await ctx.response.defer()
-		playlists: list[Playlist] = Server.get(sever_id=ctx.guild.id).playlists if playlist_type == "server" else get_user_playlists(ctx.user.id)
+		playlists: list[ServerPlaylist | UserPlaylist] = Server.get(server_id=ctx.guild.id).playlists if playlist_type == "server" else get_user_playlists(ctx.user.id)
 		if not playlists:
 			return await ctx.respond(
 				embed=discord.Embed(title="Playlists", description="No playlists.", color=0x00ff00))
 		embed = discord.Embed(title="Playlists", color=0x00ff00)
-		for index, name in enumerate([playlist.name for playlist in playlists][:24]):
+		for index, name in enumerate([playlist.playlist.name for playlist in playlists][:24]):
 			embed.add_field(name=f"__{name}__ :",
-							value=f"{len([playlist for playlist in playlists][0].songs)} song"
-								f"{'s' if len([playlist for playlist in playlists][0].songs) > 1 else ''}")
+							value=f"{len([playlist.playlist for playlist in playlists][0].songs)} song"
+								f"{'s' if len([playlist.playlist for playlist in playlists][0].songs) > 1 else ''}")
 			if index == 23 and len([playlist for playlist in playlists]) > 24:
 				embed.add_field(name="And more...", value="")
 				break

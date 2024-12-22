@@ -295,11 +295,11 @@ class SelectVideo(discord.ui.Select):
 		if not server.queue:
 			server.position = 0
 			server.save()
-			song: Song = Song.get_or_create(title=pytubefix.YouTube(self.values[0]).title, url=self.values[0])
+			song: Song = Song.get_or_create(name=pytubefix.YouTube(self.values[0]).title, url=self.values[0])
 			asker: Asker = Asker.get_or_create(user_id=interaction.user.id)
 			Queue.create(song=song, asker=asker, position=0, server=server)
 		else:
-			song: Song = Song.get_or_create(title=pytubefix.YouTube(self.values[0]).title, url=self.values[0])
+			song: Song = Song.get_or_create(name=pytubefix.YouTube(self.values[0]).title, url=self.values[0])
 			asker: Asker = Asker.get_or_create(user_id=interaction.user.id)
 			Queue.create(song=song, asker=asker, position=len(server.queue), server=server)
 		if interaction.guild.voice_client is None:
@@ -366,7 +366,9 @@ async def get_playlists(ctx: discord.AutocompleteContext) -> list[str]:
 		The list of playlists
 	"""
 	config: Server = Server.get(server_id=ctx.interaction.guild.id)
+	print(config.playlists)
 	user_playlists = get_user_playlists(ctx.interaction.user.id)
+	print(user_playlists)
 	return ([playlist.playlist.name + " - SERVER" for playlist in config.playlists] +
 			[playlist.name + " - USER" for playlist in user_playlists])
 

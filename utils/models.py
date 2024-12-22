@@ -8,6 +8,8 @@ from peewee import (AutoField,
                     TextField
                 )
 
+from utils.loggers import get_logger
+
 database = SqliteDatabase('./database/database.db')
 
 __all__ = ['Asker', 'Playlist', 'Song', 'PlaylistSong', 'Server', 'Queue', 'ServerPlaylist', 'UserPlaylist', 'get_user_playlists', "BaseModel", "SongListenCount"]
@@ -15,6 +17,15 @@ __all__ = ['Asker', 'Playlist', 'Song', 'PlaylistSong', 'Server', 'Queue', 'Serv
 class BaseModel(Model):
     class Meta:
         database = database
+
+    def save(self, force_insert = ..., only = ...):
+        logger = get_logger("Database")
+        try:
+            out = super().save(force_insert=force_insert, only=only)
+            logger.debug(f"Saved {self}")
+            return out
+        except Exception as e:
+            logger.error(f"Error while saving {self}: {e}")
 
 class Asker(BaseModel):
     asker_id = AutoField(null=True, primary_key=True)

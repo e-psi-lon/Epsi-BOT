@@ -132,7 +132,7 @@ class State(commands.Cog):
 					embed=discord.Embed(title="Error", description=f"Error while adding song to queue. "
 																   f"(Error: {e})", color=0xff0000))
 		except PytubeRegexMatchError:
-			videos = pytubefix.Search(query).results
+			videos = pytubefix.Search(query).videos
 			if not videos:
 				return await ctx.respond(
 					embed=discord.Embed(title="Error", description="No results found.", color=0xff0000))
