@@ -91,16 +91,14 @@ class Todo(commands.Cog):
 
 	@todo.command(name="assign", description="Assigns a task to a user")
 	async def assign(self, ctx: discord.ApplicationContext,
-					 index: discord.Option(int, "The index of the line to assign", required=True),  # type: ignore
-					 user: discord.Option(
-						 discord.User, "The user to assign the task to", required=True)  # type: ignore
-					 ):
+	                 index: discord.Option(int, "The index of the line to assign", required=True),  # type: ignore
+	                 user: discord.Option(discord.User, "The user to assign the task to", required=True)):  # type: ignore
 		await ctx.response.defer()
 		if ctx.channel.id != 1128286383161745479:
 			embed = discord.Embed(title="Assignation d'une ligne", description="Cette commande ne peut être utilisée "
-																			   "que dans le channel "
-																			   "<#1128286383161745479>",
-								  color=0xff0000)
+			                                                                   "que dans le channel "
+			                                                                   "<#1128286383161745479>",
+			                      color=0xff0000)
 			return await ctx.respond(embed=embed, delete_after=30)
 		message = await ctx.channel.fetch_message(1128641774789861488)
 		lines: list[discord.EmbedField] = message.embeds[0].fields
@@ -115,40 +113,30 @@ class Todo(commands.Cog):
 			assigned_user = re.findall(regex2, match_result).copy()
 		if str(user.id) in assigned_user:
 			embed = discord.Embed(title="Assignation d'une ligne",
-								  description=f"{user.mention} n'est plus assigné à la ligne {line.name} dans "
-											  f"le message {message.jump_url}")
+			                      description=f"{user.mention} n'est plus assigné à la ligne {line.name} dans "
+			                                  f"le message {message.jump_url}")
 			await ctx.respond(embed=embed, delete_after=30)
 			assigned_user.remove(str(user.id))
 		else:
 			embed = discord.Embed(title="Assignation d'une ligne",
-								  description=f"{user.mention} est maintenant assigné à la ligne {line.name} dans le"
-											  f" message {message.jump_url}")
+			                      description=f"{user.mention} est maintenant assigné à la ligne {line.name} dans le"
+			                                  f" message {message.jump_url}")
 			await ctx.respond(embed=embed, delete_after=30)
 			assigned_user.append(str(user.id))
-		line.value = line.value[
-					 :line.value.find(" - Assigned to <@")] if " - Assigned to <@" in line.value else line.value
-		new_line = " - Assigned to "
-		if len(assigned_user) == 0:
-			new_line = ""
-		elif len(assigned_user) == 1:
-			new_line += f"<@{int(assigned_user[0])}>"
-		elif len(assigned_user) == 2:
-			new_line += f"<@{int(assigned_user[0])}> and <@{int(assigned_user[1])}>"
-		else:
-			for index, user_id in enumerate(assigned_user):
-				if index == len(assigned_user) - 1:
-					new_line += f"and <@{int(user_id)}>"
-				elif index == len(assigned_user) - 2:
-					new_line += f"<@{int(user_id)}> "
-				else:
-					new_line += f"<@{int(user_id)}>, "
+		line.value = line.value[:line.value.find(" - Assigned to <@")] if " - Assigned to <@" in line.value else line.value
+		new_line = ""
+		if assigned_user:
+			if len(assigned_user) == 1:
+				new_line = f" - Assigned to <@{int(assigned_user[0])}>"
+			else:
+				new_line = " - Assigned to " + ", ".join(f"<@{int(user_id)}>" for user_id in assigned_user[:-1])
+				new_line += f" and <@{int(assigned_user[-1])}>"
 		line.value += new_line
 		lines[index - 1] = line
 		await message.edit(embed=discord.Embed(title="To-Do List",
-											   description="Les points suivant sont les différentes tâches à "
-														   "effectuer pour améliorer le bot",
-											   fields=lines))
-		line = message.embeds[0].fields[index - 1]
+		                                       description="Les points suivant sont les différentes tâches à "
+		                                                   "effectuer pour améliorer le bot",
+		                                       fields=lines))
 
 	@todo.command(name="tuto", description="Sends a tutorial on how to use the to-do list")
 	async def tuto(self, ctx: discord.ApplicationContext):
