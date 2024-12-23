@@ -42,12 +42,12 @@ class Others(commands.Cog):
 				return await ctx.respond(
 					embed=discord.Embed(title="Error", description="Error while downloading song.", color=0xff0000))
 		except pytubefix.exceptions.RegexMatchError:
-			videos = pytubefix.Search(query).results
+			videos = pytubefix.Search(query).videos
 			if not videos:
 				return await ctx.respond(
 					embed=discord.Embed(title="Error", description="No results found.", color=0xff0000))
 			view = Research(videos, ctx, True, timeout=60)
-			await ctx.respond(embed=discord.Embed(title="Select audio", description="Select an audio to download_file",
+			await ctx.respond(embed=discord.Embed(title="Select audio", description="Select an audio to download.",
 												  color=0x00ff00), view=view)
 
 	@commands.slash_command(name="lyrics", description="Shows the lyrics of the current song")

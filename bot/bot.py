@@ -35,7 +35,7 @@ async def update_top_songs(self: 'Bot') -> None:
 			.order_by(SongListenCount.count.desc())\
 			.limit(5)\
 			.prefetch(Song)
-		
+
 		top_songs_data = [
 			{"name": song.song.name, "url": song.song.url, "listen_count": song.count}
 			for song in top_songs
