@@ -12,9 +12,9 @@
             <!-- Performance Widget -->
             <div class="stats-widget">
                 <div class="stats-title">Performance</div>
-                <div class="stats-value">{{ stats['get_hits'] }}</div>
+                <div class="stats-value"></div>
                 <div class="stats-subtitle">Cache Hits</div>
-                <div class="stats-value">{{ stats['get_misses'] }}</div>
+                <div class="stats-value"></div>
                 <div class="stats-subtitle">Cache Misses</div>
             </div>
 
@@ -34,18 +34,18 @@
             <!-- Connections Widget -->
             <div class="stats-widget">
                 <div class="stats-title">Connections</div>
-                <div class="stats-value">{{ stats['curr_connections'] }}</div>
+                <div class="stats-value"></div>
                 <div class="stats-subtitle">Current Connections</div>
-                <div class="stats-value">{{ stats['total_connections'] }}</div>
+                <div class="stats-value"></div>
                 <div class="stats-subtitle">Total Connections</div>
             </div>
 
             <!-- Items Widget -->
             <div class="stats-widget">
                 <div class="stats-title">Items</div>
-                <div class="stats-value">{{ stats['curr_items'] }}</div>
+                <div class="stats-value"></div>
                 <div class="stats-subtitle">Current Items</div>
-                <div class="stats-value">{{ stats['total_items'] }}</div>
+                <div class="stats-value"></div>
                 <div class="stats-subtitle">Total Items</div>
             </div>
 
@@ -55,19 +55,19 @@
                 <div class="process-info">
                     <div class="info-row">
                         <span class="info-label">Uptime:</span>
-                        <span class="info-value" id="uptimeValue">{{ stats['uptime'] }}</span>
+                        <span class="info-value" id="uptimeValue"></span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">PID:</span>
-                        <span class="info-value">{{ stats['pid'] }}</span>
+                        <span class="info-value" id="pidValue"></span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Version:</span>
-                        <span class="info-value">{{ stats['version'] }}</span>
+                        <span class="info-value" id="versionValue"></span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Threads:</span>
-                        <span class="info-value">{{ stats['threads'] }}</span>
+                        <span class="info-value" id="threadsValue"></span>
                     </div>
                 </div>
             </div>
@@ -75,42 +75,17 @@
             <div class="stats-widget database-widget">
                 <div class="stats-title">Database Tables</div>
                 <div class="sql-buttons">
-                    {% for table in tables %}
-                        <button class="sql-button" 
-                                onclick="showTable('{{ table }}')" 
-                                id="btn-{{ table }}">{{ table }}</button>
-                    {% endfor %}
                 </div>
                 <div class="sql-content">
-                    {% for table in tables %}
-                        <div class="sql-table" id="table-{{ table }}" style="display: none;">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        {% for column in columns[table] %}
-                                            <th>{{ column }}</th>
-                                        {% endfor %}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for value in values[table] %}
-                                        <tr>
-                                            {% for column in columns[table] %}
-                                                {% if is_url(value[column]) %}
-                                                    <td><a href="{{ value[column] }}" target="_blank">{{ value[column] }}</a></td>
-                                                {% else %}
-                                                    <td>{{ value[column] }}</td>
-                                                {% endif %}
-                                            {% endfor %}
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% endfor %}
                 </div>
             </div>
             <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    const currentTable = localStorage.getItem('currentTable');
+                    if (currentTable) {
+                        showTable(currentTable);
+                    }
+                });
                 function showTable(tableName) {
                     // Hide all tables
                     document.querySelectorAll('.sql-table').forEach(t => t.style.display = 'none');
@@ -119,6 +94,8 @@
                     // Show selected table and highlight button
                     document.getElementById('table-' + tableName).style.display = 'block';
                     document.getElementById('btn-' + tableName).classList.add('active');
+
+                    localStorage.setItem('selectedTable', tableName);
                 }
                 function formatBytes(bytes) {
                     if (bytes === 0) return '0 B';
@@ -137,6 +114,16 @@
                     if (hours > 0) uptime += `${hours}h `;
                     if (minutes > 0) uptime += `${minutes}m`;
                     return uptime.trim() || '< 1m';
+                }
+
+                function isUrl(string) {
+                    const pattern = new RegExp('^(https?:\\/\\/)?' + // protocol
+                        '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|' + // domain name
+                        '((\\d{1,3}\\.){3}\\d{1,3}))' + // OR ip (v4) address
+                        '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // port and path
+                        '(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
+                        '(\\#[-a-z\\d_]*)?$', 'i'); // fragment locator
+                    return !!pattern.test(string);
                 }
 
                 // Update Memory Chart
@@ -168,13 +155,25 @@
                 });
 
                 const socket = new WebSocket(`ws://${window.location.host}/admin`);
+                socket.onopen = function(_) {
+                    socket.send('refresh');
+                    setInterval(() => {
+                        if (socket.readyState === WebSocket.OPEN) {
+                            socket.send('refresh');
+                        }
+                    }, 30000);
+                };
                 socket.onmessage = function(event) {
-                    const stats = JSON.parse(event.data);
+                    const parsed = JSON.parse(event.data);
+                    const stats = parsed.stats;
+                    const tables = parsed.tables;
+                    const columns = parsed['columns'];
+                    const values = parsed['values'];
                     try {
                         // Update Performance Widget
                         document.querySelector('.stats-widget:nth-child(1) .stats-value:nth-child(2)').textContent = stats.get_hits;
                         document.querySelector('.stats-widget:nth-child(1) .stats-value:nth-child(4)').textContent = stats.get_misses;
-                            // Update Memory Chart
+                        // Update Memory Chart
                         used = parseInt(stats.bytes);
                         total = parseInt(stats.limit_maxbytes);
                         unused = total - used;
@@ -195,9 +194,80 @@
 
                         // Update Process Info
                         document.getElementById('uptimeValue').textContent = formatUptime(parseInt(stats.uptime));
-                        
+                        document.getElementById('pidValue').textContent = stats.pid;
+                        document.getElementById('versionValue').textContent = stats.version;
+                        document.getElementById('threadsValue').textContent = stats.threads;
+
+                        // Update Database Tables
+                        const sqlButtons = document.querySelector('.sql-buttons');
+                        const sqlContent = document.querySelector('.sql-content');
+                        sqlButtons.innerHTML = '';
+                        sqlContent.innerHTML = '';
+
+                        for (const table of tables) {
+                            const button = document.createElement('button');
+                            button.className = 'sql-button';
+                            button.id = 'btn-' + table;
+                            button.textContent = table;
+                            button.onclick = () => showTable(table);
+                            sqlButtons.appendChild(button);
+
+                            const tableDiv = document.createElement('div');
+                            tableDiv.className = 'sql-table';
+                            tableDiv.id = 'table-' + table;
+                            tableDiv.style.display = 'none';
+
+                            const tableElement = document.createElement('table');
+                            const thead = document.createElement('thead');
+                            const trHead = document.createElement('tr');
+                            const sortedColumns = Object.entries(columns[table]).sort(([, isPrimaryKeyA], [, isPrimaryKeyB]) => {
+                                const valueA = isPrimaryKeyA === null ? false : isPrimaryKeyA;
+                                const valueB = isPrimaryKeyB === null ? false : isPrimaryKeyB;
+                                return valueB - valueA;
+                            });
+                            sortedColumns.forEach(([column, isPrimaryKey]) => {
+                                const th = document.createElement('th');
+                                th.textContent = column;
+                                if (isPrimaryKey === true) {
+                                    th.classList.add('primary-key');
+                                } else if (isPrimaryKey === null) {
+                                    th.classList.add('foreign-key');
+                                }
+                                trHead.appendChild(th);
+                            });
+                            thead.appendChild(trHead);
+                            tableElement.appendChild(thead);
+
+                            const tbody = document.createElement('tbody');
+                            values[table].forEach(value => {
+                                const trBody = document.createElement('tr');
+                                sortedColumns.forEach(([column]) => {
+                                    const td = document.createElement('td');
+                                    const cellValue = value[column];
+                                    if (isUrl(cellValue)) {
+                                        const a = document.createElement('a');
+                                        a.href = cellValue;
+                                        a.target = '_blank';
+                                        a.textContent = cellValue;
+                                        td.appendChild(a);
+                                    } else {
+                                        td.textContent = cellValue;
+                                    }
+                                    trBody.appendChild(td);
+                                });
+                                tbody.appendChild(trBody);
+                            });
+                            tableElement.appendChild(tbody);
+
+                            tableDiv.appendChild(tableElement);
+                            sqlContent.appendChild(tableDiv);
+                        }
+                        const currentTable = localStorage.getItem('selectedTable');
+                        if (currentTable) {
+                            showTable(currentTable);
+                        }
                     } catch (error) {
-                        console.error('Failed to update stats:', error);
+                        console.error('Failed to update data:', error);
                     }
                 };
                 
@@ -208,6 +278,7 @@
                 socket.onerror = function(error) {
                     console.error('Socket error:', error);
                 };
+                setTimeout(() => socket.send('refresh'), 30000);
             </script>
         </div>
     </body>

@@ -224,6 +224,23 @@ a:hover {
 	--max-width: fit-content;
 }
 
+.primary-key {
+	font-weight: bold;
+	text-decoration: underline;
+	text-underline-offset: 0.2em; /* Adjust the offset as needed */
+	text-decoration-thickness: 2px; /* Adjust the thickness as needed */
+}
+
+/* Une foreign key est en italique precedee de # */
+.foreign-key {
+	font-style: italic;
+}
+
+.foreign-key::before {
+	font-style: normal;
+	content: "#";
+}
+
 .sql-button {
     flex: 0 0 auto;  /* Don't allow shrinking */
     min-width: 120px; /* Minimum button width */

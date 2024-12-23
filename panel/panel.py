@@ -10,6 +10,8 @@ from typing import NoReturn, Optional, Any
 import aiohttp
 import discord
 import multiprocessing
+
+import peewee
 import pytubefix  # type: ignore
 from dotenv import load_dotenv
 from quart import Quart, session, redirect, url_for, render_template, request, websocket
@@ -81,9 +83,8 @@ class Panel(Quart):
 				os.mkdir("database/")
 			with open("database/database.db", "w") as f:
 				f.write("")
-			os.chdir("utils")
-			os.system("python generate_db.py")
-			os.chdir("..")
+			db = models.database
+			db.create_tables([models.Asker, models.Playlist, models.PlaylistSong, models.Queue, models.Server, models.ServerPlaylist, models.Song, models.UserPlaylist], safe=True)
 		await set_callback(self.event, self.read_queue, asyncio.get_event_loop())
 		bot: Bot = Bot(queue, self.event, self.bot_event, intents=discord.Intents.all())
 		await start(bot, start_time)
@@ -268,33 +269,8 @@ async def admin():
 	app.logger.info(f"Admin page requested by {request.remote_addr}")
 	if not request.remote_addr.startswith("192.168.1."):
 		return 403
-	tables = models.database.get_tables()
-	tables = list(table for table in tables if table not in ("sqlite_sequence", "sqlite_master"))
-	app.logger.debug(tables)
-	# On crée un dict de tuples avec les colonnes (cles = nom de la table, valeurs = liste des colonnes).
-	columns = format_table_info({table: models.database.get_columns(table) for table in tables})
-	app.logger.debug(columns)
-	values = {}
-	for table in (models.Asker, models.Playlist, models.PlaylistSong, models.Queue, models.Server, models.ServerPlaylist, models.Song, models.UserPlaylist):
-		table: models.BaseModel
-		table_data = []  # List to store all rows
-		table_columns = [col for col in columns[table._meta.table_name]]
-		rows = table.select(*[getattr(table, col) for col in table_columns])
-		app.logger.debug(f"Querying {table._meta.table_name} with columns: {table_columns}")
-		
-		for row in rows:
-			row_data = {}  # Dictionary for current row
-			for column in table_columns:
-				row_data[column] = getattr(row, column)
-			table_data.append(row_data)  # Add row to table data
-		
-		values[table._meta.table_name] = table_data  # Store all rows for this table
+	return await render_template('admin.html')
 
-	app.logger.debug(f"Values: {values}")
-	is_url = lambda x: isinstance(x, str) and (x.startswith("http://") or x.startswith("https://"))
-	stats = {key.decode(): value.decode() for key, value in (await get_cache_stats()).items()}
-	app.logger.debug(stats)
-	return await render_template('admin.html', tables=tables, columns=columns, values=values, is_url=is_url, stats=stats)
 
 @app.websocket('/admin')
 async def admin_ws():
@@ -303,20 +279,37 @@ async def admin_ws():
 		return 403
 	try:
 		while True:
-			# Get cache stats and convert bytes to strings
-			stats = {key.decode(): value.decode() 
-					for key, value in (await get_cache_stats()).items()}
-
-			# Send stats as JSON
-			await websocket.send_json(stats)
-
-			# Wait 30 seconds
-			await asyncio.sleep(30)
+			message = await websocket.receive()
+			if message == "refresh":
+				stats = {key.decode(): value.decode() for key, value in (await get_cache_stats()).items()}
+				tables = [table for table in models.database.get_tables() if table not in ("sqlite_sequence", "sqlite_master")]
+				columns_metadata = {table: models.database.get_columns(table) for table in tables}
+				columns_foreign = {table: models.database.get_foreign_keys(table) for table in tables}
+				# Pour chaque columns_metadata, si il existe une columns_foreign de la meme table et du meme nom, on remplace la colomn_metadata par la columns_foreign
+				columns = {table: [col for col in columns_metadata[table] if col.name not in [foreign.column for foreign in columns_foreign[table]]] + columns_foreign[table]
+				           						   for table in tables}
+				columns = format_table_info(columns)
+				values = {
+					table._meta.table_name: [
+						{col: (getattr(row, col).id if isinstance(getattr(row, col), models.BaseModel) else getattr(row, col))
+						 for col in columns[table._meta.table_name]}
+						for row in table.select(*[getattr(table, col) for col in columns[table._meta.table_name]])
+					]
+					for table in (models.Asker, models.Playlist, models.PlaylistSong, models.Queue, models.Server, models.ServerPlaylist, models.Song, models.UserPlaylist, models.SongListenCount)
+				}
+				for table_data in values.values():
+					for row in table_data:
+						for key, value in row.items():
+							if isinstance(value, datetime.datetime):
+								row[key] = value.isoformat()
+							elif isinstance(value, bytes):
+								row[key] = value.decode()
+				await websocket.send_json({"stats": stats, "tables": tables, "columns": columns, "values": values})
 	except Exception as e:
 		app.logger.error(f"WebSocket error: {e}")
-		await websocket.close()
+		await websocket.close(code=1001)
 
-def register_error_handlers(app):
+def register_error_handlers():
 	for code in range(400, 500):
 		try:
 			@app.errorhandler(code)
@@ -328,7 +321,7 @@ def register_error_handlers(app):
 		except ValueError:
 			continue
 
-register_error_handlers(app)
+register_error_handlers()
 
 async def token_from_code(code):
 	data = {
@@ -374,11 +367,12 @@ async def revoke_access_token(access_token):
 	await AsyncRequests.post(f"{app.API_ENDPOINT}/oauth2/token/revoke", data=data, headers=headers,
 							 auth=aiohttp.BasicAuth(str(app.CLIENT_ID), str(app.CLIENT_SECRET)))
 
-def format_table_info(tables_metadata: dict[BaseModel, list]) -> dict[BaseModel, dict[str, bool]]:
+def format_table_info(tables_metadata: dict[BaseModel, list[peewee.ColumnMetadata | peewee.ForeignKeyMetadata]]) -> dict[BaseModel, dict[str, bool | None]]:
 	formatted = {}
 	for table_name, columns in tables_metadata.items():
 		formatted[table_name] = {
-			col.name: col.primary_key
+			col.name if isinstance(col, peewee.ColumnMetadata) else col.column:
+				col.primary_key if isinstance(col, peewee.ColumnMetadata) else None
 			for col in columns
-        }
+		}
 	return formatted
