@@ -372,7 +372,7 @@ async def get_playlists(ctx: discord.AutocompleteContext) -> list[str]:
 	user_playlists = get_user_playlists(ctx.interaction.user.id)
 	print(user_playlists)
 	return ([playlist.playlist.name + " - SERVER" for playlist in config.playlists] +
-			[playlist.name + " - USER" for playlist in user_playlists])
+			[playlist.playlist.name + " - USER" for playlist in user_playlists])
 
 
 async def get_playlists_songs(ctx: discord.AutocompleteContext):
@@ -399,8 +399,8 @@ async def get_playlists_songs(ctx: discord.AutocompleteContext):
 	elif ctx.options['playlist'].endswith(" - USER"):
 		user_playlists = get_user_playlists(ctx.interaction.user.id)
 		for user_playlist in user_playlists:
-			if user_playlist.name == ctx.options['playlist'][:-7]:
-				return [song.song.name for song in user_playlist.songs]
+			if user_playlist.playlist.name == ctx.options['playlist'][:-7]:
+				return [song.song.name for song in user_playlist.playlist.songs]
 	else:
 		return []
 
