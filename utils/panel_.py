@@ -9,7 +9,7 @@ import aiomcache
 from .models import Song
 
 
-__all__ = ["RequestType", "PanelBotReqest", "PanelBotResponse", "ChannelData", "UserData", "GuildData", "ConfigData", "get_cache_stats"]
+__all__ = ["RequestType", "PanelBotRequest", "PanelBotResponse", "ChannelData", "UserData", "GuildData", "ConfigData", "get_cache_stats"]
 
 
 class RequestType(Enum):
@@ -19,7 +19,7 @@ class RequestType(Enum):
 
 
 @dataclass
-class PanelBotReqest:
+class PanelBotRequest:
 	"""Dataclass to represent a request from one side to the other.
 	
 	Attributes
@@ -44,7 +44,7 @@ class PanelBotReqest:
 		return f"Type: {self.type}, Content: {self.content}, Extra data: {self.extra}"
 
 	@classmethod
-	def create(cls, type_: RequestType, content: str, **kwargs) -> "PanelBotReqest":
+	def create(cls, type_: RequestType, content: str, **kwargs) -> "PanelBotRequest":
 		"""Class method to create a PanelBotReqest instance.
 		
 		Parameters
@@ -58,7 +58,7 @@ class PanelBotReqest:
 
 		Returns
 		-------
-		PanelBotReqest
+		PanelBotRequest
 			The PanelBotReqest instance
 		"""
 		return cls(type_, content, kwargs)

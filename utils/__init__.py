@@ -15,7 +15,7 @@ __all__ = [
 	'ChannelData',
 	'UserData',
 	'GuildData',
-	'PanelBotReqest',
+	'PanelBotRequest',
 	'PanelBotResponse',
 	'RequestType',
 	'ConfigData',

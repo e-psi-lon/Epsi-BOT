@@ -17,16 +17,16 @@ from dotenv import load_dotenv
 from quart import Quart, session, redirect, url_for, render_template, request, websocket
 from quart_session import Session  # type: ignore
 
-from utils import (PanelBotReqest,
-				   PanelBotResponse,
-				   UserData,
-				   RequestType,
-				   ConfigData,
-				   AsyncRequests,
-				   get_logger,
-				   Event,
-				   set_callback,
-				   )
+from utils import (PanelBotRequest,
+                   PanelBotResponse,
+                   UserData,
+                   RequestType,
+                   ConfigData,
+                   AsyncRequests,
+                   get_logger,
+                   Event,
+                   set_callback,
+                   )
 from utils.loggers import parse_args
 import utils.models as models
 from aiomultiprocess import Process
@@ -63,7 +63,7 @@ class Panel(Quart):
 		self.CLIENT_SECRET = os.environ['CLIENT_SECRET']
 		self.REDIRECT_URI = "http://86.196.98.254/auth/discord/callback"
 		self.timers: dict[int, TimerHandle] = {}
-		self.queue: Optional[multiprocessing.Queue[PanelBotReqest | PanelBotResponse]] = multiprocessing.Queue()
+		self.queue: Optional[multiprocessing.Queue[PanelBotRequest | PanelBotResponse]] = multiprocessing.Queue()
 		self.config['SESSION_TYPE'] = 'memcached'
 		self.start_time: Optional[datetime.datetime] = None
 		self.bot_event = Event()
@@ -108,7 +108,7 @@ class Panel(Quart):
 
 
 	async def get_from_bot(self, content: str, **kwargs) -> PanelBotResponse:
-		data = PanelBotReqest.create(RequestType.GET, content, **kwargs)
+		data = PanelBotRequest.create(RequestType.GET, content, **kwargs)
 		if self.queue is None:
 			raise ValueError("Queue is not set")
 		self.queue.put(data)
@@ -120,7 +120,7 @@ class Panel(Quart):
 		return response
 
 	async def post_to_bot(self, data: dict):
-		request_ = PanelBotReqest.create(RequestType.POST, json.dumps(data))
+		request_ = PanelBotRequest.create(RequestType.POST, json.dumps(data))
 		if self.queue is None:
 			raise ValueError("Queue is not set")
 		self.queue.put(request_)
@@ -130,7 +130,7 @@ class Panel(Quart):
 	async def read_queue(self) -> Optional[NoReturn]:
 		message = self.queue.get()
 		self.logger.info(f"Got {message} from connection")
-		if not isinstance(message, PanelBotReqest):
+		if not isinstance(message, PanelBotRequest):
 			raise TypeError("")
 		match message.type:
 			case RequestType.GET:
