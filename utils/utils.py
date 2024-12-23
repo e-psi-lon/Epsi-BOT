@@ -20,10 +20,8 @@ from discord.ext import commands
 from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError
 
 from .constants import EMBED_ERROR_BOT_NOT_CONNECTED
-
 from .async_ import AsyncRequests
 from .models import Asker, Server, Song, Playlist, Queue, SongListenCount, get_user_playlists
-
 from .loggers import get_logger
 
 pydub.AudioSegment.converter = "./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"
@@ -368,9 +366,7 @@ async def get_playlists(ctx: discord.AutocompleteContext) -> list[str]:
 		The list of playlists
 	"""
 	config: Server = Server.get(server_id=ctx.interaction.guild.id)
-	print(config.playlists)
 	user_playlists = get_user_playlists(ctx.interaction.user.id)
-	print(user_playlists)
 	return ([playlist.playlist.name + " - SERVER" for playlist in config.playlists] +
 			[playlist.playlist.name + " - USER" for playlist in user_playlists])
 

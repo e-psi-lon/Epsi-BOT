@@ -72,14 +72,14 @@ from .models import (Asker,
                      )
 
 from .panel_ import (ChannelData,
-					 UserData,
-					 GuildData,
-					 PanelBotReqest,
-					 PanelBotResponse,
-					 RequestType,
-					 ConfigData,
-					 get_cache_stats
-					 )
+                     UserData,
+                     GuildData,
+                     PanelBotRequest,
+                     PanelBotResponse,
+                     RequestType,
+                     ConfigData,
+                     get_cache_stats
+                     )
 
 from .utils import (download,
 					Sinks,
