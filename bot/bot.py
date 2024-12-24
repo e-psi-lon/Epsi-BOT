@@ -64,26 +64,28 @@ class Bot(commands.Bot):
 	async def on_ready(self) -> None:
 		await self.change_presence(
 			activity=discord.Activity(type=discord.ActivityType.watching, name=f"/help | {len(self.guilds)} servers"))
-		if os.popen("git branch --show-current").read().strip() == "main":
+		if os.popen("git branch --show-current").read().strip() == "main" and not check_update.is_running():
 			check_update.start()
 		await set_callback(self.event_listener, self.read_queue, self.loop)
-		try:
-			# noinspection PyTypeChecker
-			self.memcached = subprocess.Popen(
-				args= ["-d", "-p", "11211", "-I", "500m", "-m", "1024"],
-				executable="/usr/bin/memcached",
-				stdout=MemcachedStd(),
-				stderr=MemcachedStd("stderr")
-			)
-		except FileNotFoundError:
-			self.logger.error("Memcached not found, please install it")
-			self.memcached = None
-			exit(1)
+		if self.memcached is None:
+			try:
+				# noinspection PyTypeChecker
+				self.memcached = subprocess.Popen(
+					args= ["-d", "-p", "11211", "-I", "500m", "-m", "1024"],
+					executable="/usr/bin/memcached",
+					stdout=MemcachedStd(),
+					stderr=MemcachedStd("stderr")
+				)
+			except FileNotFoundError:
+				self.logger.error("Memcached not found, please install it")
+				self.memcached = None
+				exit(1)
 		self.logger.info(f"Bot ready in {datetime.now() - self.start_time}")
 		for guild in self.guilds:
 			# Si la guilde n'existe pas dans la db, on l'ajoute avec les paramètres par défaut
 			Server.get_or_create(server_id=guild.id)
-		update_top_songs.start(self)
+		if not update_top_songs.is_running():
+			update_top_songs.start(self)
 
 
 	async def get_from_panel(self, content: str, **kwargs):
