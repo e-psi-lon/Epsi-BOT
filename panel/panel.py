@@ -7,12 +7,14 @@ from asyncio import TimerHandle
 from logging.config import dictConfig
 from typing import NoReturn, Optional, Any
 
+import aiocache.serializers
 import aiohttp
 import discord
 import multiprocessing
 
 import peewee
 import pytubefix  # type: ignore
+from aiocache import MemcachedCache
 from dotenv import load_dotenv
 from quart import Quart, session, redirect, url_for, render_template, request, websocket
 from quart_session import Session  # type: ignore
@@ -111,12 +113,19 @@ class Panel(Quart):
 		data = PanelBotRequest.create(RequestType.GET, content, **kwargs)
 		if self.queue is None:
 			raise ValueError("Queue is not set")
+		# Avoid bot call if data already cached
+		async with MemcachedCache(serializer=aiocache.serializers.PickleSerializer()) as cache:
+			if await cache.exists(f"{content}:{kwargs}", namespace="panel"):
+				return await cache.get(f"{content}:{kwargs}", namespace="panel")
 		self.queue.put(data)
 		await self.bot_event.set()
 		self.logger.info(f"Getting {data} from bot")
 		await self.event.wait()
 		response: PanelBotResponse = self.queue.get()
+		await self.event.clear()
 		self.logger.info(f"Got {response} from bot")
+		async with MemcachedCache(serializer=aiocache.serializers.PickleSerializer()) as cache:
+			await cache.set(f"{content}:{kwargs}", response, namespace="panel")
 		return response
 
 	async def post_to_bot(self, data: dict):
@@ -175,18 +184,18 @@ async def panel():
 		user = await AsyncRequests.get(f"{app.API_ENDPOINT}/users/@me",
 									   headers={"Authorization": f"Bearer {token['access_token']}"})
 		user = UserData.from_api_response(user)
-		session['guilds'] = await app.get_from_bot("guilds", user_id=session['user_id'])
+		session['guilds'] = (await app.get_from_bot("guilds", user_id=session['user_id'])).content
 		session['user'] = user
 	if session.get('guilds', None) is None:
-		session['guilds'] = await app.get_from_bot("guilds", user_id=session['user_id'])
+		session['guilds'] = (await app.get_from_bot("guilds", user_id=session['user_id'])).content
+	app.logger.debug(f"Showing panel with user:\n- {session['user']}\nwho has guilds:\n- {session['guilds']}")
 	return await render_template('panel.html', servers=session['guilds'], user=session['user'])
 
 
 @app.route('/server/<int:server_id>', methods=['GET', 'POST'])
 async def server(server_id):
-	config: models.Server = models.Server.get(server_id=server_id)
-	if server_id not in [guild["id"] for guild in
-						 session.get(session['guilds'], [])] or 'token' not in session or config is None:
+	config: models.Server = models.Server.get_or_none(server_id=server_id)
+	if server_id not in [guild["id"] for guild in session.get('guilds', [])] or 'token' not in session or config is None:
 		return redirect(url_for('panel'))
 	if request.method == 'POST':
 		values = (await request.form).to_dict()
@@ -206,7 +215,7 @@ async def server(server_id):
 			config.queue = new_queue
 		config.save()
 		return redirect(url_for('server', server_id=server_id))
-	server_data = ConfigData(config.loop_song, config.loop_queue, config.random, config.position, list(map(lambda x: x.song, config.queue)),
+	server_data = ConfigData(config.loop_song, config.loop_queue, config.random, config.position, config.queue,
 							 server_id, (await app.get_from_bot("guild", server_id=server_id)).content.name, config.volume)
 	return await render_template('server.html', server=server_data, app=app, pytubefix=pytubefix)
 
@@ -240,7 +249,7 @@ async def callback():
 	code = request.args.get('code')
 	try:
 		token = await token_from_code(code)
-		timer = asyncio.get_event_loop().call_later(token['expires_in'], refresh_token, token['refresh_token'])
+		timer = asyncio.get_event_loop().call_later(token['expires_in'], asyncio.get_event_loop().create_task, refresh_token(token['refresh_token']))
 		session['token'] = token
 		user = await AsyncRequests.get(f"{app.API_ENDPOINT}/users/@me",
 									   headers={"Authorization": f"Bearer {token['access_token']}"})
@@ -267,7 +276,7 @@ async def logout():
 @app.route('/admin')
 async def admin():
 	app.logger.info(f"Admin page requested by {request.remote_addr}")
-	if not request.remote_addr.startswith("192.168.1."):
+	if not request.remote_addr.startswith("192.168.83."):
 		return 403
 	return await render_template('admin.html')
 
@@ -275,7 +284,7 @@ async def admin():
 @app.websocket('/admin')
 async def admin_ws():
 	app.logger.info(f"Admin websocket requested by {websocket.remote_addr}")
-	if not websocket.remote_addr.startswith("192.168.1."):
+	if not websocket.remote_addr.startswith("192.168.83."):
 		return 403
 	try:
 		while True:
@@ -350,8 +359,8 @@ async def refresh_token(token):
 	session['token'] = r
 	user_id = session['user'].id
 	session["user_id"] = user_id
-	timer = asyncio.get_event_loop().call_later(session['token']['expires_in'], refresh_token,
-											   session['token']['refresh_token'])
+	timer = asyncio.get_event_loop().call_later(session['token']['expires_in'], asyncio.get_event_loop().create_task,
+											   refresh_token(session['token']['refresh_token']))
 	app.timers[user_id] = timer
 	return r
 

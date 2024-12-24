@@ -3,14 +3,14 @@
 <head>
 	<meta charset="UTF-8">
 	<title>Epsi BOT - Accueil</title>
-	<link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet" type="text/css">
+	<link href="{{ url_for('static', filename='main.css') }}" rel="stylesheet" type="text/css">
 </head>
 <body>
 <h1>Epsi BOT</h1>
 <div class="main">
 	<p>Epsi BOT est un bot Discord qui permet de jouer de la musique dans un salon vocal.</p>
 	<p>Vous pouvez l'ajouter à votre serveur en cliquant sur le bouton ci-dessous.</p>
-	<button class="center connect" onclick="window.location.href={{ url_for('login') }}">Se connecter au panel</button>
+	<button class="center connect" onclick="window.location.href='{{ url_for('login') }}'">Ajouter Epsi BOT à votre serveur</button>
 </div>
 </body>
 </html>

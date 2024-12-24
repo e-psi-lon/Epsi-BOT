@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-	<link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet" type="text/css">
+	<link href="{{ url_for('static', filename='server.css') }}" rel="stylesheet" type="text/css">
 	<title>{{ server['name'] }}</title>
 </head>
 <body>
@@ -28,28 +28,26 @@
 	<input id="random"  {% if server.random %} checked {% endif %} name="random" type="checkbox">
 	<br>
 	<label for="position">Position : </label>
-	<input id="position" name="position" position type="number" value="{{ server.position }}">
+	<input id="position" name="position" type="number" value="{{ server.position }}">
 	<br>
 	<div class="queue">
-		{% for song in server.queue %}
-		<div class="song{% if song == server.queue.[server.position] %} current {% endif %}" draggable="true"
-			 id="{{ song.id }}>
+		{% for queue in server.queue %}
+		<div class="song{% if queue == server.queue[server.position] %} current {% endif %}" draggable="true" id="{{ queue.song.id }}">
 		<div class="preview_div">
-			{% if song.url.startswith("https://youtube.com/watch?v=") %}
+			{% if queue.song.url.startswith("https://youtube.com/watch?v=") %}
 			<iframe class="preview"
-					src="{{ pytubefix.YouTube(song.url).embed_html}}" title="{{ pytubefix.YouTube(song.url).title }}"
-					frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope;
+					src="{{ pytubefix.YouTube(queue.song.url).embed_url}}" title="{{ pytubefix.YouTube(queue.song.url).title }}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope;
 			picture-in-picture; web-share" allowfullscreen></iframe>
 			{% else %}
 			<img alt="Video Thumbnail" class="preview" src="{{ url_for('static', filename='default_thumbnail.png') }}">
 			{% endif %}
 		</div>
 		<div class="song_info">
-			<div class="title">{{ song.title }}</div>
-			<div class="url" draggable="false"><a draggable="false"  target="_blank" href={{ song.url }}>{{ song.url }}</a></div>
-			<div class="asker">Asked by {{ (await app.get_from_conn("user", user_id=song.asker.discord_id)).global_name }}
+			<div class="title">{{ pytubefix.YouTube(queue.song.url).title }}</div>
+			<div class="url" draggable="false"><a draggable="false"  target="_blank" href={{ queue.song.url }}>{{ queue.song.url }}</a></div>
+			<div class="asker">Asked by {{ app.get_from_bot("user", user_id=queue.asker.discord_id).global_name }}
 			</div>
-			<button class="remove" onclick="window.location.href='/server/{{ server.id }}/remove/{{ song.id }}'" type="button">Supprimer</button>
+			<button class="remove" onclick="window.location.href='/server/{{ server.id }}/remove/{{ queue.song.id }}'" type="button">Supprimer</button>
 		</div>
 	</div>
 	{% endfor %}
@@ -66,61 +64,6 @@
 	<input type="submit" value="Enregistrer">
 </form>
 <script>
-	const songs = document.querySelectorAll('.song');
-	const queue = document.querySelector('.queue');
-
-
-	let draggedSong = null;
-	let dropTarget = null;
-	let previewLine = null;
-
-	songs.forEach(song => {
-		song.addEventListener('dragstart', (e) => {
-			e.dataTransfer.setData('text/plain', e.target.id);
-			draggedSong = e.target;
-			previewLine = document.createElement('div');
-			previewLine.classList.add('preview_line');
-			previewLine.textContent = 'Drop here';
-			previewLine.addEventListener('dragend', (e) => {
-				e.preventDefault();
-				if (draggedSong) {
-					const rect = previewLine.getBoundingClientRect();
-					const isBefore = e.clientY - rect.top < rect.height / 2;
-					if (isBefore) {
-						queue.insertBefore(draggedSong, previewLine.nextElementSibling);
-					} else {
-						queue.insertBefore(draggedSong, previewLine);
-					}
-				}
-			});
-		});
-
-		song.addEventListener('dragend', () => {
-			draggedSong = null;
-			previewLine.remove();
-			dropTarget = null;
-		});
-
-		song.addEventListener('dragover', (e) => {
-			e.preventDefault();
-			dropTarget = e.target;
-			if (previewLine) {
-				if (dropTarget.classList.contains('song')) {
-					queue.insertBefore(previewLine, dropTarget);
-				} else {
-					queue.appendChild(previewLine);
-				}
-			}
-		});
-
-		song.addEventListener('dragleave', () => {
-			dropTarget = null;
-		});
-	});
-
-	queue.addEventListener('dragover', (e) => {
-		e.preventDefault();
-	});
 </script>
 </body>
 </html>

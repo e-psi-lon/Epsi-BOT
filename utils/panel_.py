@@ -6,7 +6,7 @@ from discord import Guild, User
 from discord.abc import GuildChannel
 import aiomcache
 
-from .models import Song
+from .models import Queue
 
 
 __all__ = ["RequestType", "PanelBotRequest", "PanelBotResponse", "ChannelData", "UserData", "GuildData", "ConfigData", "get_cache_stats"]
@@ -371,7 +371,7 @@ class ConfigData:
 		Method to convert the ConfigData instance to a dictionary.
 	"""
 
-	def __init__(self, loop_song: bool, loop_queue: bool, random: bool, position: int, queue: list[Song],
+	def __init__(self, loop_song: bool, loop_queue: bool, random: bool, position: int, queue: list[Queue],
 				 server_id: int, name: str, volume: int):
 		self.loop_song = loop_song
 		self.loop_queue = loop_queue

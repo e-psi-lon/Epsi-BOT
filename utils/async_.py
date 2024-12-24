@@ -5,6 +5,8 @@ from typing import Literal, Optional, Union, Callable, Coroutine, Any
 
 import aiohttp
 
+from .loggers import get_logger
+
 __all__ = ["run_sync", "run_async", "AsyncRequests", "Event", "set_callback"]
 
 
@@ -176,13 +178,14 @@ class Event:
 		return f"<Event {'set' if self.is_set() else 'clear'} is_response={self.is_response}>"
 	
 
-async def set_callback(event: Event, callback: Callable, event_loop: Optional[asyncio.AbstractEventLoop] = None):
+async def set_callback(event: Event, callback: Callable[[], Coroutine[Any, Any, None]], event_loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
 	""""
 	"""
 	async def _callback():
 		while True:
 			await event.wait()
-			if event.is_response:
+			if not event.is_response:
 				await callback()
+				get_logger("Callback").debug(f"The callback for {event} is being called")
 				await event.clear()
 	asyncio.run_coroutine_threadsafe(_callback(), event_loop or asyncio.get_event_loop())

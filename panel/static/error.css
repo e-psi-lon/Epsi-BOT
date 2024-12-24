@@ -1,0 +1,175 @@
+body {
+	font-family: Arial, sans-serif;
+}
+
+h1 {
+	background-color: #333;
+	color: #fff;
+	padding: 1vw;
+	text-align: center;
+}
+
+.center {
+	display: flex;
+	align-items: center;
+	flex-direction: column;
+}
+
+.server {
+	border-radius: 5%;
+	padding: 1vw;
+	margin: 1vw;
+}
+
+.server:hover {
+	background-color: #eee;
+}
+
+/* Quand on passe la souris sur un serveur, les angles de l'icône deviennent moins ronds mais avec un effet de transition */
+.server:hover .icon {
+	border-radius: 35%;
+	transition: border-radius 0.5s;
+}
+
+.icon {
+	width: 5vw;
+	height: 5vw;
+	margin-bottom: 1vw;
+	border-radius: 50%;
+}
+
+
+.name {
+	font-weight: bold;
+	text-align: center;
+}
+
+.serverList {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
+.ulServerList {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	flex-direction: row;
+}
+
+.user {
+	padding: 1vw;
+	margin: 1vw;
+}
+
+.queue {
+	align-items: flex-start;
+	padding: 1vw;
+	margin: 1vw;
+	flex-direction: column;
+	border: 1px solid #333;
+	border-radius: 5%;
+	background-color: #eee;
+}
+
+.song {
+	display: flex;
+	align-items: center;
+	padding: 1vw;
+	margin: 1vw;
+	flex-direction: row;
+	border-radius: 5%;
+	cursor: pointer;
+}
+
+.song:hover {
+	background-color: #ddd;
+}
+
+.current {
+	background-color: #eee;
+}
+
+.song_info {
+	display: flex;
+	align-items: flex-start;
+	padding: 1vw;
+	margin: 1vw;
+	flex-direction: column;
+}
+
+.title {
+	font-weight: bold;
+	text-align: center;
+}
+
+.url {
+	text-align: left;
+}
+
+.asker {
+	text-align: left;
+}
+
+.remove {
+	text-align: right;
+
+}
+
+.preview_div {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+
+.preview {
+	border-radius: 5%;
+	max-width: 20vw;
+	height: auto;
+}
+
+a {
+	color: #0000EE;
+}
+
+a:visited {
+	color: #0000EE;
+}
+
+a:hover {
+	color: #0000EE;
+}
+
+.main {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-direction: column;
+}
+
+.connect {
+	justify-content: center;
+	padding: 1vw;
+	margin: 1vw;
+	border-radius: 5%;
+	border: 1px solid #333;
+	background-color: #eee;
+}
+
+.connect:hover {
+	background-color: #ddd;
+}
+
+.connect:active {
+	background-color: #ccc;
+}
+
+.preview_line {
+	border: 1px solid #333;
+	border-radius: 5%;
+	background-color: #eee;
+	margin: 1vw;
+	padding: 1vw;
+	text-align: center;
+}
