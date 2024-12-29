@@ -52,7 +52,11 @@ class Todo(commands.Cog):
 			return await ctx.respond(embed=embed, delete_after=30)
 		message = await ctx.channel.fetch_message(1128641774789861488)
 		lines = message.embeds[0].fields
-		old_line = lines.pop(index - 1)
+		if 0 < index <= len(lines):
+			old_line = lines.pop(index - 1)
+		else:
+			embed = discord.Embed(title="Erreur", description="L'index fourni est hors des limites.", color=0xff0000)
+			return await ctx.respond(embed=embed, delete_after=30)
 		for index, line in enumerate(lines):
 			line.name = f"**`{index + 1}.`**"
 		await message.edit(embed=discord.Embed(title="To-Do List", description="Les points suivant sont les différentes"
@@ -71,8 +75,12 @@ class Todo(commands.Cog):
 		if ctx.channel.id != 1128286383161745479:
 			embed = discord.Embed(title="Modification d'une ligne", description="Cette commande ne peut être utilisée "
 																				"que dans le channel "
-																				"<#1128286383161745479>",
+																				"<#1128286383161745479>")
+		if index <= 0 or index > len(lines):
+			embed = discord.Embed(title="Erreur", description="L'index fourni est hors des limites.",
 								  color=0xff0000)
+			return await ctx.respond(embed=embed, delete_after=30)
+		if " - Assigned to <@" in lines[index - 1].value:
 			return await ctx.respond(embed=embed, delete_after=30)
 		message = await ctx.channel.fetch_message(1128641774789861488)
 		lines = message.embeds[0].fields
@@ -123,7 +131,8 @@ class Todo(commands.Cog):
 			                                  f" message {message.jump_url}")
 			await ctx.respond(embed=embed, delete_after=30)
 			assigned_user.append(str(user.id))
-		line.value = line.value[:line.value.find(" - Assigned to <@")] if " - Assigned to <@" in line.value else line.value
+		if " - Assigned to <@" in line.value:
+			line.value = line.value[:line.value.find(" - Assigned to <@")]
 		new_line = ""
 		if assigned_user:
 			if len(assigned_user) == 1:
