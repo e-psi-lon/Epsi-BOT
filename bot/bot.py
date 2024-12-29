@@ -7,7 +7,7 @@ import traceback
 import subprocess
 from multiprocessing import Queue as mpQueue
 from typing import Optional
-from utils import GuildData, UserData, PanelBotRequest, PanelBotResponse, RequestType, get_logger, Event, set_callback, \
+from utils import GuildData, UserData, PanelBotReqest, PanelBotResponse, RequestType, get_logger, Event, set_callback, \
 	Server, update_ttl, cache_exists, download
 from discord.ext import commands
 from discord.ext import tasks
@@ -35,7 +35,7 @@ async def update_top_songs(self: 'Bot') -> None:
 			.order_by(SongListenCount.count.desc())\
 			.limit(5)\
 			.prefetch(Song)
-
+		
 		top_songs_data = [
 			{"name": song.song.name, "url": song.song.url, "listen_count": song.count}
 			for song in top_songs
@@ -54,7 +54,7 @@ async def update_top_songs(self: 'Bot') -> None:
 class Bot(commands.Bot):
 	def __init__(self, queue, event: Event, bot_event: Event, *args, **options) -> None:
 		super().__init__(*args, **options)
-		self.queue: mpQueue[PanelBotRequest | PanelBotResponse] = queue
+		self.queue: mpQueue[PanelBotReqest | PanelBotResponse] = queue
 		self.panel_event: Event = event
 		self.event_listener: Event = bot_event
 		self.memcached: Optional[subprocess.Popen] = None
@@ -89,7 +89,7 @@ class Bot(commands.Bot):
 
 
 	async def get_from_panel(self, content: str, **kwargs):
-		data = PanelBotRequest.create(RequestType.GET, content, **kwargs)
+		data = PanelBotReqest.create(RequestType.GET, content, **kwargs)
 		if self.queue is None:
 			raise ValueError("Queue is not set")
 		self.queue.put(data)
@@ -101,7 +101,7 @@ class Bot(commands.Bot):
 		return response
 	
 	async def post_to_panel(self, data: dict | str):
-		request_ = PanelBotRequest.create(RequestType.POST, data)
+		request_ = PanelBotReqest.create(RequestType.POST, data)
 		if self.queue is None:
 			raise ValueError("Queue is not set")
 		self.queue.put(request_)

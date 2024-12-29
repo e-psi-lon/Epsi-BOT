@@ -42,7 +42,7 @@ class Others(commands.Cog):
 				return await ctx.respond(
 					embed=discord.Embed(title="Error", description="Error while downloading song.", color=0xff0000))
 		except pytubefix.exceptions.RegexMatchError:
-			videos = pytubefix.Search(query).videos
+			videos = pytubefix.Search(query).results
 			if not videos:
 				return await ctx.respond(
 					embed=discord.Embed(title="Error", description="No results found.", color=0xff0000))
