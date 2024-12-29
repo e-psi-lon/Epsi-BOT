@@ -150,5 +150,6 @@ class SongListenCount(BaseModel):
         table_name = 'SONG_LISTEN_COUNT'
         primary_key = False
 
-def get_user_playlists(discord_id: int) -> list['UserPlaylist']:
-    return UserPlaylist.select().join(Asker).where(UserPlaylist.user.discord_id == discord_id).prefetch(Playlist, Asker)
+def get_user_playlists(user_id: int) -> list['UserPlaylist']:
+    return UserPlaylist.select().join(Asker).where(Asker.discord_id == user_id).prefetch(Playlist)
+
