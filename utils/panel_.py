@@ -33,7 +33,7 @@ class PanelBotRequest:
 
 	Methods
 	-------
-	create(type_: RequestType, content: Any, **kwargs) -> PanelBotReqest (classmethod)
+	create(type_: RequestType, content: Any, **kwargs) -> PanelBotRequest (classmethod)
 		Class method to create a PanelBotReqest instance.
 	"""
 	type: RequestType
@@ -61,7 +61,7 @@ class PanelBotRequest:
 		PanelBotRequest
 			The PanelBotReqest instance
 		"""
-		return cls(type_, content, kwargs)
+		return cls(type_, content, extra=kwargs)
 
 
 T = TypeVar("T")
@@ -223,7 +223,7 @@ class UserData:
 		"""
 		return cls(
 			name=user.name,
-			global_name=user.global_name if hasattr(user, "global_name") else user.name,  # type: ignore
+			global_name=getattr(user, "global_name", user.name),
 			id=user.id,
 			avatar=getattr(user.avatar, "url", "")
 		)
@@ -247,8 +247,7 @@ class UserData:
 			name=response["username"],
 			global_name=response["global_name"],
 			id=int(response["id"]),
-			avatar=f"https://cdn.discordapp.com/avatars/{response['id']}/{response['avatar']}.png" if response.get(
-				"avatar", None) is not None else ""
+			avatar=f"https://cdn.discordapp.com/avatars/{response['id']}/{response['avatar']}.png" if response.get("avatar") else ""
 		)
 
 	@classmethod
@@ -392,7 +391,7 @@ class ConfigData:
 	def __str__(self) -> str:
 		return str(self.__getstate__())
 
-	def to_dict(self) -> object:
+	def to_dict(self) -> dict:
 		"""
 		Method to convert the ConfigData instance to a dictionary.
 		
@@ -401,7 +400,7 @@ class ConfigData:
 		dict
 			The dictionary representation of the ConfigData instance.
 		"""
-		return self.__getstate__()
+		return dict(self.__getstate__())
 
 
 async def get_cache_stats() -> dict[bytes, bytes]:
