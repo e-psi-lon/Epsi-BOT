@@ -30,7 +30,7 @@ def run_sync(coro: Coroutine):
 		return future.result()
 
 
-async def run_async(func: Callable):
+async def run_async(func: Callable) -> Any:
 	"""
 	Run a synchronous function asynchronously
 	
@@ -156,8 +156,7 @@ class Event:
 		self.is_response = None
 
 	async def wait(self) -> None:
-		while not self._event.is_set():
-			await asyncio.sleep(0.005)
+		await asyncio.get_event_loop().run_in_executor(None, self._event.wait)
 
 	def __await__(self) -> Any:
 		return self.wait().__await__()
@@ -179,7 +178,21 @@ class Event:
 	
 
 async def set_callback(event: Event, callback: Callable[[], Coroutine[Any, Any, None]], event_loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
-	""""
+	"""
+	Set a callback to be called when the event is set.
+
+	Parameters
+	----------
+	event : Event
+		The event to wait for.
+	callback : Callable[[], Coroutine[Any, Any, None]]
+		The callback to call when the event is set.
+	event_loop : Optional[asyncio.AbstractEventLoop]
+		The event loop to run the callback in. Default is None.
+
+	Returns
+	-------
+	None
 	"""
 	async def _callback():
 		while True:
