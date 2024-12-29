@@ -23,7 +23,13 @@ class MemcachedStd(io.TextIOBase):
 			self.write(line)
 
 	def fileno(self) -> int:
-		return sys.stdout.fileno()
+		if self.type == "stdout":
+			return sys.stdout.fileno()
+	def isatty(self) -> bool:
+		if self.type == "stdout":
+			return sys.stdout.isatty()
+		else:
+			return sys.stderr.isatty()
 	
 	def isatty(self) -> bool:
 		return sys.stdout.isatty()
