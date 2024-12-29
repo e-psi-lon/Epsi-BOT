@@ -32,13 +32,13 @@ class BaseModel(Model):
     @classmethod
     def get_or_create_important(cls, important_fields: list[str], **kwargs) -> tuple['BaseModel', bool]:
         importants = {key: kwargs.pop(key) for key in important_fields}
-        item = cls.get_or_create(**importants)
-        if not item[1]:
-            return item
+        item, created = cls.get_or_create(**importants)
+        if not created:
+            return item, created
         for key, value in kwargs.items():
-            setattr(item[0], key, value)
-        item[0].save()
-        return item
+            setattr(item, key, value)
+        item.save()
+        return item, created
 
     def __repr__(self):
         return str(self)
@@ -106,9 +106,23 @@ class Server(BaseModel):
 
     @queue.setter
     def queue(self, value: list[dict[str, str]]):
-        Queue.delete().where(Queue.server == self).execute()
-        for position, song in enumerate(value):
-            Queue.create(server=self, song=Song.get_or_create(name=song['name'], url=song['url'])[0], position=position, asker=Asker.get_or_create(discord_id=song['asker'])[0])
+        existing_queue = {q.position: q for q in Queue.select().where(Queue.server == self)}
+        new_queue = {position: song for position, song in enumerate(value)}
+
+        # Update existing entries and delete those not in the new queue
+        for position, queue_entry in existing_queue.items():
+            if position in new_queue:
+                song_data = new_queue[position]
+                queue_entry.song = Song.get_or_create(name=song_data['name'], url=song_data['url'])[0]
+                queue_entry.asker = Asker.get_or_create(discord_id=song_data['asker'])[0]
+                queue_entry.save()
+            else:
+                queue_entry.delete_instance()
+
+        # Create new entries
+        for position, song_data in new_queue.items():
+            if position not in existing_queue:
+                Queue.create(server=self, song=Song.get_or_create(name=song_data['name'], url=song_data['url'])[0], position=position, asker=Asker.get_or_create(discord_id=song_data['asker'])[0])
 
     @property
     def playlists(self) -> list['ServerPlaylist']:
