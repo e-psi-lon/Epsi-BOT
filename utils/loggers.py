@@ -11,14 +11,14 @@ class CustomFormatter(logging.Formatter):
 		super().__init__(*args, **kwargs)
 		self.source = source
 
-	format_ = "[{asctime}] {source} {levelname} : {message} ({path}:{lineno})\033[0m"
+	FORMAT = "[{asctime}] {source} {levelname} : {message} ({path}:{lineno})\033[0m"
 
 	FORMATS = {
-		logging.DEBUG: "\033[34m" + format_,  # Blue
-		logging.INFO: "\033[32m" + format_,  # Green
-		logging.WARNING: "\033[33m" + format_,  # Yellow
-		logging.ERROR: "\033[31m" + format_,  # Red
-		logging.CRITICAL: "\033[41m" + format_  # Red
+		logging.DEBUG: "\033[34m" + FORMAT,  # Blue
+		logging.INFO: "\033[32m" + FORMAT,  # Green
+		logging.WARNING: "\033[33m" + FORMAT,  # Yellow
+		logging.ERROR: "\033[31m" + FORMAT,  # Red
+		logging.CRITICAL: "\033[41m" + FORMAT  # Red
 	}
 
 	def format(self, record: logging.LogRecord) -> str:
@@ -35,7 +35,7 @@ class CustomFormatter(logging.Formatter):
 
 def parse_args() -> argparse.Namespace:
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--log-level", type=str, default="INFO", help="The log level of the bot", required=False)
+	parser.add_argument("--log-level", type=str, default="INFO", help="The log level of the bot (valid levels: DEBUG, INFO, WARNING, ERROR, CRITICAL)", required=False)
 	parsed = parser.parse_known_args()[0]
 	if not hasattr(parsed, "log_level") or parsed.log_level.upper() not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
 		setattr(parsed, "log_level", "INFO")
@@ -53,9 +53,11 @@ def get_logger(name: str, level: Optional[int] = parse_args().log_level.upper())
 		logger.setLevel(level)
 	else:
 		logger.setLevel(logging.INFO)
-	if logger.hasHandlers() and not isinstance(logger.handlers[0].formatter, CustomFormatter):
-		for handler in logger.handlers:
-			logger.removeHandler(handler)
+	for handler in logger.handlers:
+		if isinstance(handler.formatter, CustomFormatter):
+			break
+	else:
+		logger.handlers.clear()
 	handler = logging.StreamHandler()
 	handler.setFormatter(CustomFormatter(name))
 	logger.addHandler(handler)
