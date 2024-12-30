@@ -25,6 +25,9 @@ class MemcachedStd(io.TextIOBase):
 	def fileno(self) -> int:
 		if self.type == "stdout":
 			return sys.stdout.fileno()
+		else:
+			return sys.stderr.fileno()
+
 	def isatty(self) -> bool:
 		if self.type == "stdout":
 			return sys.stdout.isatty()
@@ -32,7 +35,10 @@ class MemcachedStd(io.TextIOBase):
 			return sys.stderr.isatty()
 	
 	def isatty(self) -> bool:
-		return sys.stdout.isatty()
+		if self.type == "stdout":
+			return sys.stdout.isatty()
+		else:
+			return sys.stderr.isatty()
 	
 	def readable(self) -> bool:
 		return True
