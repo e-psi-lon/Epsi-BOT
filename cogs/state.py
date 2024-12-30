@@ -1,4 +1,5 @@
 import asyncio
+import re
 import threading
 from datetime import datetime
 
@@ -38,8 +39,8 @@ class State(commands.Cog):
 			return await ctx.respond(
 				embed=discord.Embed(title="Error", description="Non mais tu me prends pour qui, je te connais hein",
 									color=0xff0000))
-		if url.startswith("https://www.youtube.com/") or url.startswith("https://youtu.be/") or url.startswith(
-				"https://youtube.com/"):
+		youtube_regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/((watch\?v=)|(embed/)|(v/)|(.+\?v=))?([^&=%\?]{11})')
+		if youtube_regex.match(url):
 			return await self.play_youtube(ctx, url)
 		if ctx.guild.voice_client is None:
 			return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)

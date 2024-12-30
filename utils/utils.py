@@ -3,6 +3,7 @@ import io
 import logging
 import os
 import random
+import re
 import zlib
 import base64
 import binascii
@@ -91,7 +92,9 @@ async def to_cache(url: str, bot: commands.Bot) -> io.BytesIO:
 		if await bot.loop.create_task(cache.exists(url, namespace="audio")):
 			return await bot.loop.create_task(cache.get(url, namespace="audio"))
 		buffer = io.BytesIO()
-		if not url.startswith("https://youtube.com/watch?v="):
+		buffer.seek(0)
+		youtube_regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/((watch\?v=)|(embed/)|(v/)|(.+\?v=))?([^&=%\?]{11})')
+		if not youtube_regex.match(url):
 			r: bytes = await AsyncRequests.get(url, return_type="content")
 			buffer.write(r)
 		else:
@@ -141,7 +144,8 @@ async def download(url: str, bot: commands.Bot, download_logger: logging.Logger 
 	Optional[io.BytesIO]
 		The downloaded video
 	"""
-	if not url.startswith("https://youtube.com/watch?v="):
+	yt_regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/((watch\?v=)|(embed/)|(v/)|(.+\?v=))?([^&=%\?]{11})')
+	if not yt_regex.match(url):
 		buffer: io.BytesIO = await to_cache(url, bot)
 		download_logger.info(f"Downloaded {url.split('/')[-1]}")
 		return buffer
@@ -558,7 +562,8 @@ def get_lyrics(title: str):
 
 def check_video(bot: commands.Bot, song: Song, ctx: discord.ApplicationContext, loop: asyncio.AbstractEventLoop):
 	try:
-		if song.url.startswith("https://youtube.com/watch?v="):
+		yt_regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/((watch\?v=)|(embed/)|(v/)|(.+\?v=))?([^&=%\?]{11})')
+		if yt_regex.match(song.url):
 			video = pytubefix.YouTube(song.url)
 			if video.age_restricted:
 				bot.loop.create_task(

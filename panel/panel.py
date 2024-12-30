@@ -5,6 +5,7 @@ import logging
 import os
 from asyncio import TimerHandle
 from logging.config import dictConfig
+import re
 from typing import NoReturn, Optional, Any
 
 import aiocache.serializers
@@ -217,7 +218,8 @@ async def server(server_id):
 		return redirect(url_for('server', server_id=server_id))
 	server_data = ConfigData(config.loop_song, config.loop_queue, config.random, config.position, config.queue,
 							 server_id, (await app.get_from_bot("guild", server_id=server_id)).content.name, config.volume)
-	return await render_template('server.html', server=server_data, app=app, pytubefix=pytubefix)
+	yt_regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/((watch\?v=)|(embed/)|(v/)|(.+\?v=))?([^&=%\?]{11})')
+	return await render_template('server.html', server=server_data, app=app, pytubefix=pytubefix, yt_regex=yt_regex)
 
 
 @app.route('/server/<int:server_id>/clear')
