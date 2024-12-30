@@ -89,8 +89,8 @@ async def to_cache(url: str, bot: commands.Bot) -> io.BytesIO:
 		The downloaded video
 	"""
 	async with MemcachedCache(serializer=Base64Serializer()) as cache:
-		if await bot.loop.create_task(cache.exists(url, namespace="audio")):
-			return await bot.loop.create_task(cache.get(url, namespace="audio"))
+		if await cache.exists(url, namespace="audio"):
+			return await cache.get(url, namespace="audio")
 		buffer = io.BytesIO()
 		buffer.seek(0)
 		youtube_regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/((watch\?v=)|(embed/)|(v/)|(.+\?v=))?([^&=%\?]{11})')
@@ -98,9 +98,8 @@ async def to_cache(url: str, bot: commands.Bot) -> io.BytesIO:
 			r: bytes = await AsyncRequests.get(url, return_type="content")
 			buffer.write(r)
 		else:
-			stream = pytubefix.YouTube(url)
-			stream = stream.streams.filter(only_audio=True).first()
-			buffer = io.BytesIO()
+			yt_video = pytubefix.YouTube(url)
+			stream = yt_video.streams.filter(only_audio=True).first()
 			stream.stream_to_buffer(buffer)
 		buffer.seek(0)
 		await bot.loop.create_task(cache.set(url, buffer, ttl=3600, namespace="audio"))
@@ -150,13 +149,13 @@ async def download(url: str, bot: commands.Bot, download_logger: logging.Logger 
 		download_logger.info(f"Downloaded {url.split('/')[-1]}")
 		return buffer
 	else:
-		stream = pytubefix.YouTube(url)
-		video_id = stream.video_id
-		if stream.age_restricted:
-			download_logger.warning(f"Video {stream.title} is age restricted (video id: {video_id})")
+		yt_video = pytubefix.YouTube(url)
+		video_id = yt_video.video_id
+		if yt_video.age_restricted:
+			download_logger.warning(f"Video {yt_video.title} is age restricted (video id: {video_id})")
 			return None
 		buffer = await to_cache(url, bot)
-		download_logger.info(f"Downloaded {stream.title}")
+		download_logger.info(f"Downloaded {yt_video.title}")
 		new_buffer = io.BytesIO(buffer.getvalue())
 		new_buffer.seek(0)
 		return new_buffer	
@@ -264,9 +263,9 @@ class SelectVideo(discord.ui.Select):
 		self.max_values = 1
 		self.ctx = ctx
 		self.download = download_file
-		options = []
+		options: list[discord.SelectOption] = []
 		for video in videos:
-			if video in options:
+			if any(option.value == video.watch_url for option in options):
 				continue
 			options.append(discord.SelectOption(label=video.title, value=video.watch_url))
 		self.options = options
@@ -450,7 +449,7 @@ async def change_song(ctx: discord.ApplicationContext):
 	else:
 		return
 	if server.random and len(server.queue) > 1:
-		server.position = random.choice(list(set(range(0, len(server.queue))) - {server.position}))
+		server.position = random.sample(set(range(0, len(server.queue))) - {server.position}, 1)[0]
 		server.save()
 	try:
 		await play_song(ctx, server.queue[server.position].song.url)
@@ -525,7 +524,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
 
 async def on_play_song_finished(ctx: discord.ApplicationContext, error=None):
 	"""Callback function to execute when a song is finished"""
-	if error is not None and error:
+	if error:
 		get_logger("Bot").error("Error:", error)
 		await ctx.respond(
 			embed=discord.Embed(title="Error", description="An error occurred while playing the song.", color=0xff0000))
