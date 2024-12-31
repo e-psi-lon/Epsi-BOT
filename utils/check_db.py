@@ -1,9 +1,8 @@
 import os
 import sqlite3
 
-
 def format_table(table):
-	# table est un dict avec comme clé le nom de la clé et comme valeur une liste des valeurs pour cette clé
+	# table is a dict with the key name as the key and a list of values for that key as the value
 	# On récupère les clés
 	keys = list(table.keys())
 	# On récupère la taille de chaque colonne
@@ -32,42 +31,52 @@ def format_table(table):
 		bottom_line += "-" * (size + 2) + "+"
 	# On crée le tableau
 	table = line + "\n" + keys_line + "\n" + line + "\n"
+	formatted_table = line + "\n" + keys_line + "\n" + line + "\n"
 	for values_line in values_lines:
-		table += values_line + "\n"
-	table += bottom_line
-	return table
-
+		formatted_table += values_line + "\n"
+	formatted_table += bottom_line
+	return formatted_table
 
 def check_db():
+	"""
+	Connects to the SQLite database, retrieves all tables and their data,
+	formats the data into a readable table format, and prints it to the console.
+	"""
 	# On récupère les tables
 	conn = sqlite3.connect("database/database.db")
-	cursor = conn.cursor()
-	cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-	tables = cursor.fetchall()
-	tables.append(("sqlite_master",))
-	print(f"Tables : {', '.join([table[0] for table in tables])}")
-	# On récupère les données de chaque table
-	for table in tables:
-		cursor.execute(f"SELECT * FROM {table[0]};")
-		data = cursor.fetchall()
-		print(f"\nTable {table[0]} :")
-		# On prend les noms des clés
-		cursor.execute(f"PRAGMA table_info({table[0]});")
-		keys = cursor.fetchall()
-		keys = [key[1] for key in keys]
-		# On transforme le tout en dict
-		table_dict = {}
-		for key in keys:
-			table_dict[key] = []
-		for line in data:
-			for i in range(len(keys)):
-				table_dict[keys[i]].append(line[i])
-		# On affiche le tableau
-		print(format_table(table_dict))
-	conn.close()
+	try:
+		cursor = conn.cursor()
+		cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+		tables = cursor.fetchall()
+		tables.append(("sqlite_master",))
+		print(f"Tables : {', '.join([table[0] for table in tables])}")
+		# On récupère les données de chaque table
+		table_data = []
+		for table in tables:
+			cursor.execute(f"SELECT * FROM {table[0]};")
+			data = cursor.fetchall()
+			print(f"\nTable {table[0]} :")
+			# On prend les noms des clés
+			cursor.execute(f"PRAGMA table_info({table[0]});")
+			keys = cursor.fetchall()
+			keys = [key[1] for key in keys]
+			# On transforme le tout en dict
+			table_dict = {}
+			for key in keys:
+				table_dict[key] = []
+			for line in data:
+				for i in range(len(keys)):
+					table_dict[keys[i]].append(line[i])
+			table_data.append(table_dict)
+		
+		# On affiche les tableaux
+		for table_dict in table_data:
+			print(format_table(table_dict))
+	finally:
+		conn.close()
 
 
 if __name__ == "__main__":
-	os.system("cls" if os.name == "nt" else "clear")
+	os.system("clear")
 	check_db()
 	input()
