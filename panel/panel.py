@@ -87,7 +87,7 @@ class Panel(Quart):
 			with open("database/database.db", "w") as f:
 				f.write("")
 			db = models.database
-			db.create_tables([models.Asker, models.Playlist, models.PlaylistSong, models.Queue, models.Server, models.ServerPlaylist, models.Song, models.UserPlaylist], safe=True)
+			db.create_tables([models.Asker, models.Playlist, models.PlaylistSong, models.Queue, models.Server, models.ServerPlaylist, models.Song, models.UserPlaylist, models.SongListenCount], safe=True)
 		await set_callback(self.event, self.read_queue, asyncio.get_event_loop())
 		bot: Bot = Bot(queue, self.event, self.bot_event, intents=discord.Intents.all())
 		await start(bot, start_time)
@@ -233,8 +233,8 @@ async def clear(server_id):
 @app.route('/server/<int:server_id>/add', methods=['POST'])
 async def add(server_id):
 	config = models.Server.get(server_id=server_id)
-	song: models.Song = models.Song.get_or_create(name=(await request.form)['name'], url=(await request.form)['url'])
-	asker: models.Asker = models.Asker.get_or_create(discord_id=session['user'].id)
+	song: models.Song = models.Song.get_or_create(name=(await request.form)['name'], url=(await request.form)['url'])[0]
+	asker: models.Asker = models.Asker.get_or_create(discord_id=session['user'].id)[0]
 	models.Queue.create(server=config, song=song, asker=asker).save()
 	return redirect(url_for('server', server_id=server_id))
 

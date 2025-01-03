@@ -327,7 +327,7 @@ class Playlists(commands.Cog):
 			new_playlist.save()
 			for song in Playlist.get(name=name).songs:
 				PlaylistSong.create(asker=song.asker, playlist=new_playlist, position=song.position, song=song.song)
-			UserPlaylist.create(playlist=new_playlist, user=Asker.get(discord_id=ctx.user.id)).save()
+			UserPlaylist.create(playlist=new_playlist, user=Asker.get_or_create(discord_id=ctx.user.id)[0]).save()
 		else:
 			new_playlist = Playlist.create(name=name)
 			new_playlist.save()

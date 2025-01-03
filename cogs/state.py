@@ -50,7 +50,7 @@ class State(commands.Cog):
 			return await ctx.respond(embed=discord.Embed(title="Error", description="Invalid URL.", color=0xff0000))
 		server: Server = Server.get(server_id=ctx.guild.id)
 		if not server.queue:
-			song = Song.get_or_create(name=url.split('/')[-1].split('?')[0], url=url)
+			song, _ = Song.get_or_create(name=url.split('/')[-1].split('?')[0], url=url)
 			Queue.create(server=server, song=song[0], position=0, asker=Asker.get_or_create(discord_id=ctx.author.id)[0])
 			await ctx.respond(embed=discord.Embed(title="Play",
 												  description=f"Playing song "
@@ -58,7 +58,7 @@ class State(commands.Cog):
 												  color=0x00ff00))
 			await play_song(ctx, url)
 			return await asyncio.sleep(1)
-		Queue.create(server=server, song=Song.get_or_create(name=url.split('/')[-1].split('?')[0], url=url)[0], position=0, asker=Asker.get_or_create(discord_id=ctx.author.id)[0])
+		Queue.create(server=server, song=Song.get_or_create(name=url.split('/')[-1].split('?')[0], url=url)[0], position=len(server.queue), asker=Asker.get_or_create(discord_id=ctx.author.id)[0])
 		await ctx.respond(embed=discord.Embed(title="Queue",
 											  description=f"Song [{url.split('/')[-1].split('?')[0]}]({url})"
 														  f" added to queue.",
@@ -78,14 +78,14 @@ class State(commands.Cog):
 		url = file.url
 		server: Server = Server.get(server_id=ctx.guild.id)
 		if not server.queue:
-			song = Song.get_or_create(name=file.filename, url=url)
+			song, _ = Song.get_or_create(name=file.filename, url=url)
 			Queue.create(server=server, song=song[0], position=0, asker=Asker.get_or_create(discord_id=ctx.author.id)[0])
 			await ctx.respond(embed=discord.Embed(title="Play",
 												  description=f"Playing song [{file.filename}]({url})",
 												  color=0x00ff00))
 			await play_song(ctx, url)
 			return await asyncio.sleep(1)
-		Queue.create(server=server, song=Song.get_or_create(name=file.filename, url=url)[0], position=0, asker=Asker.get_or_create(discord_id=ctx.author.id)[0])
+		Queue.create(server=server, song=Song.get_or_create(name=file.filename, url=url)[0], position=len(server.queue), asker=Asker.get_or_create(discord_id=ctx.author.id)[0])
 		await ctx.respond(embed=discord.Embed(title="Queue",
 											  description=f"Song [{file.filename}]({url}) added to queue.",
 											  color=0x00ff00))
@@ -107,11 +107,11 @@ class State(commands.Cog):
 									  color=0xff0000))
 				if not server.queue:
 					server.position = 0
-					song = Song.get_or_create(name=pytubefix.YouTube(url).title, url=url)
+					song, _ = Song.get_or_create(name=pytubefix.YouTube(url).title, url=url)
 					Queue.create(server=server, song=song[0], position=0,
 								 asker=Asker.get_or_create(discord_id=ctx.author.id)[0])
 				else:
-					song = Song.get_or_create(name=pytubefix.YouTube(url).title, url=url)
+					song, _ = Song.get_or_create(name=pytubefix.YouTube(url).title, url=url)
 					Queue.create(server=server, song=song[0], position=len(server.queue),
 								 asker=Asker.get_or_create(discord_id=ctx.author.id)[0])
 				if not ctx.guild.voice_client.is_playing():
@@ -145,7 +145,7 @@ class State(commands.Cog):
 									color=0x00ff00), view=view)
 
 	def _download(self, url: str):
-		asyncio.run(download(url, self.bot, download_logger=get_logger("Audio-Downloader")))
+		asyncio.run(download(url))
 
 	@commands.slash_command(name="pause", description="Pauses the current song")
 	async def pause(self, ctx: discord.ApplicationContext):
