@@ -12,6 +12,7 @@ from utils import Server, EMBED_ERROR_QUEUE_EMPTY, EMBED_ERROR_BOT_NOT_CONNECTED
 class Queue(commands.Cog):
 	def __init__(self, bot: Bot):
 		self.bot = bot
+		self.description = "Commands related to queue manipulation"
 
 	@commands.slash_command(name="queue", description="Shows the current queue")
 	async def queue(self, ctx: discord.ApplicationContext):

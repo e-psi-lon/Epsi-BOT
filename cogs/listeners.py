@@ -13,6 +13,7 @@ from utils import disconnect_from_channel, Server
 class Listeners(commands.Cog):
 	def __init__(self, bot: Bot):
 		self.bot = bot
+		self.description = "Listeners, doesn't contain any commands"
 
 	@commands.Cog.listener("on_message")
 	async def on_message(self, message:discord.Message):

@@ -27,6 +27,7 @@ from utils import (Sinks,
 class State(commands.Cog):
 	def __init__(self, bot: Bot):
 		self.bot = bot
+		self.description = "Commands related to the playing state of the bot"
 		self.connections = {}
 
 	play = SlashCommandGroup(name="play", description="Commands related to the audio of the bot")

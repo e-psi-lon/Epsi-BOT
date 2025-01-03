@@ -8,6 +8,7 @@ from utils import EMBED_ERROR_BOT_NOT_CONNECTED, play_song, Server, download_bat
 class Channel(commands.Cog):
 	def __init__(self, bot: Bot):
 		self.bot = bot
+		self.description = "Voice channel related commands"
 
 	@commands.slash_command(name="leave", description="Leaves the voice channel")
 	async def leave(self, ctx: discord.ApplicationContext):

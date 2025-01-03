@@ -11,6 +11,7 @@ from utils import Server, EMBED_ERROR_BOT_NOT_CONNECTED, convert, Research, get_
 class Others(commands.Cog):
 	def __init__(self, bot: Bot):
 		self.bot = bot
+		self.description = "Other commands"
 
 	@commands.slash_command(name="download_file", description="Download the audio of a youtube video")
 	async def download_file(self, ctx: discord.ApplicationContext, query,

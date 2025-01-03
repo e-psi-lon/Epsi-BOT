@@ -9,6 +9,7 @@ from bot.bot import Bot
 
 class Todo(commands.Cog):
 	def __init__(self, bot: Bot):
+		self.description = "Commands related to the internal to-do list"
 		self.bot = bot
 
 	todo = SlashCommandGroup(name="todo", description="Commands related to the to-do list",

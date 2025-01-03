@@ -18,6 +18,7 @@ def cogs_autocomplete(ctx: discord.AutocompleteContext):
 class Admin(commands.Cog):
 	def __init__(self, bot: Bot):
 		self.bot = bot
+		self.description = "Bot administration commands"
 
 	@commands.slash_command(name="remove_cache", description="Removes the audio cache", guild_ids=[761485410596552736])
 	async def remove_cache(self, ctx: discord.ApplicationContext):

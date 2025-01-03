@@ -25,6 +25,7 @@ from utils.utils import download_batch
 class Playlists(commands.Cog):
 	def __init__(self, bot: Bot):
 		self.bot = bot
+		self.description = "Commands related to playlists"
 
 	playlist = SlashCommandGroup(name="playlist", description="Commands related to playlists")
 
