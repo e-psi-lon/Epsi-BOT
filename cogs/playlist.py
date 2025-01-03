@@ -83,11 +83,13 @@ class Playlists(commands.Cog):
 			db_playlist: Playlist = Playlist.create(name=name)
 			for video in playlist.videos:
 				song, _ = Song.get_or_create(name=video.title, url=video.watch_url)
-				PlaylistSong.create(asker=Asker.get_or_create(discord_id=ctx.user.id)[0], playlist=db_playlist, song=song)
+				asker, _ = Asker.get_or_create(discord_id=ctx.user.id)
+				PlaylistSong.create(asker=asker, playlist=db_playlist, song=song)
 			if playlist_type == "server":
 				ServerPlaylist.create(playlist=db_playlist, server=server)
 			else:
-				UserPlaylist.create(playlist=db_playlist, user=Asker.get_or_create(discord_id=ctx.user.id)[0])
+				user, _ = Asker.get_or_create(discord_id=ctx.user.id)
+				UserPlaylist.create(playlist=db_playlist, user=user)
 			await ctx.respond(
 				embed=discord.Embed(title="Playlist", description=f"Playlist {name} created.", color=0x00ff00))
 		except PytubeRegexMatchError:
@@ -147,7 +149,8 @@ class Playlists(commands.Cog):
 			try:
 				song, _ = Song.get_or_create(name=pytubefix.YouTube(query).title, url=url)
 				playlist = Playlist.get(name=name)
-				PlaylistSong.create(asker=Asker.get_or_create(discord_id=ctx.user.id)[0], playlist=playlist, song=song)
+				asker, _ = Asker.get_or_create(discord_id=ctx.user.id)
+				PlaylistSong.create(asker=asker, playlist=playlist, song=song)
 				await ctx.respond(embed=discord.Embed(title="Playlist", description=f"Song added to playlist {name}.",
 													  color=0x00ff00))
 			except IndexError:
