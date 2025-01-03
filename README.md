@@ -1,76 +1,91 @@
-# Epsi-BOT
+# Epsi-BOT 
+[![License](https://img.shields.io/github/license/e-psi-lon/Epsi-BOT)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.13%2B-blue)](https://www.python.org/downloads/)
+[![Pycord Version](https://img.shields.io/badge/py--cord-2.6.1-blue)](https://docs.pycord.dev/en/stable/)
+[![Activity](https://img.shields.io/github/commit-activity/m/e-psi-lon/Epsi-BOT/dev)](https://github.com/e-psi-lon/Epsi-BOT/graphs/commit-activity)
 
-## Format de sauvegarde des infos
 
-Tout est dans une base de données sqlite3, dans le fichier [`database/database.db`](database/database.db) (non présent
-sur le repo, mais créé automatiquement s'il n'existe pas).
-Il y a 8 tables :
+## Database Schema
 
-- `SERVER` qui contient les infos des guilds et qui se présente sous la forme suivante :
+The bot uses SQLite3 for data persistence [`database/database.db`](database/database.db). Database file is created automatically if not present.
 
-  | Colonne    | Type    |
-  |------------|---------|
-  | __id__	    | INTEGER |
-  | loop_song  | BOOLEAN |
-  | loop_queue | BOOLEAN |
-  | random	    | BOOLEAN |
-  | volume	    | INTEGER |
-  | position   | INTEGER |
+### Core Tables
 
-- `SONG` qui contient les informations des chansons :
+**Server** - Discord guild settings
 
-  | Colonne | Type         |
-  |---------|--------------|
-  | __id__  | INTEGER      |
-  | name    | VARCHAR(255) |
-  | url     | TEXT         |
+SERVER_ID (PK) | LOOP_SONG | LOOP_QUEUE | RANDOM | VOLUME | POSITION
+-------------- | --------- | ---------- | ------ | ------ | --------
+INTEGER        | BOOLEAN   | BOOLEAN    | BOOLEAN| INTEGER| INTEGER
 
-- `PLAYLIST` qui contient les informations des playlists :
 
-  | Colonne | Type          |
-  |---------|---------------|
-  | __id__  | INTEGER       |
-  | name    | VARCHAR(255)  |
+**Song** - Audio track information
 
-- `ASKER` qui contient les informations des utilisateurs :
+SONG_ID (PK) | NAME    | URL (UQ)
+------------ | ------- | --------
+INTEGER      | VARCHAR | TEXT
 
-  | Colonne    | Type    | 
-  |------------|---------|
-  | __id__     | INTEGER |
-  | discord_id | INTEGER |
 
-- `PLAYLIST_SONG` qui contient les informations des chansons dans les playlists :
+**Asker** - Discord user mapping
 
-  | Colonne           | Type    |
-  |-------------------|---------|
-  | # __playlist_id__ | INTEGER |
-  | # __song_id__     | INTEGER |
-  | position          | INTEGER |
-  | asker             | INTEGER |
+ASKER_ID (PK) | DISCORD_ID (UQ)
+------------- | -------------
+INTEGER       | INTEGER
 
-- `SERVER_PLAYLIST` qui contient les informations des playlists dans les guilds :
 
-  | Colonne           | Type    |
-  |-------------------|---------|
-  | # __server_id__   | INTEGER |
-  | # __playlist_id__ | INTEGER |
+### Playlists
 
-- `USER_PLAYLIST` qui contient les informations des playlists dans les guilds :
+**Playlist** - Named collections of songs
 
-  | Colonne            | Type    |
-  |--------------------|---------|
-  | # __user_id__      | INTEGER |
-  | # __playlist_id__  | INTEGER |
+PLAYLIST_ID (PK) | NAME
+---------------- | -------
+INTEGER          | VARCHAR
 
-- `QUEUE` qui contient les informations de la file d'attente des chansons :
 
-  | Colonne         | Type    |
-  |-----------------|---------|
-  | # __server_id__ | INTEGER |
-  | # __song_id__   | INTEGER |
-  | # asker_id      | INTEGER |
-  | position        | INTEGER |
+**PlaylistSong** - Playlist song assignments
 
-## Contributeurs
+PLAYLIST_ID (FK) | SONG_ID (FK) | POSITION | ASKER (FK)
+---------------- | ------------ | -------- | ----------
+INTEGER          | INTEGER      | INTEGER  | INTEGER
 
-[![Contributeurs](https://contrib.rocks/image?repo=e-psi-lon/Epsi-BOT)](https://github.com/e-psi-lon/Epsi-BOT/graphs/contributors)
+
+### Relationships
+
+**ServerPlaylist** - Server playlist assignments
+
+SERVER_ID (FK) | PLAYLIST_ID (FK)
+-------------- | ---------------
+INTEGER        | INTEGER
+
+
+**UserPlaylist** - User playlist ownership
+
+USER_ID (FK) | PLAYLIST_ID (FK) 
+------------ | ---------------
+INTEGER      | INTEGER
+
+
+**Queue** - Server song queue
+
+SERVER_ID (FK) | SONG_ID (FK) | ASKER (FK) | POSITION
+-------------- | ------------ | ---------- | --------
+INTEGER        | INTEGER      | INTEGER    | INTEGER
+
+
+**SongListenCount** - Play count tracking
+
+SONG_ID (FK) | COUNT
+------------ | -------
+INTEGER      | INTEGER
+
+
+Legend:
+- PK: Primary Key
+- FK: Foreign Key 
+- UQ: Unique Constraint
+
+## Contributors
+[![Contributors](https://contrib.rocks/image?repo=e-psi-lon/Epsi-BOT)](https://github.com/e-psi-lon/Epsi-BOT/graphs/contributors)
+
+## License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
