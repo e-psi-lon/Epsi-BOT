@@ -2,8 +2,7 @@ import discord
 from discord.ext import commands
 
 from bot.bot import Bot
-from utils import OWNER_ID, Base64Serializer, EMBED_ERROR_NOT_BOT_OWNER, Server
-from aiocache import MemcachedCache
+from utils import OWNER_ID, EMBED_ERROR_NOT_BOT_OWNER, Server, AudioCache
 
 removed_count = 0
 
@@ -30,7 +29,7 @@ class Admin(commands.Cog):
 			ctx.voice_client.stop()
 		for queue_elem in server.queue:
 			queue_elem.delete().execute()
-		async with MemcachedCache(serializer=Base64Serializer()) as cache:
+		async with AudioCache(1) as cache:
 			await cache.clear()
 		embed = discord.Embed(title="Cache removed", description="Removed the audio cache.", color=0x00ff00)
 		await ctx.respond(embed=embed, delete_after=30)

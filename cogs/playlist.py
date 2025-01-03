@@ -1,4 +1,3 @@
-from concurrent.futures import ThreadPoolExecutor
 import asyncio
 
 import discord
@@ -11,7 +10,6 @@ from bot.bot import Bot
 from utils import (Playlist,
                    Song,
                    Asker,
-                   check_video,
                    play_song,
                    get_playlists,
                    get_playlists_songs,
@@ -22,6 +20,7 @@ from utils import (Playlist,
                    Server,
                    get_user_playlists, PlaylistSong, ServerPlaylist, UserPlaylist,
                    )
+from utils.utils import download_batch
 
 class Playlists(commands.Cog):
 	def __init__(self, bot: Bot):
@@ -81,13 +80,14 @@ class Playlists(commands.Cog):
 				return await ctx.respond(
 					embed=discord.Embed(title="Error", description="A playlist with this name already exists.",
 										color=0xff0000))
+			db_playlist: Playlist = Playlist.create(name=name)
 			for video in playlist.videos:
-				song = Song.get_or_create(name=video.title, url=video.watch_url)
-				PlaylistSong.create(asker=Asker.get(discord_id=ctx.user.id), playlist=playlist, song=song)
+				song, _ = Song.get_or_create(name=video.title, url=video.watch_url)
+				PlaylistSong.create(asker=Asker.get_or_create(discord_id=ctx.user.id)[0], playlist=db_playlist, song=song)
 			if playlist_type == "server":
-				ServerPlaylist.create(playlist=playlist, server=server)
+				ServerPlaylist.create(playlist=db_playlist, server=server)
 			else:
-				UserPlaylist.create(playlist=playlist, user=Asker.get(discord_id=ctx.user.id))
+				UserPlaylist.create(playlist=db_playlist, user=Asker.get_or_create(discord_id=ctx.user.id)[0])
 			await ctx.respond(
 				embed=discord.Embed(title="Playlist", description=f"Playlist {name} created.", color=0x00ff00))
 		except PytubeRegexMatchError:
@@ -145,9 +145,9 @@ class Playlists(commands.Cog):
 		try:
 			url = pytubefix.YouTube(query).watch_url
 			try:
-				song: Song = Song.get_or_create(name=pytubefix.YouTube(query).title, url=url)
+				song, _ = Song.get_or_create(name=pytubefix.YouTube(query).title, url=url)
 				playlist = Playlist.get(name=name)
-				PlaylistSong.create(asker=Asker.get(discord_id=ctx.user.id), playlist=playlist, song=song)
+				PlaylistSong.create(asker=Asker.get_or_create(discord_id=ctx.user.id)[0], playlist=playlist, song=song)
 				await ctx.respond(embed=discord.Embed(title="Playlist", description=f"Song added to playlist {name}.",
 													  color=0x00ff00))
 			except IndexError:
@@ -228,17 +228,8 @@ class Playlists(commands.Cog):
 								color=0x00ff00))
 		futures: list[asyncio.Future] = []
 		if len(server.queue) > 1:
-			with ThreadPoolExecutor() as pool:
-				for song in server.queue[1:]:
-					loop = asyncio.get_event_loop()
-					futures.append(loop.run_in_executor(pool, check_video, self.bot, song.song, ctx, loop))
-				for future in asyncio.as_completed(futures):
-					try:
-						await future
-					except Exception as e:
-						self.bot.logger.warning(f"Error while checking video: {e}")
-
-					
+			queue = [queue.song.url for queue in server.queue[1:]]
+			await download_batch(queue)
 
 	@playlist.command(name="list", description="Lists all the playlists")
 	async def list_playlist(self, ctx: discord.ApplicationContext,

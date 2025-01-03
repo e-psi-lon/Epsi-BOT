@@ -8,7 +8,7 @@ import subprocess
 from multiprocessing import Queue as mpQueue
 from typing import Optional
 from utils import GuildData, UserData, PanelBotRequest, PanelBotResponse, RequestType, get_logger, Event, set_callback, \
-	Server, update_ttl, cache_exists, download
+	Server, download_batch, AudioCache
 from discord.ext import commands
 from discord.ext import tasks
 from utils.models import Song, SongListenCount
@@ -41,11 +41,18 @@ async def update_top_songs(self: 'Bot') -> None:
 			for song in top_songs
 		]
 
-		for song in top_songs_data:
-			if await cache_exists(song["url"], namespace="audio"):
-				await update_ttl(song["url"], 60*60*24*3, namespace="audio") 
-			else:
-				await download(song["url"], self)
+		async with AudioCache(len(top_songs_data)) as cache:
+			to_download = []
+			# First update TTL for cached songs and collect uncached ones
+			for song in top_songs_data:
+				if await cache.exists(song["url"]):
+					await cache.update_ttl(song["url"], 60*60*24*3)
+				else:
+					to_download.append(song["url"])
+				
+		# Batch download uncached songs
+		if to_download:
+			await download_batch(to_download)
 		self.logger.info("Top 5 songs updated and cached.")
 		# Reset listen counts
 		SongListenCount.delete().execute()

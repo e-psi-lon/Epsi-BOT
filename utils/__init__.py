@@ -20,6 +20,7 @@ __all__ = [
 	'RequestType',
 	'ConfigData',
 	'download',
+    'download_batch',
 	'Sinks',
 	'finished_record_callback',
 	'disconnect_from_channel',
@@ -32,7 +33,6 @@ __all__ = [
 	'parse_args',
 	'FfmpegFormats',
 	'convert',
-	"check_video",
 	'CustomFormatter',
 	'get_lyrics',
 	'AsyncRequests',
@@ -51,13 +51,10 @@ __all__ = [
 	'EMBED_ERROR_NO_RESULTS_FOUND',
 	'EMBED_ERROR_VIDEO_TOO_LONG',
 	'EMBED_ERROR_NOT_BOT_OWNER',
-	'Base64Serializer',
+    'AudioCache',
 	'get_logger',
-	'check_video',
 	'CustomFormatter',
     'get_cache_stats',
-    "update_ttl",
-    "cache_exists"
 ]
 
 from .models import (Asker,
@@ -82,6 +79,7 @@ from .panel_ import (ChannelData,
                      )
 
 from .utils import (download,
+                    download_batch,
 					Sinks,
 					finished_record_callback,
 					disconnect_from_channel,
@@ -94,10 +92,7 @@ from .utils import (download,
 					FfmpegFormats,
 					convert,
 					get_lyrics,
-					check_video,
-					Base64Serializer,
-                    update_ttl,
-                    cache_exists
+                    AudioCache
 					)
 
 from .async_ import (AsyncRequests,

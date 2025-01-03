@@ -1,4 +1,5 @@
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 import io
 import logging
 import os
@@ -10,6 +11,7 @@ import binascii
 from enum import Enum
 from typing import Optional
 
+import concurrent.futures
 import discord
 import discord.ext.pages
 from ffmpeg.asyncio import FFmpeg
@@ -28,7 +30,7 @@ from .loggers import get_logger
 pydub.AudioSegment.converter = "./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"
 
 __all__ = [
-	"Base64Serializer",
+	"AudioCache",
 	"download",
 	"Sinks",
 	"finished_record_callback",
@@ -41,91 +43,87 @@ __all__ = [
 	"play_song",
 	"FfmpegFormats",
 	"convert",
-	"get_lyrics",
-	"check_video",
-	"update_ttl",
-	"cache_exists"
+	"get_lyrics"
 ]
 
 
+class AudioCache(MemcachedCache):
+	"""Class to manage the audio cache"""
+	def __init__(self, pool_size: int=5):
+		super().__init__(
+			serializer=AudioCache.Base64Serializer(),
+			namespace="audio",
+			endpoint="127.0.0.1",
+			port=11211,
+			pool_size=pool_size,
+			timeout=15
+		)
+		self.logger = get_logger("Memcached Audio Cache")
 
-class Base64Serializer(JsonSerializer):
-	def dumps(self, value):
-		if isinstance(value, io.BytesIO):
-			logger = get_logger("Memcached")
-			logger.debug(f"Audio size: {len(value.getvalue())} bytes")
-			compressed = zlib.compress(base64.b64encode(value.getvalue()))
-			logger.debug(f"Compressed audio size: {len(compressed)} bytes")
-			return binascii.hexlify(compressed).decode()
-		return super().dumps(value)
+	async def get(self, key: str) -> io.BytesIO | None:
+		"""Get a value from the cache"""
+		return (await super().get(key)) or None
+	
+	async def set(self, key: str, value: io.BytesIO, ttl: int = 3600):
+		"""Set a value in the cache"""
+		await super().set(key, value, ttl=ttl)	
+		self.logger.debug(f"Set {key} in cache")
 
-	def loads(self, value: str):
-		try:
-			val = io.BytesIO(base64.b64decode(zlib.decompress(binascii.unhexlify(value.encode()))))
-			val.seek(0)
-			return val
-		except (TypeError, binascii.Error, zlib.error):
-			return super().loads(value)
+	async def exists(self, key: str) -> bool:
+		"""Check if a key exists in the cache"""
+		return await super().exists(key)
+	
+	def update_ttl(self, key: str, new_ttl: int):
+		"""Update the ttl of a key in the cache"""
+		key = self.build_key(key, namespace=self.namespace)
+		self.client.touch(key.encode(), new_ttl)
+	
+	async def clear(self):
+		"""Clear the cache"""
+		await super().clear()
 
+	def __aenter__(self):
+		return super().__aenter__()
 
+	def __aexit__(self, exc_type, exc_val, exc_tb):
+		return super().__aexit__(exc_type, exc_val, exc_tb)
+	
+	class Base64Serializer(JsonSerializer):
+		def dumps(self, value):
+			if isinstance(value, io.BytesIO):
+				logger = get_logger("Memcached")
+				logger.debug(f"Audio size: {len(value.getvalue())} bytes")
+				compressed = zlib.compress(base64.b64encode(value.getvalue()))
+				logger.debug(f"Compressed audio size: {len(compressed)} bytes")
+				return binascii.hexlify(compressed).decode()
+			return super().dumps(value)
 
+		def loads(self, value: str):
+			try:
+				val = io.BytesIO(base64.b64decode(zlib.decompress(binascii.unhexlify(value.encode()))))
+				val.seek(0)
+				return val
+			except (TypeError, binascii.Error, zlib.error, AttributeError):
+				return super().loads(value)
 
-async def to_cache(url: str, bot: commands.Bot) -> io.BytesIO:
-	"""
-	Download a video from a YouTube (or other) URL and save it in the cache, 
-	or get it from the cache if it already exists.\n
-	Then return the video as a BytesIO object.
+async def to_cache(url: str, cache: AudioCache) -> io.BytesIO:
+	data = await cache.get(url)
+	if data is not None:
+		return data
+	buffer = io.BytesIO()
+	buffer.seek(0)
+	youtube_regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/((watch\?v=)|(embed/)|(v/)|(.+\?v=))?([^&=%\?]{11})')
+	if not youtube_regex.match(url):
+		r: bytes = await AsyncRequests.get(url, return_type="content")
+		buffer.write(r)
+	else:
+		yt_video = pytubefix.YouTube(url)
+		stream = yt_video.streams.filter(only_audio=True).first()
+		stream.stream_to_buffer(buffer)
+	buffer.seek(0)
+	await cache.set(url, buffer, ttl=3600)
 
-	Parameters
-	----------
-	url : str
-		The URL of the video to download
-	bot : commands.Bot
-		The bot instance
-
-	Returns
-	-------
-	io.BytesIO
-		The downloaded video
-	"""
-	async with MemcachedCache(serializer=Base64Serializer()) as cache:
-		if await cache.exists(url, namespace="audio"):
-			return await cache.get(url, namespace="audio")
-		buffer = io.BytesIO()
-		buffer.seek(0)
-		youtube_regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/((watch\?v=)|(embed/)|(v/)|(.+\?v=))?([^&=%\?]{11})')
-		if not youtube_regex.match(url):
-			r: bytes = await AsyncRequests.get(url, return_type="content")
-			buffer.write(r)
-		else:
-			yt_video = pytubefix.YouTube(url)
-			stream = yt_video.streams.filter(only_audio=True).first()
-			stream.stream_to_buffer(buffer)
-		buffer.seek(0)
-		await bot.loop.create_task(cache.set(url, buffer, ttl=3600, namespace="audio"))
-	return buffer
-
-
-async def update_ttl(key: str, new_ttl: int, namespace: str):
-	"""Update the ttl of a key in the cache"""
-	async with MemcachedCache(serializer=Base64Serializer()) as cache:
-		buffer = await cache.get(key, namespace=namespace)
-		await cache.set(key, buffer, ttl=new_ttl, namespace=namespace)
-
-
-async def reset_ttl(key: str, namespace: str):
-	"""Reset the ttl of a key in the cache"""
-	async with MemcachedCache(serializer=Base64Serializer()) as cache:
-		buffer = await cache.get(key, namespace=namespace)
-		await cache.set(key, buffer, ttl=3600, namespace=namespace)
-
-async def cache_exists(key: str, namespace: str) -> bool:
-	"""Check if a key exists in the cache"""
-	async with MemcachedCache(serializer=Base64Serializer()) as cache:
-		return await cache.exists(key, namespace=namespace)
-
-
-async def download(url: str, bot: commands.Bot, download_logger: logging.Logger = get_logger("Audio-Downloader")) -> Optional[io.BytesIO]:
+async def download(url: str, download_logger: logging.Logger = get_logger("Audio-Downloader")) -> Optional[io.BytesIO]:
 	"""
 	Download a video from a YouTube (or other) URL.
 	
@@ -143,22 +141,40 @@ async def download(url: str, bot: commands.Bot, download_logger: logging.Logger 
 	Optional[io.BytesIO]
 		The downloaded video
 	"""
-	yt_regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/((watch\?v=)|(embed/)|(v/)|(.+\?v=))?([^&=%\?]{11})')
-	if not yt_regex.match(url):
-		buffer: io.BytesIO = await to_cache(url, bot)
-		download_logger.info(f"Downloaded {url.split('/')[-1]}")
-		return buffer
-	else:
-		yt_video = pytubefix.YouTube(url)
-		video_id = yt_video.video_id
-		if yt_video.age_restricted:
-			download_logger.warning(f"Video {yt_video.title} is age restricted (video id: {video_id})")
-			return None
-		buffer = await to_cache(url, bot)
-		download_logger.info(f"Downloaded {yt_video.title}")
-		new_buffer = io.BytesIO(buffer.getvalue())
-		new_buffer.seek(0)
-		return new_buffer	
+	async with AudioCache() as cache:
+		value = await to_cache(url, cache)
+	download_logger.info(f"Succesfully downloaded {url}")
+	return value
+	
+	
+async def download_batch(urls: list[str], download_logger: logging.Logger = get_logger("Audio-Downloader")) -> None:
+	"""
+	Download a list of videos from YouTube (or other) URLs.
+	
+	Parameters
+	----------
+	urls : list[str]
+		The URLs of the videos to download
+	bot : commands.Bot
+		The bot instance
+	download_logger : logging.Logger
+		The logger to log the download
+	
+	Returns
+	-------
+	list[io.BytesIO]
+		The downloaded videos
+	"""
+	loop = asyncio.get_event_loop()
+
+	async def download_worker(url: str, cache) -> None:
+		result = await to_cache(url, cache)
+		download_logger.info(f"Downloaded {url}")
+		return result
+	
+	async with AudioCache(40) as cache:
+		tasks = [download_worker(url, cache) for url in urls]
+		results = await asyncio.gather(*tasks)
 
 class Sinks(Enum):
 	"""Enum for the different types of audio sinks"""
@@ -483,7 +499,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
 			return await ctx.respond(
 				embed=discord.Embed(title="Error", description=f"The video [{video.title}]({url}) is too long",
 									color=0xff0000))
-		file = await download(url, ctx.bot, download_logger=get_logger("Audio-Downloader"))
+		file = await download(url)
 		buffer = io.BytesIO()
 		stream = video.streams.filter(only_audio=True).first()
 		stream.stream_to_buffer(buffer)
@@ -503,7 +519,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
 			ctx.guild.voice_client.play(player, after=lambda e: asyncio.run_coroutine_threadsafe(on_play_song_finished(ctx, e), loop),
 										wait_finish=True)
 	except PytubeRegexMatchError:
-		file = await download(url, ctx.bot, download_logger=get_logger("Audio-Downloader"))
+		file = await download(url)
 		player = discord.PCMVolumeTransformer(
 			discord.FFmpegPCMAudio(file, executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg", pipe=True),
 			server.volume / 100)
@@ -557,26 +573,3 @@ async def convert(audio: io.BytesIO, file_format: FfmpegFormats, log: logging.Lo
 def get_lyrics(title: str):
 	"""Get the lyrics of a song"""
 	return title
-
-
-def check_video(bot: commands.Bot, song: Song, ctx: discord.ApplicationContext, loop: asyncio.AbstractEventLoop):
-	try:
-		yt_regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/((watch\?v=)|(embed/)|(v/)|(.+\?v=))?([^&=%\?]{11})')
-		if yt_regex.match(song.url):
-			video = pytubefix.YouTube(song.url)
-			if video.age_restricted:
-				bot.loop.create_task(
-					ctx.respond(embed=discord.Embed(title="Error",
-													description=f"The [video]({song.url}) is age restricted",
-													color=0xff0000)))
-			elif video.length > 12000:
-				bot.loop.create_task(
-					ctx.respond(embed=discord.Embed(title="Error",
-													description=f"The video [{video.title}]({song.url}) is too long",
-													color=0xff0000)))
-			else:
-				loop.create_task(download(song.url, bot, download_logger=get_logger("Audio-Downloader")))
-		else:
-			loop.create_task(download(song.url, bot, download_logger=get_logger("Audio-Downloader")))
-	except Exception as e:
-		bot.logger.error(f"Error checking video availability: {e}")
