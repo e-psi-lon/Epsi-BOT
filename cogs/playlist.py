@@ -48,7 +48,7 @@ class Playlists(commands.Cog):
 			(name in [playlist.playlist.name for playlist in user_playlists] and playlist_type == "user"):
 			return await ctx.respond(
 				embed=discord.Embed(title="Error", description="A playlist with this name already exists.",
-									color=0xff0000))
+									color=discord.Color.dark_red()))
 		playlist = Playlist.create(name=name)
 		playlist.save()
 		for queue_elem in server.queue:
@@ -58,7 +58,7 @@ class Playlists(commands.Cog):
 		else:
 			UserPlaylist.create(playlist=playlist, user=Asker).save()
 		await ctx.respond(
-			embed=discord.Embed(title="Playlist", description=f"Playlist {name} created.", color=0x00ff00))
+			embed=discord.Embed(title="Playlist", description=f"Playlist {name} created.", color=discord.Color.green()))
 
 	@create.command(name="from-youtube", description="Creates a playlist from a youtube playlist")
 	async def create_from_youtube(self, ctx: discord.ApplicationContext,
@@ -80,7 +80,7 @@ class Playlists(commands.Cog):
 					(name in [playlist.playlist.name for playlist in user_playlists] and playlist_type == "user"):
 				return await ctx.respond(
 					embed=discord.Embed(title="Error", description="A playlist with this name already exists.",
-										color=0xff0000))
+										color=discord.Color.dark_red()))
 			db_playlist: Playlist = Playlist.create(name=name)
 			for video in playlist.videos:
 				song, _ = Song.get_or_create(name=video.title, url=video.watch_url)
@@ -92,11 +92,11 @@ class Playlists(commands.Cog):
 				user, _ = Asker.get_or_create(discord_id=ctx.user.id)
 				UserPlaylist.create(playlist=db_playlist, user=user)
 			await ctx.respond(
-				embed=discord.Embed(title="Playlist", description=f"Playlist {name} created.", color=0x00ff00))
+				embed=discord.Embed(title="Playlist", description=f"Playlist {name} created.", color=discord.Color.green()))
 		except PytubeRegexMatchError:
 			await ctx.respond(
 				embed=discord.Embed(title="Error", description="You must use an url of a youtube playlist",
-									color=0xff0000))
+									color=discord.Color.dark_red()))
 
 	@playlist.command(name="delete", description="Deletes a playlist")
 	async def delete(self, ctx: discord.ApplicationContext,
@@ -123,7 +123,7 @@ class Playlists(commands.Cog):
 												value="\n".join([playlist.playlist.name for playlist in server.playlists])))
 		Playlist.delete().where(Playlist.name == name).execute()
 		await ctx.respond(
-			embed=discord.Embed(title="Playlist", description=f"Playlist {name} deleted.", color=0x00ff00))
+			embed=discord.Embed(title="Playlist", description=f"Playlist {name} deleted.", color=discord.Color.green()))
 
 	@playlist.command(name="add", description="Adds a song to a playlist")
 	async def add(self, ctx: discord.ApplicationContext,
@@ -153,16 +153,16 @@ class Playlists(commands.Cog):
 				asker, _ = Asker.get_or_create(discord_id=ctx.user.id)
 				PlaylistSong.create(asker=asker, playlist=playlist, song=song)
 				await ctx.respond(embed=discord.Embed(title="Playlist", description=f"Song added to playlist {name}.",
-													  color=0x00ff00))
+													  color=discord.Color.green()))
 			except IndexError:
 				return await ctx.respond(
-					embed=discord.Embed(title="Error", description="Error while getting song.", color=0xff0000))
+					embed=discord.Embed(title="Error", description="Error while getting song.", color=discord.Color.dark_red()))
 		except PytubeRegexMatchError:
 			return await ctx.respond(embed=discord.Embed(title="Error",
 														 description="You must use an url of a youtube video "
 																	 "(the research feature is not available for "
 																	 "this command yet)",
-														 color=0xff0000))
+														 color=discord.Color.dark_red()))
 
 	@playlist.command(name="remove", description="Removes a song from a playlist")
 	async def remove(self, ctx: discord.ApplicationContext,
@@ -186,13 +186,13 @@ class Playlists(commands.Cog):
 		song: Song | None = Song.get_or_none(name=song)
 		if song is None:
 			return await ctx.respond(
-				embed=discord.Embed(title="Error", description="This song is not in the playlist.", color=0xff0000))
+				embed=discord.Embed(title="Error", description="This song is not in the playlist.", color=discord.Color.dark_red()))
 		playlist = Playlist.get(name=name)
 		playlist_song = PlaylistSong.get(playlist=playlist, song=song)
 		playlist_song.delete().execute()
 		await ctx.respond(
 			embed=discord.Embed(title="Playlist", description=f"Song {song.name} removed from playlist {name}.",
-								color=0x00ff00))
+								color=discord.Color.green()))
 
 	@playlist.command(name="play", description="Plays a playlist")
 	async def play(self, ctx: discord.ApplicationContext,
@@ -229,7 +229,7 @@ class Playlists(commands.Cog):
 		await play_song(ctx, server.queue[0].song.url)
 		await ctx.respond(
 			embed=discord.Embed(title="Play", description=f"Playing {server.queue[server.position].song.name}",
-								color=0x00ff00))
+								color=discord.Color.green()))
 		futures: list[asyncio.Future] = []
 		if len(server.queue) > 1:
 			queue = [queue.song.url for queue in server.queue[1:]]
@@ -244,8 +244,8 @@ class Playlists(commands.Cog):
 		playlists: list[ServerPlaylist | UserPlaylist] = Server.get(server_id=ctx.guild.id).playlists if playlist_type == "server" else get_user_playlists(ctx.user.id)
 		if not playlists:
 			return await ctx.respond(
-				embed=discord.Embed(title="Playlists", description="No playlists.", color=0x00ff00))
-		embed = discord.Embed(title="Playlists", color=0x00ff00)
+				embed=discord.Embed(title="Playlists", description="No playlists.", color=discord.Color.green()))
+		embed = discord.Embed(title="Playlists", color=discord.Color.green())
 		for index, name in enumerate([playlist.playlist.name for playlist in playlists][:24]):
 			embed.add_field(name=f"__{name}__ :",
 							value=f"{len([playlist for playlist in playlists][index].playlist.songs)} song"
@@ -270,7 +270,7 @@ class Playlists(commands.Cog):
 												value="\n- ".join([playlist.playlist.name for playlist in Server.get(server_id=ctx.guild.id).playlists]))
 			                         .add_field(name="Existing user playlists:",
 			                                    value="\n- ".join([playlist.playlist.name for playlist in get_user_playlists(ctx.user.id)])))
-		embed = discord.Embed(title=name, color=0x00ff00)
+		embed = discord.Embed(title=name, color=discord.Color.green())
 		playlist_songs: list[PlaylistSong] = Playlist.get(name=name).songs
 		for index, playlist_song in enumerate(playlist_songs):
 			song: Song = playlist_song.song
@@ -298,11 +298,11 @@ class Playlists(commands.Cog):
 		if new_name in [playlist.name for playlist in config.playlists]:
 			return await ctx.respond(
 				embed=discord.Embed(title="Error", description="A playlist with this name already exists.",
-									color=0xff0000))
+									color=discord.Color.dark_red()))
 		playlist: Playlist = Playlist.get(name=name)
 		playlist.name = new_name
 		await ctx.respond(embed=discord.Embed(title="Playlist", description=f"Playlist {name} renamed to {new_name}.",
-											  color=0x00ff00))
+											  color=discord.Color.green()))
 
 	@playlist.command(name="copy", description="Copies a playlist to another playlist type")
 	async def copy(self, ctx: discord.ApplicationContext,
@@ -324,7 +324,7 @@ class Playlists(commands.Cog):
 		if playlist is not None:
 			return await ctx.respond(
 				embed=discord.Embed(title="Error", description="A playlist with this name already exists.",
-									color=0xff0000))
+									color=discord.Color.dark_red()))
 		# Si la playlist est une playlist utilisateur
 		if playlist in get_user_playlists(ctx.user.id):
 			new_playlist = Playlist.create(name=name)
@@ -339,7 +339,7 @@ class Playlists(commands.Cog):
 				PlaylistSong.create(asker=song.asker, playlist=new_playlist, position=song.position, song=song.song)
 			ServerPlaylist.create(playlist=new_playlist, server=Server.get(server_id=ctx.guild.id)).save()
 		await ctx.respond(embed=discord.Embed(title="Playlist", description=f"Playlist {name} copied.",
-												color=0x00ff00))
+												color=discord.Color.green()))
 
 
 def setup(bot):

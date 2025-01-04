@@ -34,22 +34,22 @@ class Others(commands.Cog):
 						buffer = await convert(buffer, FfmpegFormats.OGG)
 					case _:
 						return await ctx.respond(
-							embed=discord.Embed(title="Error", description="Invalid file_format.", color=0xff0000)
+							embed=discord.Embed(title="Error", description="Invalid file_format.", color=discord.Color.dark_red())
 						)
-				await ctx.respond(embed=discord.Embed(title="Download", description="Song downloaded.", color=0x00ff00),
+				await ctx.respond(embed=discord.Embed(title="Download", description="Song downloaded.", color=discord.Color.green()),
 								  file=discord.File(buffer,
 													filename=f"{video.title}.{file_format}"))
 			except pytubefix.exceptions.PytubeFixError:
 				return await ctx.respond(
-					embed=discord.Embed(title="Error", description="Error while downloading song.", color=0xff0000))
+					embed=discord.Embed(title="Error", description="Error while downloading song.", color=discord.Color.dark_red()))
 		except pytubefix.exceptions.RegexMatchError:
 			videos = pytubefix.Search(query).results
 			if not videos:
 				return await ctx.respond(
-					embed=discord.Embed(title="Error", description="No results found.", color=0xff0000))
+					embed=discord.Embed(title="Error", description="No results found.", color=discord.Color.dark_red()))
 			view = Research(videos, ctx, True, timeout=60)
 			await ctx.respond(embed=discord.Embed(title="Select audio", description="Select an audio to download.",
-												  color=0x00ff00), view=view)
+												  color=discord.Color.green()), view=view)
 
 	@commands.slash_command(name="lyrics", description="Shows the lyrics of the current song")
 	async def lyrics(self, ctx: discord.ApplicationContext):
@@ -59,16 +59,16 @@ class Others(commands.Cog):
 			return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
 		if not server.queue:
 			return await ctx.respond(
-				embed=discord.Embed(title="Error", description="No song is currently playing.", color=0xff0000))
+				embed=discord.Embed(title="Error", description="No song is currently playing.", color=discord.Color.dark_red()))
 		if not server.queue[server.position].song.url.startswith("https://www.youtube.com/watch?v="):
 			return await ctx.respond(
 				embed=discord.Embed(title="Error", description="This command is only available for youtube videos.",
-									color=0xff0000))
+									color=discord.Color.dark_red()))
 		video = pytubefix.YouTube(server.queue[server.position].song.url)
 		lyrics = get_lyrics(video.title)
 		if not lyrics:
-			return await ctx.respond(embed=discord.Embed(title="Error", description="No lyrics found.", color=0xff0000))
-		await ctx.respond(embed=discord.Embed(title="Lyrics", description=lyrics, color=0x00ff00))
+			return await ctx.respond(embed=discord.Embed(title="Error", description="No lyrics found.", color=discord.Color.dark_red()))
+		await ctx.respond(embed=discord.Embed(title="Lyrics", description=lyrics, color=discord.Color.green()))
 
 
 def setup(bot: commands.Bot):

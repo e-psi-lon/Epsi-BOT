@@ -32,7 +32,7 @@ class Admin(commands.Cog):
 			queue_elem.delete().execute()
 		async with AudioCache(1) as cache:
 			await cache.clear()
-		embed = discord.Embed(title="Cache removed", description="Removed the audio cache.", color=0x00ff00)
+		embed = discord.Embed(title="Cache removed", description="Removed the audio cache.", color=discord.Color.green())
 		await ctx.respond(embed=embed, delete_after=30)
 
 	@commands.slash_command(name="clean", description="Cleans the bot's messages", guild_ids=[761485410596552736])
@@ -51,7 +51,7 @@ class Admin(commands.Cog):
 			return m.author.id == self.bot.user.id and m.id != 1128641774789861488 and removed_count <= count
 
 		await ctx.channel.purge(check=check)
-		embed = discord.Embed(title="Clean", description=f"Cleaned {count} messages.", color=0x00ff00)
+		embed = discord.Embed(title="Clean", description=f"Cleaned {count} messages.", color=discord.Color.green())
 		await ctx.respond(embed=embed, delete_after=30)
 
 	@commands.slash_command(name="reload", description="Reloads the cogs", guild_ids=[761485410596552736])
@@ -66,14 +66,14 @@ class Admin(commands.Cog):
 				if cog == "admin":
 					continue
 				self.bot.reload_extension(f"cogs.{cog}")
-			embed = discord.Embed(title="Reload", description="Reloaded the cogs.", color=0x00ff00)
+			embed = discord.Embed(title="Reload", description="Reloaded the cogs.", color=discord.Color.green())
 			await ctx.respond(embed=embed, delete_after=30)
 		else:
 			await ctx.response.defer()
 			if ctx.author.id != OWNER_ID:
 				return await ctx.respond(embed=EMBED_ERROR_NOT_BOT_OWNER, delete_after=30)
 			self.bot.reload_extension(f"cogs.{cog}")
-			embed = discord.Embed(title="Reload", description=f"Reloaded the {cog} cog.", color=0x00ff00)
+			embed = discord.Embed(title="Reload", description=f"Reloaded the {cog} cog.", color=discord.Color.green())
 			await ctx.respond(embed=embed, delete_after=30)
 
 

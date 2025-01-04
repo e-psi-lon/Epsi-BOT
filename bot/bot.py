@@ -156,7 +156,7 @@ class Bot(commands.Bot):
 		self.logger.error(f"Error in {ctx.command} from module {ctx.command.cog.__class__.__name__}"
 					  f"\n Error message: {exc_value}\n Traceback: {traceback_str}")
 		embed = discord.Embed(title="Une erreur est survenue", description=f"Erreur provoquée par {ctx.author.mention}",
-							  color=discord.Color.red())
+							  color=discord.Color.dark_red())
 		embed.add_field(name="Commande", value=f"`/{ctx.command}`")
 		embed.add_field(name="Module", value=f"`{ctx.command.cog.__class__.__name__!r}`")
 		embed.add_field(name="Message d'erreur", value=f"`{exc_value}`")
@@ -187,7 +187,7 @@ class Bot(commands.Bot):
 				f"\n Kwargs: {kwargs}")
 			embed = discord.Embed(title="Une erreur est survenue",
 								  description=f"Erreur provoquée par {context.author.mention}",
-								  color=discord.Color.red())
+								  color=discord.Color.dark_red())
 			embed.add_field(name="Commande", value=f"`{context.command}`")
 			embed.add_field(name="Module", value=f"`{context.command.cog.__class__.__name__}`")
 			embed.add_field(name="Message d'erreur", value=f"`{exc_value}`")

@@ -1,5 +1,4 @@
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
 import io
 import logging
 import os
@@ -292,7 +291,7 @@ class SelectVideo(discord.ui.Select):
 			return await interaction.response.send_message("You are not the author of the command.", ephemeral=True)
 		await interaction.message.edit(
 			embed=discord.Embed(title="Select audio", description=f"You selected : {self.options[0].label}",
-								color=0x00ff00), view=None)
+								color=discord.Color.green()), view=None)
 		server: Server = Server.get(server_id=interaction.guild.id)
 		if self.download:
 			stream = pytubefix.YouTube(self.values[0]).streams.filter(only_audio=True).first()
@@ -301,12 +300,12 @@ class SelectVideo(discord.ui.Select):
 																		  description=f"The video "
 																					  f"""[{pytubefix.YouTube(self.values[0])
 																		  .title}]({self.values[0]}) is too long""",
-																		  color=0xff0000))
+																		  color=discord.Color.dark_red()))
 			buffer = io.BytesIO()
 			stream.stream_to_buffer(buffer)
 			buffer.seek(0)
 			return await interaction.message.edit(
-				embed=discord.Embed(title="Download", description="Song downloaded.", color=0x00ff00),
+				embed=discord.Embed(title="Download", description="Song downloaded.", color=discord.Color.green()),
 				file=discord.File(buffer, filename=f"{stream.title}.mp3"),
 				view=None)
 		if not server.queue:
@@ -328,14 +327,14 @@ class SelectVideo(discord.ui.Select):
 															   description=f"Playing song "
 																		   f"[{pytubefix.YouTube(self.values[0]).title}]"
 																		   f"({self.values[0]})",
-															   color=0x00ff00))
+															   color=discord.Color.green()))
 			await play_song(self.ctx, server.queue[server.position].song.url)
 		else:
 			await interaction.message.edit(embed=discord.Embed(title="Queue",
 															   description=f"Song "
 																		   f"[{pytubefix.YouTube(self.values[0]).title}]"
 																		   f"({self.values[0]}) added to queue.",
-															   color=0x00ff00))
+															   color=discord.Color.green()))
 
 
 class Research(discord.ui.View):
@@ -494,11 +493,11 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
 		if video.age_restricted:
 			return await ctx.respond(
 				embed=discord.Embed(title="Error", description=f"The [video]({url}) is age restricted",
-									color=0xff0000))
+									color=discord.Color.dark_red()))
 		if video.length > 12000:
 			return await ctx.respond(
 				embed=discord.Embed(title="Error", description=f"The video [{video.title}]({url}) is too long",
-									color=0xff0000))
+									color=discord.Color.dark_red()))
 		file = await download(url)
 		buffer = io.BytesIO()
 		stream = video.streams.filter(only_audio=True).first()
@@ -543,7 +542,7 @@ async def on_play_song_finished(ctx: discord.ApplicationContext, error=None):
 	if error:
 		get_logger("Bot").error("Error:", error)
 		await ctx.respond(
-			embed=discord.Embed(title="Error", description="An error occurred while playing the song.", color=0xff0000))
+			embed=discord.Embed(title="Error", description="An error occurred while playing the song.", color=discord.Color.dark_red()))
 	get_logger("Bot").info("Song finished")
 	await change_song(ctx)
 

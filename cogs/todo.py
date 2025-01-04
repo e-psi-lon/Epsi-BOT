@@ -24,7 +24,7 @@ class Todo(commands.Cog):
 		if ctx.channel.id != 1128286383161745479:
 			embed = discord.Embed(title="Ajout d'une ligne", description="Cette commande ne peut être utilisée que dans"
 																		 " le channel <#1128286383161745479>",
-								  color=0xff0000)
+								  color=discord.Color.dark_red())
 			return await ctx.respond(embed=embed, delete_after=30)
 		message = await ctx.channel.fetch_message(1128641774789861488)
 		if index is None:
@@ -49,14 +49,14 @@ class Todo(commands.Cog):
 			embed = discord.Embed(title="Suppression d'une ligne",
 								  description="Cette commande ne peut être utilisée que"
 											  " dans le channel <#1128286383161745479>",
-								  color=0xff0000)
+								  color=discord.Color.dark_red())
 			return await ctx.respond(embed=embed, delete_after=30)
 		message = await ctx.channel.fetch_message(1128641774789861488)
 		lines = message.embeds[0].fields
 		if 0 < index <= len(lines):
 			old_line = lines.pop(index - 1)
 		else:
-			embed = discord.Embed(title="Erreur", description="L'index fourni est hors des limites.", color=0xff0000)
+			embed = discord.Embed(title="Erreur", description="L'index fourni est hors des limites.", color=discord.Color.dark_red())
 			return await ctx.respond(embed=embed, delete_after=30)
 		for index, line in enumerate(lines):
 			line.name = f"**`{index + 1}.`**"
@@ -77,14 +77,12 @@ class Todo(commands.Cog):
 			embed = discord.Embed(title="Modification d'une ligne", description="Cette commande ne peut être utilisée "
 																				"que dans le channel "
 																				"<#1128286383161745479>")
-		if index <= 0 or index > len(lines):
-			embed = discord.Embed(title="Erreur", description="L'index fourni est hors des limites.",
-								  color=0xff0000)
-			return await ctx.respond(embed=embed, delete_after=30)
-		if " - Assigned to <@" in lines[index - 1].value:
-			return await ctx.respond(embed=embed, delete_after=30)
 		message = await ctx.channel.fetch_message(1128641774789861488)
 		lines = message.embeds[0].fields
+		if index <= 0 or index > len(lines):
+			embed = discord.Embed(title="Erreur", description="L'index fourni est hors des limites.",
+								  color=discord.Color.dark_red())
+			return await ctx.respond(embed=embed, delete_after=30)
 		if " - Assigned to <@" in lines[index - 1].value:
 			lines[index - 1].value = line + lines[index - 1].value[lines[index - 1].value.find(" - Assigned to <@"):]
 		else:
@@ -107,7 +105,7 @@ class Todo(commands.Cog):
 			embed = discord.Embed(title="Assignation d'une ligne", description="Cette commande ne peut être utilisée "
 			                                                                   "que dans le channel "
 			                                                                   "<#1128286383161745479>",
-			                      color=0xff0000)
+			                      color=discord.Color.dark_red())
 			return await ctx.respond(embed=embed, delete_after=30)
 		message = await ctx.channel.fetch_message(1128641774789861488)
 		lines: list[discord.EmbedField] = message.embeds[0].fields
@@ -155,7 +153,7 @@ class Todo(commands.Cog):
 							  description="Voici un tutoriel sur comment utiliser la to-do list, "
 										  "\"[...]\" signifie que le paramètre est optionnel et \"<...>\" signifie que "
 										  "le paramètre est obligatoire",
-							  color=0x00ff00)
+							  color=discord.Color.green())
 		embed.add_field(name="Ajouter une ligne",
 						value="Pour ajouter une ligne, utilisez la commande `/todo add_line <line:texte à écrire> "
 							  "[index:index de l'élément]`",

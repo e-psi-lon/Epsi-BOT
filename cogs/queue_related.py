@@ -26,7 +26,7 @@ class Queue(commands.Cog):
 										  f"- Loop queue: `{'on' if server.loop_queue else 'off'}`\n"
 										  f"- Random: `{'on' if server.random else 'off'}`\n"
 										  f"- Volume: {server.volume}",
-							  color=0x00ff00)
+							  color=discord.Color.green())
 		for i, queue_elem in enumerate(server.queue):
 			song: Song = queue_elem.song
 			if i == server.position:
@@ -58,18 +58,18 @@ class Queue(commands.Cog):
 			ctx.guild.voice_client.stop()
 			server.loop_song = loop_song
 			server.loop_queue = loop_queue
-			return await ctx.respond(embed=discord.Embed(title="Skip", description="Song skipped.", color=0x00ff00))
+			return await ctx.respond(embed=discord.Embed(title="Skip", description="Song skipped.", color=discord.Color.green()))
 		if by < 0 or by >= len(server.queue) or server.position + by >= len(server.queue):
 			server.loop_song = loop_song
 			server.loop_queue = loop_queue
 			return await ctx.respond(
-				embed=discord.Embed(title="Error", description=f"Index {by} out of range.", color=0xff0000))
+				embed=discord.Embed(title="Error", description=f"Index {by} out of range.", color=discord.Color.dark_red()))
 		server.position = server.position + by - 1
 		ctx.guild.voice_client.stop()
 		server.loop_song = loop_song
 		server.loop_queue = loop_queue
 		server.save()
-		await ctx.respond(embed=discord.Embed(title="Skip", description=f"Skipped {by} songs.", color=0x00ff00))
+		await ctx.respond(embed=discord.Embed(title="Skip", description=f"Skipped {by} songs.", color=discord.Color.green()))
 
 	loop = SlashCommandGroup(name="loop", description="Commands related to looping songs")
 
@@ -85,7 +85,7 @@ class Queue(commands.Cog):
 			server.loop_queue = False
 		server.save()
 		await ctx.respond(embed=discord.Embed(title="Loop", description=f"Loop song set to {'on' if state else 'off'}.",
-											  color=0x00ff00))
+											  color=discord.Color.green()))
 
 	@loop.command(name="queue", description="Loops the current song")
 	async def loop_queue(self, ctx: discord.ApplicationContext,
@@ -100,7 +100,7 @@ class Queue(commands.Cog):
 		server.save()
 		await ctx.respond(
 			embed=discord.Embed(title="Loop", description=f"Loop queue set to {'on' if state else 'off'}.",
-								color=0x00ff00))
+								color=discord.Color.green()))
 
 	@commands.slash_command(name="now", description="Shows the current song")
 	async def now(self, ctx: discord.ApplicationContext):
@@ -112,7 +112,7 @@ class Queue(commands.Cog):
 		song: Song = queue_elem.song
 		embed = discord.Embed(title="Now Playing",
 							  description=f"[{song.name}]({song.url}) asked by <@{queue_elem.asker.discord_id}>",
-							  color=0x00ff00)
+							  color=discord.Color.green())
 		await ctx.respond(embed=embed)
 
 	remove = SlashCommandGroup(name="remove", description="Commands related to removing songs from the queue")
@@ -130,7 +130,7 @@ class Queue(commands.Cog):
 		queue_elem: ModelQueue = ModelQueue.get(server=server, song=Song.get(name=song))
 		queue_elem.delete().execute()
 		await ctx.respond(
-			embed=discord.Embed(title="Remove", description=f"Removed {song} from the queue.", color=0x00ff00))
+			embed=discord.Embed(title="Remove", description=f"Removed {song} from the queue.", color=discord.Color.green()))
 
 	@remove.command(name="from-index", description="Removes a song from the queue ")
 	async def remove_index(self, ctx: discord.ApplicationContext,
@@ -140,13 +140,13 @@ class Queue(commands.Cog):
 		server: Server= Server.get(server_id=ctx.guild.id)
 		if index < 0 or index >= len(server.queue):
 			return await ctx.respond(embed=discord.Embed(title="Error", description=f"Index {index} out of range.",
-														 color=0xff0000))
+														 color=discord.Color.dark_red()))
 		# Remove the song from the queue but using the ORM
 		queue_elem: ModelQueue = ModelQueue.get(server=server, position=index)
 		song: Song = queue_elem.song
 		queue_elem.delete().execute()
 		await ctx.respond(
-			embed=discord.Embed(title="Remove", description=f"Removed {song.name} from the queue.", color=0x00ff00))
+			embed=discord.Embed(title="Remove", description=f"Removed {song.name} from the queue.", color=discord.Color.green()))
 
 	@commands.slash_command(name="clear", description="Clears the queue")
 	async def clear(self, ctx: discord.ApplicationContext):
@@ -163,7 +163,7 @@ class Queue(commands.Cog):
 				ctx.guild.voice_client.stop()
 			except discord.errors.ClientException:
 				pass
-		await ctx.respond(embed=discord.Embed(title="Clear", description="Queue cleared.", color=0x00ff00))
+		await ctx.respond(embed=discord.Embed(title="Clear", description="Queue cleared.", color=discord.Color.green()))
 
 	@commands.slash_command(name="back", description="Goes back to the previous song")
 	async def back(self, ctx: discord.ApplicationContext):
@@ -185,13 +185,13 @@ class Queue(commands.Cog):
 			server.loop_song = loop_song
 			server.loop_queue = loop_queue
 			return await ctx.respond(
-				embed=discord.Embed(title="Error", description="There is no previous song.", color=0xff0000))
+				embed=discord.Embed(title="Error", description="There is no previous song.", color=discord.Color.dark_red()))
 		server.position = server.position - 2
 		ctx.guild.voice_client.stop()
 		server.loop_song = loop_song
 		server.loop_queue = loop_queue
 		server.save()
-		await ctx.respond(embed=discord.Embed(title="Back", description="Playing previous song.", color=0x00ff00))
+		await ctx.respond(embed=discord.Embed(title="Back", description="Playing previous song.", color=discord.Color.green()))
 
 	@commands.slash_command(name="shuffle", description="Shuffles the queue")
 	async def shuffle(self, ctx: discord.ApplicationContext):
@@ -202,7 +202,7 @@ class Queue(commands.Cog):
 		temp_queue = server.queue.copy()
 		random.shuffle(temp_queue)
 		server.queue = [{"name": queue_elem.song.name, "url": queue_elem.song.url, "asker": queue_elem.asker.discord_id} for queue_elem in temp_queue]
-		await ctx.respond(embed=discord.Embed(title="Shuffle", description="Queue shuffled.", color=0x00ff00))
+		await ctx.respond(embed=discord.Embed(title="Shuffle", description="Queue shuffled.", color=discord.Color.green()))
 
 	random_command = SlashCommandGroup(name="random", description="Commands related to random mode")
 
@@ -217,7 +217,7 @@ class Queue(commands.Cog):
 		server.save()
 		await ctx.respond(
 			embed=discord.Embed(title="Random", description=f"Random mode set to {'on' if state else 'off'}.",
-								color=0x00ff00))
+								color=discord.Color.green()))
 
 	@random_command.command(name="query", description="Shows the current random state")
 	async def random(self, ctx: discord.ApplicationContext):
@@ -225,7 +225,7 @@ class Queue(commands.Cog):
 		server: Server= Server.get(server_id=ctx.guild.id)
 		await ctx.respond(
 			embed=discord.Embed(title="Random", description=f"Random mode is {'on' if server.random else 'off'}.",
-								color=0x00ff00))
+								color=discord.Color.green()))
 
 	play = SlashCommandGroup(name="play-queue", description="Commands related to playing songs from the queue")
 
@@ -241,13 +241,13 @@ class Queue(commands.Cog):
 		index = get_index_from_title(song, [queue_elem.song for queue_elem in server.queue])
 		if index == -1:
 			return await ctx.respond(
-				embed=discord.Embed(title="Error", description=f"Song {song} not found in the queue.", color=0xff0000))
+				embed=discord.Embed(title="Error", description=f"Song {song} not found in the queue.", color=discord.Color.dark_red()))
 		server.position = index - 1
 		server.save()
 		ctx.guild.voice_client.stop()
 		await ctx.respond(
 			embed=discord.Embed(title="Play", description=f"Playing [{song}]({server.queue[index].song.url}).",
-								color=0x00ff00))
+								color=discord.Color.green()))
 
 	@play.command(name="number", description="Plays a song from the queue")
 	async def play_queue_index(self, ctx: discord.ApplicationContext,
@@ -259,7 +259,7 @@ class Queue(commands.Cog):
 			return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
 		if index < 0 or index > len(server.queue):
 			return await ctx.respond(
-				embed=discord.Embed(title="Error", description=f"Index {index} out of range.", color=0xff0000))
+				embed=discord.Embed(title="Error", description=f"Index {index} out of range.", color=discord.Color.dark_red()))
 		server.position = index - 2
 		server.save()
 		ctx.guild.voice_client.stop()
@@ -267,7 +267,7 @@ class Queue(commands.Cog):
 			embed=discord.Embed(title="Play",
 								description=f"Playing [{server.queue[index - 1].song.name}]"
 											f"({server.queue[index - 1].song.url}).",
-								color=0x00ff00))
+								color=discord.Color.green()))
 
 
 def setup(bot: commands.Bot):
