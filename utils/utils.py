@@ -10,7 +10,6 @@ import binascii
 from enum import Enum
 from typing import Optional
 
-import concurrent.futures
 import discord
 import discord.ext.pages
 from ffmpeg.asyncio import FFmpeg
@@ -59,16 +58,16 @@ class AudioCache(MemcachedCache):
 		)
 		self.logger = get_logger("Memcached Audio Cache")
 
-	async def get(self, key: str) -> io.BytesIO | None:
+	async def get(self, key: str, **kwargs) -> io.BytesIO | None:
 		"""Get a value from the cache"""
 		return (await super().get(key)) or None
 	
-	async def set(self, key: str, value: io.BytesIO, ttl: int = 3600):
+	async def set(self, key: str, value: io.BytesIO, ttl: int = 3600, **kwargs):
 		"""Set a value in the cache"""
 		await super().set(key, value, ttl=ttl)	
 		self.logger.debug(f"Set {key} in cache")
 
-	async def exists(self, key: str) -> bool:
+	async def exists(self, key: str, **kwargs) -> bool:
 		"""Check if a key exists in the cache"""
 		return await super().exists(key)
 	
@@ -77,7 +76,7 @@ class AudioCache(MemcachedCache):
 		key = self.build_key(key, namespace=self.namespace)
 		self.client.touch(key.encode(), new_ttl)
 	
-	async def clear(self):
+	async def clear(self, **kwargs):
 		"""Clear the cache"""
 		await super().clear()
 
@@ -111,7 +110,7 @@ async def to_cache(url: str, cache: AudioCache) -> io.BytesIO:
 		return data
 	buffer = io.BytesIO()
 	buffer.seek(0)
-	youtube_regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/((watch\?v=)|(embed/)|(v/)|(.+\?v=))?([^&=%\?]{11})')
+	youtube_regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/((watch\?v=)|(embed/)|(v/)|(.+\?v=))?([^&=%?]{11})')
 	if not youtube_regex.match(url):
 		r: bytes = await AsyncRequests.get(url, return_type="content")
 		buffer.write(r)
@@ -130,8 +129,6 @@ async def download(url: str, download_logger: logging.Logger = get_logger("Audio
 	----------
 	url : str
 		The URL of the video to download
-	bot : commands.Bot
-		The bot instance
 	download_logger : logging.Logger
 		The logger to log the download
 	
@@ -146,7 +143,7 @@ async def download(url: str, download_logger: logging.Logger = get_logger("Audio
 	return value
 	
 	
-async def download_batch(urls: list[str], download_logger: logging.Logger = get_logger("Audio-Downloader")) -> None:
+async def download_batch(urls: list[str], download_logger: logging.Logger = get_logger("Audio-Downloader")) -> list[io.BytesIO]:
 	"""
 	Download a list of videos from YouTube (or other) URLs.
 	
@@ -154,8 +151,6 @@ async def download_batch(urls: list[str], download_logger: logging.Logger = get_
 	----------
 	urls : list[str]
 		The URLs of the videos to download
-	bot : commands.Bot
-		The bot instance
 	download_logger : logging.Logger
 		The logger to log the download
 	
@@ -164,16 +159,16 @@ async def download_batch(urls: list[str], download_logger: logging.Logger = get_
 	list[io.BytesIO]
 		The downloaded videos
 	"""
-	loop = asyncio.get_event_loop()
 
-	async def download_worker(url: str, cache) -> None:
-		result = await to_cache(url, cache)
+	async def download_worker(url: str, cache_) -> io.BytesIO:
+		result = await to_cache(url, cache_)
 		download_logger.info(f"Downloaded {url}")
 		return result
 	
 	async with AudioCache(40) as cache:
 		tasks = [download_worker(url, cache) for url in urls]
 		results = await asyncio.gather(*tasks)
+		return results
 
 class Sinks(Enum):
 	"""Enum for the different types of audio sinks"""
