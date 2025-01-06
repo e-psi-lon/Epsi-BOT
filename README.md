@@ -83,6 +83,31 @@ Legend:
 - FK: Foreign Key 
 - UQ: Unique Constraint
 
+## Installation and Setup
+
+### Prerequisites
+- Python 3.13+
+- FFmpeg
+- Libsodium
+- Python development tools (to build external dependencies)
+- SQLite3
+- (Optional) Uses [`uv`](https://docs.astral.sh/uv) for easy dependency management
+
+### Setup
+Once the repo cloned :
+1. Fill in the required fields in the `.env` file (see [`.env.example`](.env.example)).
+2. Install the dependencies using `uv`:
+```bash
+uv install
+```
+3. Run the bot:
+```bash
+uv run main.py
+# or
+python main.py
+```
+
+
 ## Contributors
 [![Contributors](https://contrib.rocks/image?repo=e-psi-lon/Epsi-BOT)](https://github.com/e-psi-lon/Epsi-BOT/graphs/contributors)
 
