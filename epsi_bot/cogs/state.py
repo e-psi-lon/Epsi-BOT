@@ -9,8 +9,8 @@ from discord.commands import SlashCommandGroup
 from discord.ext import commands
 from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError
 
-from bot.bot import Bot
-from utils import (Sinks,
+from ..bot.bot import Bot
+from ..utils import (Sinks,
 				   EMBED_ERROR_BOT_NOT_CONNECTED,
 				   Song,
 				   Asker,

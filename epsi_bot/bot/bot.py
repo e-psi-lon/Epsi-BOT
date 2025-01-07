@@ -7,11 +7,10 @@ import traceback
 import subprocess
 from multiprocessing import Queue as mpQueue
 from typing import Optional
-from utils import GuildData, UserData, PanelBotRequest, PanelBotResponse, RequestType, get_logger, Event, set_callback, \
-	Server, download_batch, AudioCache
+from ..utils import GuildData, UserData, PanelBotRequest, PanelBotResponse, RequestType, get_logger, Event, set_callback, \
+	Server, download_batch, AudioCache, Song, SongListenCount
 from discord.ext import commands
 from discord.ext import tasks
-from utils.models import Song, SongListenCount
 from datetime import datetime
 
 from .memcached_std import MemcachedStd
@@ -244,10 +243,10 @@ async def start(instance: Bot, start_time: datetime):
 		f"Script started at {start_time.strftime('%d/%m/%Y %H:%M:%S')} "
 		f"using python executable {sys.executable}"
 	)
-	for file in os.listdir("./cogs"):
+	for file in os.listdir("./epsi_bot/cogs"):
 		if file.endswith(".py") and not file.startswith("__"):
 			try:
-				instance.load_extension(f"cogs.{file[:-3]}")
+				instance.load_extension(f"epsi_bot.cogs.{file[:-3]}")
 			except Exception as e:
 				instance.logger.error(f"Failed to load extension {file}")
 				instance.logger.error(e)

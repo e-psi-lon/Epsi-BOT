@@ -116,7 +116,6 @@ async def to_cache(url: str, cache: AudioCache) -> io.BytesIO:
 		buffer.write(r)
 	else:
 		yt_video = pytubefix.YouTube(url)
-		stream = yt_video.streams.filter(only_audio=True).first()
 		stream.stream_to_buffer(buffer)
 	buffer.seek(0)
 	await cache.set(url, buffer, ttl=3600)
@@ -289,13 +288,13 @@ class SelectVideo(discord.ui.Select):
 								color=discord.Color.green()), view=None)
 		server: Server = Server.get(server_id=interaction.guild.id)
 		if self.download:
-			stream = pytubefix.YouTube(self.values[0]).streams.filter(only_audio=True).first()
 			if pytubefix.YouTube(self.values[0]).length > 12000:
 				return await interaction.message.edit(embed=discord.Embed(title="Error",
 																		  description=f"The video "
 																					  f"""[{pytubefix.YouTube(self.values[0])
 																		  .title}]({self.values[0]}) is too long""",
 																		  color=discord.Color.dark_red()))
+			stream = pytubefix.YouTube(self.values[0]).streams.get_audio_only()
 			buffer = io.BytesIO()
 			stream.stream_to_buffer(buffer)
 			buffer.seek(0)
@@ -495,7 +494,6 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
 									color=discord.Color.dark_red()))
 		file = await download(url)
 		buffer = io.BytesIO()
-		stream = video.streams.filter(only_audio=True).first()
 		stream.stream_to_buffer(buffer)
 		buffer.seek(0)
 		player = discord.PCMVolumeTransformer(

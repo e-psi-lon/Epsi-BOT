@@ -4,8 +4,8 @@ import discord
 from discord.commands import SlashCommandGroup
 from discord.ext import commands
 
-from bot.bot import Bot
-from utils import Server, EMBED_ERROR_QUEUE_EMPTY, EMBED_ERROR_BOT_NOT_CONNECTED, get_queue_songs, get_index_from_title, \
+from ..bot.bot import Bot
+from ..utils import Server, EMBED_ERROR_QUEUE_EMPTY, EMBED_ERROR_BOT_NOT_CONNECTED, get_queue_songs, get_index_from_title, \
 	Song, Queue as ModelQueue
 
 

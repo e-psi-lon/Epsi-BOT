@@ -24,3 +24,7 @@ dependencies = [
     "quart>=0.19.9",
     "quart-session>=3.0.0",
 ]
+
+
+[project.scripts]
+epsi-bot = "epsi_bot.__main__:main"

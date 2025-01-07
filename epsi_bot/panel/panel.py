@@ -4,7 +4,6 @@ import json
 import logging
 import os
 from asyncio import TimerHandle
-from logging.config import dictConfig
 import re
 from typing import NoReturn, Optional, Any
 
@@ -20,7 +19,7 @@ from dotenv import load_dotenv
 from quart import Quart, session, redirect, url_for, render_template, request, websocket
 from quart_session import Session  # type: ignore
 
-from utils import (PanelBotRequest,
+from ..utils import (PanelBotRequest,
                    PanelBotResponse,
                    UserData,
                    RequestType,
@@ -29,32 +28,16 @@ from utils import (PanelBotRequest,
                    get_logger,
                    Event,
                    set_callback,
+				   parse_args,
+				   models,
+				   get_cache_stats
                    )
-from utils.loggers import parse_args
-import utils.models as models
+from ..utils.models import BaseModel
 from aiomultiprocess import Process
-from bot.bot import start, Bot
-from utils.models import BaseModel
-from utils.panel_ import get_cache_stats
+from ..bot.bot import start, Bot
 
 load_dotenv()
 
-dictConfig({
-	'version': 1,
-	'formatters': {'default': {
-		'()': 'utils.CustomFormatter',
-		'source': 'Panel'
-	}},
-	'handlers': {'console': {
-		'class': 'logging.StreamHandler',
-		'formatter': 'default',
-		'stream': 'ext://sys.stdout',
-	}},
-	'root': {
-		'level': logging.getLogger('__main__').getEffectiveLevel(),
-		'handlers': ['console']
-	}
-})
 
 class Panel(Quart):
 	def __init__(self, secret_key: str, *args, **kwargs):

@@ -6,8 +6,8 @@ import traceback
 import discord
 from discord.ext import commands
 
-from bot.bot import Bot
-from utils import disconnect_from_channel, Server
+from ..bot.bot import Bot
+from ..utils import disconnect_from_channel, Server
 
 
 class Listeners(commands.Cog):

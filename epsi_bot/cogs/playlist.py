@@ -6,8 +6,8 @@ from discord.commands import SlashCommandGroup
 from discord.ext import commands
 from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError
 
-from bot.bot import Bot
-from utils import (Playlist,
+from ..bot.bot import Bot
+from ..utils import (Playlist,
                    Song,
                    Asker,
                    play_song,
@@ -19,8 +19,9 @@ from utils import (Playlist,
                    EMBED_ERROR_BOT_NOT_CONNECTED,
                    Server,
                    get_user_playlists, PlaylistSong, ServerPlaylist, UserPlaylist,
+				   download_batch
                    )
-from utils.utils import download_batch
+
 
 class Playlists(commands.Cog):
 	def __init__(self, bot: Bot):

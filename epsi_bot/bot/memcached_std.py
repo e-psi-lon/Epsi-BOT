@@ -2,7 +2,7 @@ import io
 import sys
 from typing import Literal
 
-from utils import get_logger
+from ..utils import get_logger
 
 class MemcachedStd(io.TextIOBase):
 	def __init__(self, std_type: Literal["stdout", "stderr"] = "stdout", *args, **kwargs):

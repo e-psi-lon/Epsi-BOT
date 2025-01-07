@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands, pages
+from ..bot.bot import Bot
 
 def format_params(cmd):
 	params = []
@@ -40,7 +41,7 @@ def get_subcommands(cmd, parent=""):
 	return commands
 
 class Help(commands.Cog):
-	def __init__(self, bot: commands.Bot):
+	def __init__(self, bot: Bot):
 		self.description = "Shows the help menu"
 		self.bot = bot
 
@@ -104,5 +105,5 @@ class Help(commands.Cog):
 		)
 		
 		await paginator.respond(ctx.interaction)
-def setup(bot: commands.Bot):
+def setup(bot: Bot):
 	bot.add_cog(Help(bot))

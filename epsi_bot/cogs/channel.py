@@ -1,8 +1,8 @@
 import discord
 from discord.ext import commands
 
-from bot.bot import Bot
-from utils import EMBED_ERROR_BOT_NOT_CONNECTED, play_song, Server, download_batch
+from ..bot.bot import Bot
+from ..utils import EMBED_ERROR_BOT_NOT_CONNECTED, play_song, Server, download_batch
 
 
 class Channel(commands.Cog):

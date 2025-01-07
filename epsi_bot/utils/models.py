@@ -9,7 +9,7 @@ from peewee import (AutoField,
                     OperationalError
                 )
 
-from utils.loggers import get_logger
+from .loggers import get_logger
 from peewee import fn
 
 database = SqliteDatabase('./database/database.db')

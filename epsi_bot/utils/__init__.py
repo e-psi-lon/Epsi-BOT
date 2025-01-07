@@ -12,6 +12,7 @@ __all__ = [
 	'ServerPlaylist',
 	'get_user_playlists',
 	'UserPlaylist',
+    'SongListenCount',
 	'ChannelData',
 	'UserData',
 	'GuildData',
@@ -65,6 +66,7 @@ from .models import (Asker,
 					 Queue,
 					 ServerPlaylist,
 					 UserPlaylist,
+                     SongListenCount,
 					 get_user_playlists
                      )
 

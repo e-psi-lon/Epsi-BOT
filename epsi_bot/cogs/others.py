@@ -4,8 +4,8 @@ import discord
 import pytubefix.exceptions
 from discord.ext import commands
 
-from bot.bot import Bot
-from utils import Server, EMBED_ERROR_BOT_NOT_CONNECTED, convert, Research, get_lyrics, FfmpegFormats
+from ..bot.bot import Bot
+from ..utils import Server, EMBED_ERROR_BOT_NOT_CONNECTED, convert, Research, get_lyrics, FfmpegFormats
 
 
 class Others(commands.Cog):
@@ -22,7 +22,6 @@ class Others(commands.Cog):
 		try:
 			video = pytubefix.YouTube(query)
 			try:
-				stream = video.streams.filter(only_audio=True).first()
 				buffer = io.BytesIO()
 				stream.stream_to_buffer(buffer)
 				buffer.seek(0)
