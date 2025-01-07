@@ -22,6 +22,7 @@ class Others(commands.Cog):
 		try:
 			video = pytubefix.YouTube(query)
 			try:
+				stream = video.streams.get_audio_only()
 				buffer = io.BytesIO()
 				stream.stream_to_buffer(buffer)
 				buffer.seek(0)
