@@ -35,3 +35,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build]
 include = ["epsi_bot/**"]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.14.1",
+    "pytest>=8.3.4",
+]
