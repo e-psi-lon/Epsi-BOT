@@ -87,24 +87,29 @@ Legend:
 
 ### Prerequisites
 - Python 3.13+
+- Python development tools (usually python3-dev or python3-devel)
 - FFmpeg
-- Libsodium
-- Python development tools (to build external dependencies)
+- Libffi-dev (or libffi-devel)
 - SQLite3
-- (Optional) Uses [`uv`](https://docs.astral.sh/uv) for easy dependency management
+- Memcached
+- (Optional) Uses [`uv`](https://docs.astral.sh/uv) for easy dependency management and build
 
 ### Setup
 Once the repo cloned :
 1. Fill in the required fields in the `.env` file (see [`.env.example`](.env.example)).
-2. Install the dependencies using `uv`:
+2. Install the bot using uv:
 ```bash
-uv install
+uv pip install .
+# or
+python -m pip install .
+# or
+pip install .
 ```
 3. Run the bot:
 ```bash
-uv run main.py
+uv run -m epsi_bot
 # or
-python main.py
+python -m epsi_bot
 ```
 
 
