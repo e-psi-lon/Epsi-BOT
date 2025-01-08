@@ -28,3 +28,10 @@ dependencies = [
 
 [project.scripts]
 epsi-bot = "epsi_bot.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+include = ["epsi_bot/**"]
