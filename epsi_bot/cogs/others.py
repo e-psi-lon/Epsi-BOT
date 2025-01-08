@@ -14,10 +14,8 @@ class Others(commands.Cog):
 		self.description = "Other commands"
 
 	@commands.slash_command(name="download_file", description="Download the audio of a youtube video")
-	async def download_file(self, ctx: discord.ApplicationContext, query,
-					   file_format: discord.Option(str, description="The file_format of the file",
-												   choices=["mp3", "ogg"], required=False,
-												   default="ogg")):  # type: ignore
+	@discord.option(name="file format", description="The file_format of the file", choices=["mp3", "ogg"], required=False, default="ogg", parameter_name="file_format")
+	async def download_file(self, ctx: discord.ApplicationContext, query: str, file_format: str):
 		await ctx.response.defer()
 		try:
 			video = pytubefix.YouTube(query)

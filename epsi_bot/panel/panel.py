@@ -13,11 +13,11 @@ import discord
 import multiprocessing
 
 import peewee
-import pytubefix  # type: ignore
+import pytubefix  # type: ignore[import-untyped]
 from aiocache import MemcachedCache
 from dotenv import load_dotenv
 from quart import Quart, session, redirect, url_for, render_template, request, websocket
-from quart_session import Session  # type: ignore
+from quart_session import Session  # type: ignore[import-untyped]
 
 from ..utils import (PanelBotRequest,
                    PanelBotResponse,

@@ -31,11 +31,9 @@ class Playlists(commands.Cog):
 	create = playlist.create_subgroup(name="create", description="Creates a playlist")
 
 	@create.command(name="from-queue", description="Creates a playlist from the queue")
-	async def create_from_queue(self, ctx: discord.ApplicationContext,
-								name: discord.Option(str, "The name of the playlist", required=True),  # type: ignore
-								playlist_type: discord.Option(str, "The type of the playlist", required=False,
-															  choices=["server", "user"],
-															  default="server")):  # type: ignore
+	@discord.option(name="name", description="The name of the playlist", type=str, required=True)
+	@discord.option(name="playlist type", description="The type of the playlist", type=str, required=False, choices=["server", "user"], default="server", parameter_name="playlist_type")
+	async def create_from_queue(self, ctx: discord.ApplicationContext, name: str, playlist_type: str):
 		await ctx.response.defer()
 		if len(name) > 20:
 			return await ctx.respond(embed=EMBED_ERROR_NAME_TOO_LONG)
@@ -60,12 +58,10 @@ class Playlists(commands.Cog):
 			embed=discord.Embed(title="Playlist", description=f"Playlist {name} created.", color=discord.Color.green()))
 
 	@create.command(name="from-youtube", description="Creates a playlist from a youtube playlist")
-	async def create_from_youtube(self, ctx: discord.ApplicationContext,
-								  url: discord.Option(str, "The url of the playlist", required=True),  # type: ignore
-								  name: discord.Option(str, "The name of the playlist", required=False),  # type: ignore
-								  playlist_type: discord.Option(str, "The type of the playlist", required=False,
-																choices=["server", "user"],
-																default="server")):  # type: ignore
+	@discord.option(name="url", description="The url of the playlist", type=str, required=True)
+	@discord.option(name="name", description="The name of the playlist", type=str, required=False)
+	@discord.option(name="playlist type", description="The type of the playlist", type=str, required=False, choices=["server", "user"], default="server", parameter_name="playlist_type")
+	async def create_from_youtube(self, ctx: discord.ApplicationContext, url: str, name: str, playlist_type: str):
 		await ctx.response.defer()
 		server = Server.get(server_id=ctx.interaction.guild.id)
 		user_playlists = get_user_playlists(ctx.user.id)

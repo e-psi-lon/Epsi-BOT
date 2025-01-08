@@ -211,9 +211,7 @@ async def start(instance: Bot, start_time: datetime):
 	@instance.slash_command(name="send", description="Envoie un message dans un salon")
 	@discord.option("channel", discord.TextChannel, descritpion="Le salon où envoyer le message")
 	@discord.option("message", str, description="Le message à envoyer")
-	async def send_message(ctx: discord.ApplicationContext,
-						channel: discord.TextChannel,
-						message: str):
+	async def send_message(ctx: discord.ApplicationContext, channel: discord.TextChannel, message: str):
 		if ctx.author.id != instance.owner_id:
 			raise commands.NotOwner
 		await ctx.response.defer()

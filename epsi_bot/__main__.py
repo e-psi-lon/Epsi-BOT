@@ -4,7 +4,7 @@ import os
 import sys
 from dotenv import load_dotenv
 from .panel.panel import app
-import aiomultiprocess  # type: ignore
+import aiomultiprocess  # type: ignore[import-untyped]
 from .utils.loggers import CustomFormatter, parse_args
 
 aiomultiprocess.set_start_method("spawn" if os.name == "nt" else "fork")

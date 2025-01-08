@@ -12,13 +12,13 @@ from enum import Enum
 
 import discord
 import discord.ext.pages
-from ffmpeg.asyncio import FFmpeg  # type: ignore
-import pydub  # type: ignore
-import pytubefix  # type: ignore
-from aiocache import MemcachedCache  # type: ignore
-from aiocache.serializers import JsonSerializer  # type: ignore
+from ffmpeg.asyncio import FFmpeg  # type: ignore[import-untyped]
+import pydub  # type: ignore[import-untyped]
+import pytubefix  # type: ignore[import-untyped]
+from aiocache import MemcachedCache  # type: ignore[import-untyped]
+from aiocache.serializers import JsonSerializer  # type: ignore[import-untyped]
 from discord.ext import commands
-from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError # type: ignore
+from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError # type: ignore[import-error]
 
 from .constants import EMBED_ERROR_BOT_NOT_CONNECTED
 from .async_ import AsyncRequests
