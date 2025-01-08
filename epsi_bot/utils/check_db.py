@@ -1,7 +1,7 @@
 import os
 import sqlite3
 
-def format_table(table):
+def format_table(table: dict[str, list[str]]) -> str:
 	# table is a dict with the key name as the key and a list of values for that key as the value
 	# On récupère les clés
 	keys = list(table.keys())
@@ -30,14 +30,13 @@ def format_table(table):
 	for size in sizes:
 		bottom_line += "-" * (size + 2) + "+"
 	# On crée le tableau
-	table = line + "\n" + keys_line + "\n" + line + "\n"
 	formatted_table = line + "\n" + keys_line + "\n" + line + "\n"
 	for values_line in values_lines:
 		formatted_table += values_line + "\n"
 	formatted_table += bottom_line
 	return formatted_table
 
-def check_db():
+def check_db() -> None:
 	"""
 	Connects to the SQLite database, retrieves all tables and their data,
 	formats the data into a readable table format, and prints it to the console.
@@ -61,7 +60,7 @@ def check_db():
 			keys = cursor.fetchall()
 			keys = [key[1] for key in keys]
 			# On transforme le tout en dict
-			table_dict = {}
+			table_dict: dict[str, list[str]] = {}
 			for key in keys:
 				table_dict[key] = []
 			for line in data:

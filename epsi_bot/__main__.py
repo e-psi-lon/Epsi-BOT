@@ -4,7 +4,7 @@ import os
 import sys
 from dotenv import load_dotenv
 from .panel.panel import app
-import aiomultiprocess
+import aiomultiprocess  # type: ignore
 from .utils.loggers import CustomFormatter, parse_args
 
 aiomultiprocess.set_start_method("spawn" if os.name == "nt" else "fork")
@@ -12,7 +12,7 @@ load_dotenv()
 
 start_time = datetime.datetime.now()
 
-def main():
+def main() -> None:
 	os.system("cls" if os.name == "nt" else "clear")
 	app.set_start_time(start_time)
 	# Default logger

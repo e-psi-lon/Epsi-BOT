@@ -40,4 +40,5 @@ include = ["epsi_bot/**"]
 dev = [
     "mypy>=1.14.1",
     "pytest>=8.3.4",
+    "types-peewee>=3.17.8.20241229",
 ]

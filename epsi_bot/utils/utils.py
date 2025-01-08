@@ -4,21 +4,21 @@ import logging
 import os
 import random
 import re
+from typing import Any
 import zlib
 import base64
 import binascii
 from enum import Enum
-from typing import Optional
 
 import discord
 import discord.ext.pages
-from ffmpeg.asyncio import FFmpeg
+from ffmpeg.asyncio import FFmpeg  # type: ignore
 import pydub  # type: ignore
 import pytubefix  # type: ignore
 from aiocache import MemcachedCache  # type: ignore
 from aiocache.serializers import JsonSerializer  # type: ignore
 from discord.ext import commands
-from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError
+from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError # type: ignore
 
 from .constants import EMBED_ERROR_BOT_NOT_CONNECTED
 from .async_ import AsyncRequests
@@ -58,32 +58,32 @@ class AudioCache(MemcachedCache):
 		)
 		self.logger = get_logger("Memcached Audio Cache")
 
-	async def get(self, key: str, **kwargs) -> io.BytesIO | None:
+	async def get(self, key: str, **_: Any) -> io.BytesIO | None:
 		"""Get a value from the cache"""
 		return (await super().get(key)) or None
 	
-	async def set(self, key: str, value: io.BytesIO, ttl: int = 3600, **kwargs):
+	async def set(self, key: str, value: io.BytesIO, ttl: int = 3600, **_: Any) -> None:
 		"""Set a value in the cache"""
 		await super().set(key, value, ttl=ttl)	
 		self.logger.debug(f"Set {key} in cache")
 
-	async def exists(self, key: str, **kwargs) -> bool:
+	async def exists(self, key: str, **_: Any) -> bool:
 		"""Check if a key exists in the cache"""
 		return await super().exists(key)
 	
-	def update_ttl(self, key: str, new_ttl: int):
+	def update_ttl(self, key: str, new_ttl: int) -> None:
 		"""Update the ttl of a key in the cache"""
 		key = self.build_key(key, namespace=self.namespace)
 		self.client.touch(key.encode(), new_ttl)
 	
-	async def clear(self, **kwargs):
+	async def clear(self, **_: Any) -> None:
 		"""Clear the cache"""
 		await super().clear()
 
-	def __aenter__(self):
+	def __aenter__(self) -> "AudioCache":
 		return super().__aenter__()
 
-	def __aexit__(self, exc_type, exc_val, exc_tb):
+	def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> Any:
 		return super().__aexit__(exc_type, exc_val, exc_tb)
 	
 	class Base64Serializer(JsonSerializer):
@@ -120,8 +120,9 @@ async def to_cache(url: str, cache: AudioCache) -> io.BytesIO:
 		stream.stream_to_buffer(buffer)
 	buffer.seek(0)
 	await cache.set(url, buffer, ttl=3600)
+	return buffer
 
-async def download(url: str, download_logger: logging.Logger = get_logger("Audio-Downloader")) -> Optional[io.BytesIO]:
+async def download(url: str, download_logger: logging.Logger = get_logger("Audio-Downloader")) -> io.BytesIO:
 	"""
 	Download a video from a YouTube (or other) URL.
 	
@@ -178,7 +179,7 @@ class Sinks(Enum):
 	mp4 = discord.sinks.MP4Sink()
 
 
-async def finished_record_callback(sink: discord.sinks.Sink, channel: discord.TextChannel):
+async def finished_record_callback(sink: discord.sinks.Sink, channel: discord.TextChannel) -> None:
 	"""Callback function to execute when the recording is finished that processes the audio and sends it to the
 	channel"""
 	mention_strs = []
@@ -221,7 +222,7 @@ async def finished_record_callback(sink: discord.sinks.Sink, channel: discord.Te
 						   )
 
 
-async def disconnect_from_channel(state: discord.VoiceState, bot: commands.Bot):
+async def disconnect_from_channel(state: discord.VoiceState, bot: commands.Bot) -> None:
 	"""Callback function to execute when the bot has to disconnect from a voice channel"""
 	ok = False
 	for client in bot.voice_clients:
@@ -516,7 +517,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
 	except PytubeRegexMatchError:
 		file = await download(url)
 		player = discord.PCMVolumeTransformer(
-			discord.FFmpegPCMAudio(file, executable="./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg", pipe=True),
+			discord.FFmpegPCMAudio(file, executable="ffmpeg", pipe=True),
 			server.volume / 100)
 		try:
 			get_logger("Bot").info(f"Playing song {url}")
@@ -533,7 +534,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str):
 										wait_finish=True)
 
 
-async def on_play_song_finished(ctx: discord.ApplicationContext, error=None):
+async def on_play_song_finished(ctx: discord.ApplicationContext, error: Exception | None=None) -> None:
 	"""Callback function to execute when a song is finished"""
 	if error:
 		get_logger("Bot").error("Error:", error)
@@ -565,6 +566,6 @@ async def convert(audio: io.BytesIO, file_format: FfmpegFormats, log: logging.Lo
 	return io.BytesIO(byte)
 
 
-def get_lyrics(title: str):
+def get_lyrics(title: str) -> str:
 	"""Get the lyrics of a song"""
 	return title

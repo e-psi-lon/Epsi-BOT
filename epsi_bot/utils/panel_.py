@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Generic, Optional, TypeVar
+from typing import Any, Generic, Optional, TypeVar
 
 from discord import Guild, User
 from discord.abc import GuildChannel
@@ -44,7 +44,7 @@ class PanelBotRequest:
 		return f"Type: {self.type}, Content: {self.content}, Extra data: {self.extra}"
 
 	@classmethod
-	def create(cls, type_: RequestType, content: str, **kwargs) -> "PanelBotRequest":
+	def create(cls, type_: RequestType, content: str, **kwargs: Any) -> "PanelBotRequest":
 		"""Class method to create a PanelBotReqest instance.
 		
 		Parameters
@@ -400,10 +400,10 @@ class ConfigData:
 		dict
 			The dictionary representation of the ConfigData instance.
 		"""
-		return dict(self.__getstate__())
+		return dict(self.__getstate__().__dict__)
 
 
-async def get_cache_stats() -> dict[bytes, bytes]:
+async def get_cache_stats() -> Optional[dict[bytes, bytes]]:
 	"""Function to get the cache statistics.
 
 	Returns

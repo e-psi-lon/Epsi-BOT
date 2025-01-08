@@ -1,3 +1,4 @@
+from typing import Any
 from peewee import (AutoField, 
                     BooleanField, 
                     CharField, 
@@ -20,7 +21,7 @@ class BaseModel(Model):
     class Meta:
         database = database
 
-    def save(self, force_insert=False, only=None):
+    def save(self: 'BaseModel', force_insert: bool = False, only: Any | None = None) -> Any:
         logger = get_logger("Database")
         try:
             out = super().save(force_insert=force_insert, only=only)
@@ -28,10 +29,10 @@ class BaseModel(Model):
             return out
         except Exception as e:
             logger.error(f"Error while saving {self}: {e}")
-
+            return None
 
     @classmethod
-    def get_or_create_important(cls, important_fields: list[str], **kwargs) -> tuple['BaseModel', bool]:
+    def get_or_create_important(cls: 'BaseModel', important_fields: list[str], **kwargs: Any) -> tuple['BaseModel', bool]:
         importants = {key: kwargs.pop(key) for key in important_fields}
         item, created = cls.get_or_create(**importants)
         if not created:
@@ -41,10 +42,10 @@ class BaseModel(Model):
         item.save()
         return item, created
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
     
-    def __str__(self):
+    def __str__(self) -> str:
         class_name = self.__class__.__name__
         elements = []
         for elem in self._meta.fields:
@@ -92,7 +93,7 @@ class PlaylistSong(BaseModel):
         table_name = 'PLAYLIST_SONG'
         primary_key = False
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> Any:
         if self.position is None:
             max_position = (
                 PlaylistSong
@@ -119,7 +120,7 @@ class Server(BaseModel):
         return Queue.select().join(Server).where(Queue.server == self).order_by(Queue.position).prefetch(Asker, Song)
 
     @queue.setter
-    def queue(self, value: list[dict[str, str]]):
+    def queue(self, value: list[dict[str, str]]) -> None:
         with database.atomic():
             # Get existing queue entries
             existing_queue = {q.position: q for q in Queue.select().where(Queue.server == self)}
@@ -193,7 +194,7 @@ class Queue(BaseModel):
         table_name = 'QUEUE'
         primary_key = False
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs) -> Any:
         if self.position is None:
             max_position = (
                 Queue

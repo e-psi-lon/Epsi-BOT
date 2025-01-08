@@ -10,7 +10,7 @@ from .loggers import get_logger
 __all__ = ["run_sync", "run_async", "AsyncRequests", "Event", "set_callback"]
 
 
-def run_sync(coro: Coroutine):
+def run_sync(coro: Coroutine) -> Any:
 	"""
 	Run a coroutine synchronously
 	
@@ -61,7 +61,7 @@ class AsyncRequests:
 	@staticmethod
 	async def get(url: str, params: Optional[dict] = None, data: Any = None, headers: Optional[dict] = None,
 				  cookies: Optional[dict] = None, auth: Optional[aiohttp.BasicAuth] = None,
-				  allow_redirects: bool = True, timeout: Optional[float] = None, json: Any = None,
+				  allow_redirects: bool = True, timeout: aiohttp.ClientTimeout | aiohttp.helpers._SENTINEL | None = None, json: Any = None,
 				  return_type: Literal["json", "text", "content"] = "json") -> Union[dict, str, bytes]:
 		"""
 		Make a GET request
@@ -110,7 +110,7 @@ class AsyncRequests:
 	async def post(url: str, data: Any = None, json: Any = None, params: Optional[dict] = None,
 				   headers: Optional[dict] = None, cookies: Optional[dict] = None,
 				   auth: Optional[aiohttp.BasicAuth] = None, allow_redirects: bool = True,
-				   timeout: Optional[float] = None, return_type: Literal["json", "text", "content"] = "json") \
+				   timeout: aiohttp.ClientTimeout | aiohttp.helpers._SENTINEL | None = None, return_type: Literal["json", "text", "content"] = "json") \
 			-> Union[dict, str, bytes]:
 		"""
 		Make a POST request
@@ -153,7 +153,7 @@ class AsyncRequests:
 class Event:
 	def __init__(self) -> None:
 		self._event = _Event()
-		self.is_response = None
+		self.is_response: Optional[bool] = None
 
 	async def wait(self) -> None:
 		await asyncio.get_event_loop().run_in_executor(None, self._event.wait)
@@ -194,7 +194,7 @@ async def set_callback(event: Event, callback: Callable[[], Coroutine[Any, Any, 
 	-------
 	None
 	"""
-	async def _callback():
+	async def _callback() -> None:
 		while True:
 			await event.wait()
 			if not event.is_response:
