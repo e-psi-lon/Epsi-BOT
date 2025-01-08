@@ -1,5 +1,3 @@
-import asyncio
-
 import discord
 import pytubefix
 from discord.commands import SlashCommandGroup
@@ -231,7 +229,6 @@ class Playlists(commands.Cog):
 		await ctx.respond(
 			embed=discord.Embed(title="Play", description=f"Playing {server.queue[server.position].song.name}",
 								color=discord.Color.green()))
-		futures: list[asyncio.Future] = []
 		if len(server.queue) > 1:
 			queue = [queue.song.url for queue in server.queue[1:]]
 			await download_batch(queue)

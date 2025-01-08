@@ -34,11 +34,6 @@ class MemcachedStd(io.TextIOBase):
 		else:
 			return sys.stderr.isatty()
 	
-	def isatty(self) -> bool:
-		if self.type == "stdout":
-			return sys.stdout.isatty()
-		else:
-			return sys.stderr.isatty()
 	
 	def readable(self) -> bool:
 		return True

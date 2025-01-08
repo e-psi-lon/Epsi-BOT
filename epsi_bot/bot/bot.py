@@ -2,7 +2,6 @@ import os
 import sys
 import discord
 import asyncio
-import datetime
 import traceback
 import subprocess
 from multiprocessing import Queue as mpQueue
