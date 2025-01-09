@@ -45,23 +45,24 @@ class State(commands.Cog):
 			return await self.play_youtube(ctx, url)
 		if ctx.guild.voice_client is None:
 			return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
-		if not url.startswith("http"):
+		http_link_regex = re.compile(r'^https?://[^\s/$.?#]+\.[^\s/]+/.*?([^/]+\.[^/\s?#]+)(?:\?.*)?(?:#.*)?$')
+		if not http_link_regex.match(url):
 			return await ctx.respond(embed=discord.Embed(title="Error", description="Invalid URL.", color=discord.Color.dark_red()))
-		if url.split('/')[-1].split('.')[-1].split("?")[0] not in ['mp3', 'wav', 'ogg', 'mp4']:
+		if http_link_regex.match(url).group(1).split('.')[-1] not in ['mp3', 'wav', 'ogg', 'mp4']:
 			return await ctx.respond(embed=discord.Embed(title="Error", description="Invalid URL.", color=discord.Color.dark_red()))
 		server: Server = Server.get(server_id=ctx.guild.id)
 		if not server.queue:
-			song, _ = Song.get_or_create(name=url.split('/')[-1].split('?')[0], url=url)
+			song, _ = Song.get_or_create(name=http_link_regex.match(url).group(1).split('.')[0], url=url)
 			Queue.create(server=server, song=song[0], position=0, asker=Asker.get_or_create(discord_id=ctx.author.id)[0])
 			await ctx.respond(embed=discord.Embed(title="Play",
 												  description=f"Playing song "
-															  f"[{url.split('/')[-1].split('?')[0]}]({url})",
+															  f"[{http_link_regex.match(url).group(1).split('.')[0]}]({url})",
 												  color=discord.Color.green()))
 			await play_song(ctx, url)
 			return await asyncio.sleep(1)
-		Queue.create(server=server, song=Song.get_or_create(name=url.split('/')[-1].split('?')[0], url=url)[0], position=len(server.queue), asker=Asker.get_or_create(discord_id=ctx.author.id)[0])
+		Queue.create(server=server, song=Song.get_or_create(name=http_link_regex.match(url).group(1).split('.')[0], url=url)[0], position=len(server.queue), asker=Asker.get_or_create(discord_id=ctx.author.id)[0])
 		await ctx.respond(embed=discord.Embed(title="Queue",
-											  description=f"Song [{url.split('/')[-1].split('?')[0]}]({url})"
+											  description=f"Song [{http_link_regex.match(url).group(1).split('.')[0]}]({url})"
 														  f" added to queue.",
 											  color=discord.Color.green()))
 
