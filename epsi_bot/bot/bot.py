@@ -64,7 +64,7 @@ class Bot(commands.Bot):
 		self.event_listener: Event = bot_event
 		self.memcached: Optional[subprocess.Popen] = None
 		self.logger = get_logger("Bot")
-		self.start_time: Optional[datetime] = None
+		self.start_time: datetime
 
 	async def on_ready(self) -> None:
 		await self.change_presence(
@@ -76,11 +76,11 @@ class Bot(commands.Bot):
 			try:
 				# noinspection PyTypeChecker
 				self.memcached = subprocess.Popen(
-					args= ["-d", "-p", "11211", "-I", "500m", "-m", "1024"],
+					args=["-d", "-p", "11211", "-I", "500m", "-m", "1024"],
 					executable="/usr/bin/memcached",
 					stdout=MemcachedStd(),
 					stderr=MemcachedStd("stderr")
-				)
+				)  # type: ignore[call-overload]
 			except FileNotFoundError:
 				self.logger.error("Memcached not found, please install it")
 				self.memcached = None
@@ -106,7 +106,7 @@ class Bot(commands.Bot):
 		return response
 	
 	async def post_to_panel(self, data: dict | str):
-		request_ = PanelBotRequest.create(RequestType.POST, data)
+		request_ = PanelBotRequest.create(RequestType.POST, data)  # type: ignore[arg-type]
 		if self.queue is None:
 			raise ValueError("Queue is not set")
 		self.queue.put(request_)
@@ -161,10 +161,10 @@ class Bot(commands.Bot):
 		embed.add_field(name="Traceback", value=f"```\n{traceback_str[:1014]}...```")
 		try:
 			await ctx.respond(embed=embed, ephemeral=True)
-			await self.get_user(self.owner_id).send(embed=embed)
+			await self.get_user(self.owner_id).send(embed=embed)  # type: ignore[union-attr]
 		except discord.HTTPException:
 			await ctx.channel.send("Ce message se supprimera d'ici 20s", embed=embed, delete_after=20)
-			await self.get_user(self.owner_id).send(embed=embed)
+			await self.get_user(self.owner_id).send(embed=embed)  # type: ignore[union-attr]
 
 	async def on_error(self, event_method: str, *args, **kwargs) -> None:
 		context = None
@@ -192,10 +192,10 @@ class Bot(commands.Bot):
 			embed.add_field(name="Traceback", value=f"```\n{traceback_str}```")
 			try:
 				await context.respond(embed=embed, ephemeral=True)
-				await self.get_user(self.owner_id).send(embed=embed)
+				await self.get_user(self.owner_id).send(embed=embed)  # type: ignore[union-attr]
 			except discord.DiscordException:
 				await context.send("Ce message se supprimera d'ici 20s", embed=embed, delete_after=20)
-				await self.get_user(self.owner_id).send(embed=embed)
+				await self.get_user(self.owner_id).send(embed=embed)  # type: ignore[union-attr]
 		else:
 			self.logger.error(
 				f"Error in {event_method}\n Error message: {exc_value}\n Traceback: {traceback_str}\n Args: {args}"
@@ -226,7 +226,8 @@ async def start(instance: Bot, start_time: datetime):
 		await ctx.response.defer()
 		await ctx.respond(content="Arrêt en cours...", ephemeral=True)
 		await instance.close()
-		instance.memcached.terminate()
+		if instance.memcached is not None:
+			instance.memcached.terminate()
 		await instance.post_to_panel("stop")
 
 
@@ -250,9 +251,14 @@ async def start(instance: Bot, start_time: datetime):
 
 	# Lancer l'instance du bot
 	try:
-		await instance.start(os.getenv("TOKEN"))
+		token = os.getenv("TOKEN")
+		if token is None:
+			instance.logger.error("No token found, please set the environment variable TOKEN")
+			exit(1)
+		await instance.start(token)
 	except KeyboardInterrupt:
 		pass
 	finally:
 		await instance.close()
-		instance.memcached.terminate()
+		if instance.memcached is not None:
+			instance.memcached.terminate()

@@ -5,9 +5,9 @@ import logging
 import os
 from asyncio import TimerHandle
 import re
-from typing import NoReturn, Optional, Any
+from typing import Any
 
-import aiocache.serializers
+import aiocache.serializers  # type: ignore[import-untyped]
 import aiohttp
 import discord
 import multiprocessing
@@ -18,6 +18,8 @@ from aiocache import MemcachedCache
 from dotenv import load_dotenv
 from quart import Quart, session, redirect, url_for, render_template, request, websocket
 from quart_session import Session  # type: ignore[import-untyped]
+from werkzeug.utils import cached_property
+from werkzeug.wrappers.response import Response
 
 from ..utils import (PanelBotRequest,
                    PanelBotResponse,
@@ -33,7 +35,7 @@ from ..utils import (PanelBotRequest,
 				   get_cache_stats
                    )
 from ..utils.models import BaseModel
-from aiomultiprocess import Process
+from aiomultiprocess import Process  # type: ignore[import-untyped]
 from ..bot.bot import start, Bot
 
 load_dotenv()
@@ -42,28 +44,28 @@ load_dotenv()
 class Panel(Quart):
 	def __init__(self, secret_key: str, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		self.bot_process: Optional[Process] = None
+		self.bot_process: Process
 		self.secret_key = secret_key
 		self.API_ENDPOINT = "https://discord.com/api/v10"
 		self.CLIENT_ID = 1167171085343666216
 		self.CLIENT_SECRET = os.environ['CLIENT_SECRET']
 		self.REDIRECT_URI = "http://86.196.98.254/auth/discord/callback"
 		self.timers: dict[int, TimerHandle] = {}
-		self.queue: Optional[multiprocessing.Queue[PanelBotRequest | PanelBotResponse]] = multiprocessing.Queue()
+		self.queue: multiprocessing.Queue[PanelBotRequest | PanelBotResponse] = multiprocessing.Queue()
 		self.config['SESSION_TYPE'] = 'memcached'
-		self.start_time: Optional[datetime.datetime] = None
+		self.start_time: datetime.datetime
 		self.bot_event = Event()
 		self.event = Event()
 		Session(self)
 
-	@property
+	@cached_property
 	def logger(self) -> logging.Logger:
 		return get_logger("Panel")
 
-	def set_start_time(self, start_time: datetime.datetime):
+	def set_start_time(self, start_time: datetime.datetime) -> None:
 		self.start_time = start_time
 
-	async def start_bot(self, queue: multiprocessing.Queue, start_time: datetime.datetime) -> NoReturn:
+	async def start_bot(self, queue: multiprocessing.Queue, start_time: datetime.datetime) -> None:
 		if not os.path.exists("database/database.db"):
 			if not os.path.exists("database/"):
 				os.mkdir("database/")
@@ -87,7 +89,7 @@ class Panel(Quart):
 			keyfile: str | None = None,
 			**kwargs: Any,
 	) -> None:
-		self.bot_process: Process = Process(target=self.start_bot, args=(self.queue, self.start_time))
+		self.bot_process = Process(target=self.start_bot, args=(self.queue, self.start_time))
 		self.bot_process.start()
 		super().run(host=host, port=port, use_reloader=use_reloader, loop=loop, ca_certs=ca_certs, certfile=certfile, debug=debug,
 					keyfile=keyfile, **kwargs)
@@ -105,7 +107,9 @@ class Panel(Quart):
 		await self.bot_event.set()
 		self.logger.info(f"Getting {data} from bot")
 		await self.event.wait()
-		response: PanelBotResponse = self.queue.get()
+		response = self.queue.get()
+		if not isinstance(response, PanelBotResponse):
+			raise TypeError(f"The bot is supposed to return a {PanelBotResponse.__name__}, but got {type(response).__name__}")
 		await self.event.clear()
 		self.logger.info(f"Got {response} from bot")
 		async with MemcachedCache(serializer=aiocache.serializers.PickleSerializer()) as cache:
@@ -120,7 +124,7 @@ class Panel(Quart):
 		await self.bot_event.set()
 		self.logger.info(f"Posting {request_} to bot")
 
-	async def read_queue(self) -> Optional[NoReturn]:
+	async def read_queue(self) -> None:
 		message = self.queue.get()
 		self.logger.info(f"Got {message} from connection")
 		if not isinstance(message, PanelBotRequest):
@@ -177,7 +181,7 @@ async def panel():
 
 
 @app.route('/server/<int:server_id>', methods=['GET', 'POST'])
-async def server(server_id):
+async def server(server_id: int) -> Response | str:
 	config: models.Server = models.Server.get_or_none(server_id=server_id)
 	if server_id not in [guild["id"] for guild in session.get('guilds', [])] or 'token' not in session or config is None:
 		return redirect(url_for('panel'))
@@ -196,17 +200,17 @@ async def server(server_id):
 			config.position = values['position']
 		if config.queue != values['queue']:
 			new_queue = [{"name": song['title'], "url": song['url'], "asker": song['asker_id']} for song in values['queue']]
-			config.queue = new_queue
+			config.queue = new_queue  # type: ignore[assignment]
 		config.save()
 		return redirect(url_for('server', server_id=server_id))
-	server_data = ConfigData(config.loop_song, config.loop_queue, config.random, config.position, config.queue,
-							 server_id, (await app.get_from_bot("guild", server_id=server_id)).content.name, config.volume)
+	server_data = ConfigData(config.loop_song, config.loop_queue, config.random, config.position, config.queue,  # type: ignore[arg-type]
+							 server_id, (await app.get_from_bot("guild", server_id=server_id)).content.name, config.volume)  # type: ignore[arg-type, attr-defined]
 	yt_regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/((watch\?v=)|(embed/)|(v/)|(.+\?v=))?([^&=%\?]{11})')
 	return await render_template('server.html', server=server_data, app=app, pytubefix=pytubefix, yt_regex=yt_regex)
 
 
 @app.route('/server/<int:server_id>/clear')
-async def clear(server_id):
+async def clear(server_id: int) -> Response:
 	config: models.Server = models.Server.get(server_id=server_id)
 	for song in config.queue:
 		song.delete().execute()
@@ -214,7 +218,7 @@ async def clear(server_id):
 
 
 @app.route('/server/<int:server_id>/add', methods=['POST'])
-async def add(server_id):
+async def add(server_id: int) -> Response:
 	config = models.Server.get(server_id=server_id)
 	song: models.Song = models.Song.get_or_create(name=(await request.form)['name'], url=(await request.form)['url'])[0]
 	asker: models.Asker = models.Asker.get_or_create(discord_id=session['user'].id)[0]

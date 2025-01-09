@@ -47,7 +47,7 @@ class Admin(commands.Cog):
 		def check(m: discord.Message):
 			global removed_count
 			removed_count += 1
-			return m.author.id == self.bot.user.id and m.id != 1128641774789861488 and removed_count <= count
+			return m.author.id == self.bot.user.id and m.id != 1128641774789861488 and removed_count <= count  # type: ignore[union-attr]
 
 		await ctx.channel.purge(check=check)
 		embed = discord.Embed(title="Clean", description=f"Cleaned {count} messages.", color=discord.Color.green())

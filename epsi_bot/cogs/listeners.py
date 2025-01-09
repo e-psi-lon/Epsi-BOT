@@ -32,7 +32,7 @@ class Listeners(commands.Cog):
 				except Exception:
 					exc_type, exc_value, exc_traceback = sys.exc_info()
 					traceback_str = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
-					output.write(f"Uncaught {exc_type.__name__}: {exc_value}\n{traceback_str}")
+					output.write(f"Uncaught {exc_type.__name__}: {exc_value}\n{traceback_str}")  # type: ignore
 				finally:
 					await message.reply(f"```{output.getvalue()[:1994]}```", delete_after=10)
 				
@@ -42,11 +42,11 @@ class Listeners(commands.Cog):
 									after: discord.VoiceState):
 
 		if after.channel is not None:
-			if len(after.channel.members) == 1 and after.channel.members[0].id == self.bot.user.id:
+			if len(after.channel.members) == 1 and after.channel.members[0].id == self.bot.user.id:  # type: ignore[union-attr]
 				await disconnect_from_channel(after, self.bot)
 				self.bot.logger.info("Bot disconnected from channel, no more members in it")
 		if before.channel is not None:
-			if len(before.channel.members) == 1 and before.channel.members[0].id == self.bot.user.id:
+			if len(before.channel.members) == 1 and before.channel.members[0].id == self.bot.user.id:  # type: ignore[union-attr]
 				await disconnect_from_channel(before, self.bot)
 				self.bot.logger.info("Bot disconnected from channel, no more members in it")
 
@@ -73,5 +73,5 @@ class Listeners(commands.Cog):
 		Server.get_or_create(server_id=guild.id)
 
 
-def setup(bot: commands.Bot):
+def setup(bot: Bot):
 	bot.add_cog(Listeners(bot))
