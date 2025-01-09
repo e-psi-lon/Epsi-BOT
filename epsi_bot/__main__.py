@@ -7,13 +7,13 @@ from .panel.panel import app
 import aiomultiprocess  # type: ignore[import-untyped]
 from .utils.loggers import CustomFormatter, parse_args
 
-aiomultiprocess.set_start_method("spawn" if os.name == "nt" else "fork")
+aiomultiprocess.set_start_method("fork")
 load_dotenv()
 
 start_time = datetime.datetime.now()
 
 def main() -> None:
-	os.system("cls" if os.name == "nt" else "clear")
+	os.system("clear")
 	app.set_start_time(start_time)
 	# Default logger
 	handler = logging.StreamHandler(sys.stdout)

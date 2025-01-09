@@ -1,7 +1,6 @@
 import asyncio
 import io
 import logging
-import os
 import random
 import re
 from typing import Any
@@ -25,7 +24,7 @@ from .async_ import AsyncRequests
 from .models import Asker, Server, Song, Playlist, Queue, SongListenCount, get_user_playlists
 from .loggers import get_logger
 
-pydub.AudioSegment.converter = "./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg"
+pydub.AudioSegment.converter = "ffmpeg"
 
 __all__ = [
 	"AudioCache",
@@ -553,8 +552,7 @@ class FfmpegFormats(Enum):
 	WAV = ("-codec:a", "pcm_s16le")
 
 
-async def convert(audio: io.BytesIO, file_format: FfmpegFormats, log: logging.Logger = get_logger("Audio-Converter"),
-			executable: str = "./bin/ffmpeg.exe" if os.name == "nt" else "ffmpeg") -> io.BytesIO:
+async def convert(audio: io.BytesIO, file_format: FfmpegFormats, log: logging.Logger = get_logger("Audio-Converter"), executable: str = "ffmpeg") -> io.BytesIO:
 	"""Convert an audio file to another format"""
 	ffmpeg = (
 		FFmpeg(executable)
