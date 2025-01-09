@@ -14,7 +14,7 @@ class Others(commands.Cog):
 		self.description = "Other commands"
 
 	@commands.slash_command(name="download_file", description="Download the audio of a youtube video")
-	@discord.option(name="file format", description="The file_format of the file", choices=["mp3", "ogg"], required=False, default="ogg", parameter_name="file_format")
+	@discord.option("file format", str, description="The file_format of the file", choices=["mp3", "ogg"], required=False, default="ogg", parameter_name="file_format", min_length=3, max_length=3)
 	async def download_file(self, ctx: discord.ApplicationContext, query: str, file_format: str):
 		await ctx.response.defer()
 		try:

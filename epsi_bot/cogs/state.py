@@ -2,6 +2,7 @@ import asyncio
 import re
 import threading
 from datetime import datetime
+from typing import Optional
 
 import discord
 import pytubefix
@@ -32,8 +33,8 @@ class State(commands.Cog):
 	play = SlashCommandGroup(name="play", description="Commands related to the audio of the bot")
 
 	@play.command(name="url", description="Plays the audio of a file from an URL")
-	async def play_url(self, ctx: discord.ApplicationContext,
-					   url: discord.Option(str, "The URL of the audio to play", required=True)):  # type: ignore
+	@discord.option("url", str, "The URL of the audio to play", required=True)
+	async def play_url(self, ctx: discord.ApplicationContext, url: str):
 		await ctx.response.defer()
 		if ctx.user.id in [501303816302362635, 942531230291877910]:
 			return await ctx.respond(
@@ -65,8 +66,8 @@ class State(commands.Cog):
 											  color=discord.Color.green()))
 
 	@play.command(name="file", description="Plays the audio of a file")
-	async def play_file(self, ctx: discord.ApplicationContext,
-						file: discord.Option(discord.Attachment, "The file to play", required=True)):  # type: ignore
+	@discord.option("file", discord.Attachment, "The file to play", required=True)
+	async def play_file(self, ctx: discord.ApplicationContext, file: discord.Attachment):
 		await ctx.response.defer()
 		if ctx.guild.voice_client is None:
 			return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
@@ -91,8 +92,8 @@ class State(commands.Cog):
 											  color=discord.Color.green()))
 
 	@play.command(name="youtube", description="Plays the audio of a YouTube video")
-	async def play_youtube(self, ctx: discord.ApplicationContext,
-						   query: discord.Option(str, "The YouTube audio to play", required=True)):  # type: ignore
+	@discord.option("query", str, "The YouTube audio to play", required=True)
+	async def play_youtube(self, ctx: discord.ApplicationContext, query: str):
 		await ctx.response.defer()
 		if ctx.guild.voice_client is None:
 			return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
@@ -191,8 +192,8 @@ class State(commands.Cog):
 		await ctx.respond(embed=discord.Embed(title="Stop", description="Song stopped.", color=discord.Color.green()))
 
 	@commands.slash_command(name="volume", description="Gets or sets the volume of the bot")
-	async def volume(self, ctx: discord.ApplicationContext,
-					 volume: discord.Option(int, "The volume to set (from 0 to 100)", required=False)):  # type: ignore
+	@discord.option("volume", int, "The volume to set (from 0 to 100)", required=False, min_value=0, max_value=100)
+	async def volume(self, ctx: discord.ApplicationContext, volume: Optional[int] = None):
 		await ctx.response.defer()
 		if ctx.guild.voice_client is None:
 			return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
@@ -232,9 +233,9 @@ class State(commands.Cog):
 	@commands.slash_command(name="record",
 							description="Enregistre nos chers gogols en train de chanter "
 										"(c'est Rignchen qui m'as dit de laisser ça)")
-	async def record(self, ctx: discord.ApplicationContext,
-					 time: discord.Option(int, "Le temps d'enregistrement en secondes (de 1s à 260s)", required=True),  # type: ignore
-					 file_format: discord.Option(Sinks, "Le format d'enregistrement", required=True)):  # type: ignore
+	@discord.option("time", int, "Le temps d'enregistrement en secondes (de 1s à 260s)", required=True, min_value=1, max_value=260)
+	@discord.option("file_format", Sinks, "Le format d'enregistrement", required=True)
+	async def record(self, ctx: discord.ApplicationContext, time: int, file_format: Sinks):
 		await ctx.response.defer()
 		if ctx.guild.voice_client is None:
 			return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)

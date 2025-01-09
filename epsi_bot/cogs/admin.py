@@ -36,7 +36,7 @@ class Admin(commands.Cog):
 		await ctx.respond(embed=embed, delete_after=30)
 
 	@commands.slash_command(name="clean", description="Cleans the bot's messages", guild_ids=[761485410596552736])
-	@discord.option(name="count", description="The number of messages to delete", type=int, required=False, default=1)
+	@discord.option("count", int, description="The number of messages to delete", required=False, default=1, min_value=1, max_value=100)
 	async def clean(self, ctx: discord.ApplicationContext, count: int):
 		global removed_count
 		await ctx.response.defer()
@@ -54,7 +54,7 @@ class Admin(commands.Cog):
 		await ctx.respond(embed=embed, delete_after=30)
 
 	@commands.slash_command(name="reload", description="Reloads the cogs", guild_ids=[761485410596552736])
-	@discord.option(name="cog", description="The cog to reload", type=str, required=False, default="all", autocomplete=discord.utils.basic_autocomplete(cogs_autocomplete))
+	@discord.option("cog", str, description="The cog to reload", required=False, default="all", autocomplete=discord.utils.basic_autocomplete(cogs_autocomplete))
 	async def reload(self, ctx: discord.ApplicationContext, cog: str):
 		if cog == "all":
 			await ctx.response.defer()
