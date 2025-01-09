@@ -16,8 +16,8 @@ class Todo(commands.Cog):
 							 guild_ids=[761485410596552736])
 
 	@todo.command(name="add_line", description="Adds a line to the message")
-	@discord.option("line", str, "The line to add", required=True)
-	@discord.option("index", int, "The index of the line to add", required=False, default=None)
+	@discord.option("line", str, description="The line to add", required=True)
+	@discord.option("index", int, description="The index of the line to add", required=False, default=None)
 	async def add_line(self, ctx: discord.ApplicationContext, line: str, index: int):
 		await ctx.response.defer()
 		if ctx.channel.id != 1128286383161745479:
@@ -41,7 +41,7 @@ class Todo(commands.Cog):
 		await ctx.respond(embed=embed, delete_after=30)
 
 	@todo.command(name="remove_line", description="Removes a line from the message")
-	@discord.option("index", int, "The index of the line to remove", required=True)
+	@discord.option("index", int, description="The index of the line to remove", required=True)
 	async def remove_line(self, ctx: discord.ApplicationContext, index: int):
 		await ctx.response.defer()
 		if ctx.channel.id != 1128286383161745479:
@@ -67,8 +67,8 @@ class Todo(commands.Cog):
 		await ctx.respond(embed=embed, delete_after=30)
 
 	@todo.command(name="edit_line", description="Edits a line from the message")
-	@discord.option("index", int, "The index of the line to edit", required=True)
-	@discord.option("line", str, "The new line", required=True)
+	@discord.option("index", int, description="The index of the line to edit", required=True)
+	@discord.option("line", str, description="The new line", required=True)
 	async def edit_line(self, ctx: discord.ApplicationContext, index: int, line: str):
 		await ctx.response.defer()
 		if ctx.channel.id != 1128286383161745479:
@@ -95,8 +95,8 @@ class Todo(commands.Cog):
 		await ctx.respond(embed=embed, delete_after=30)
 
 	@todo.command(name="assign", description="Assigns a task to a user")
-	@discord.option("index", int, "The index of the line to assign", required=True)
-	@discord.option("user", discord.User, "The user to assign the task to", required=True)
+	@discord.option("index", int, description="The index of the line to assign", required=True)
+	@discord.option("user", discord.User, description="The user to assign the task to", required=True)
 	async def assign(self, ctx: discord.ApplicationContext, index: int, user: discord.User):
 		await ctx.response.defer()
 		if ctx.channel.id != 1128286383161745479:

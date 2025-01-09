@@ -33,7 +33,7 @@ class State(commands.Cog):
 	play = SlashCommandGroup(name="play", description="Commands related to the audio of the bot")
 
 	@play.command(name="url", description="Plays the audio of a file from an URL")
-	@discord.option("url", str, "The URL of the audio to play", required=True)
+	@discord.option("url", str, description="The URL of the audio to play", required=True)
 	async def play_url(self, ctx: discord.ApplicationContext, url: str):
 		await ctx.response.defer()
 		if ctx.user.id in [501303816302362635, 942531230291877910]:
@@ -67,7 +67,7 @@ class State(commands.Cog):
 											  color=discord.Color.green()))
 
 	@play.command(name="file", description="Plays the audio of a file")
-	@discord.option("file", discord.Attachment, "The file to play", required=True)
+	@discord.option("file", discord.Attachment, description="The file to play", required=True)
 	async def play_file(self, ctx: discord.ApplicationContext, file: discord.Attachment):
 		await ctx.response.defer()
 		if ctx.guild.voice_client is None:
@@ -93,7 +93,7 @@ class State(commands.Cog):
 											  color=discord.Color.green()))
 
 	@play.command(name="youtube", description="Plays the audio of a YouTube video")
-	@discord.option("query", str, "The YouTube audio to play", required=True)
+	@discord.option("query", str, description="The YouTube audio to play", required=True)
 	async def play_youtube(self, ctx: discord.ApplicationContext, query: str):
 		await ctx.response.defer()
 		if ctx.guild.voice_client is None:
@@ -193,7 +193,7 @@ class State(commands.Cog):
 		await ctx.respond(embed=discord.Embed(title="Stop", description="Song stopped.", color=discord.Color.green()))
 
 	@commands.slash_command(name="volume", description="Gets or sets the volume of the bot")
-	@discord.option("volume", int, "The volume to set (from 0 to 100)", required=False, min_value=0, max_value=100)
+	@discord.option("volume", int, description="The volume to set (from 0 to 100)", required=False, min_value=0, max_value=100)
 	async def volume(self, ctx: discord.ApplicationContext, volume: Optional[int] = None):
 		await ctx.response.defer()
 		if ctx.guild.voice_client is None:
@@ -234,8 +234,8 @@ class State(commands.Cog):
 	@commands.slash_command(name="record",
 							description="Enregistre nos chers gogols en train de chanter "
 										"(c'est Rignchen qui m'as dit de laisser ça)")
-	@discord.option("time", int, "Le temps d'enregistrement en secondes (de 1s à 260s)", required=True, min_value=1, max_value=260)
-	@discord.option("file_format", Sinks, "Le format d'enregistrement", required=True)
+	@discord.option("time", int, description="Le temps d'enregistrement en secondes (de 1s à 260s)", required=True, min_value=1, max_value=260)
+	@discord.option("file-format", Sinks, description="Le format d'enregistrement", required=True)
 	async def record(self, ctx: discord.ApplicationContext, time: int, file_format: Sinks):
 		await ctx.response.defer()
 		if ctx.guild.voice_client is None:

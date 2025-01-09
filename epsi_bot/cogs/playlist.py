@@ -32,7 +32,7 @@ class Playlists(commands.Cog):
 
 	@create.command(name="from-queue", description="Creates a playlist from the queue")
 	@discord.option("name", str, description="The name of the playlist", required=True)
-	@discord.option("playlist type", str, description="The type of the playlist", required=False, choices=["server", "user"], default="server", parameter_name="playlist_type", min_length=4, max_length=6)
+	@discord.option("playlist-type", str, description="The type of the playlist", required=False, choices=["server", "user"], default="server", parameter_name="playlist_type", min_length=4, max_length=6)
 	async def create_from_queue(self, ctx: discord.ApplicationContext, name: str, playlist_type: str):
 		await ctx.response.defer()
 		if len(name) > 20:
@@ -60,7 +60,7 @@ class Playlists(commands.Cog):
 	@create.command(name="from-youtube", description="Creates a playlist from a youtube playlist")
 	@discord.option("url", str, description="The url of the playlist", required=True)
 	@discord.option("name", str, description="The name of the playlist", required=False)
-	@discord.option("playlist type", str, description="The type of the playlist", required=False, choices=["server", "user"], default="server", parameter_name="playlist_type", min_length=4, max_length=6)
+	@discord.option("playlist-type", str, description="The type of the playlist", required=False, choices=["server", "user"], default="server", parameter_name="playlist_type", min_length=4, max_length=6)
 	async def create_from_youtube(self, ctx: discord.ApplicationContext, url: str, name: str, playlist_type: str):
 		await ctx.response.defer()
 		server = Server.get(server_id=ctx.interaction.guild.id)
@@ -222,7 +222,7 @@ class Playlists(commands.Cog):
 			await download_batch(queue)
 
 	@playlist.command(name="list", description="Lists all the playlists")
-	@discord.option("playlist type", str, description="The type of the playlist", required=False, choices=["server", "user"], default="server", parameter_name="playlist_type", min_length=4, max_length=6)
+	@discord.option("playlist-type", str, description="The type of the playlist", required=False, choices=["server", "user"], default="server", parameter_name="playlist_type", min_length=4, max_length=6)
 	async def list_playlist(self, ctx: discord.ApplicationContext, playlist_type: str):
 		await ctx.response.defer()
 		playlists: list[ServerPlaylist | UserPlaylist] = Server.get(server_id=ctx.guild.id).playlists if playlist_type == "server" else get_user_playlists(ctx.user.id)
@@ -265,7 +265,7 @@ class Playlists(commands.Cog):
 
 	@playlist.command(name="rename", description="Renames a playlist")
 	@discord.option("name", str, description="The name of the playlist", required=True, autocomplete=discord.utils.basic_autocomplete(get_playlists))
-	@discord.option("new name", str, description="The new name of the playlist", required=True, parameter_name="new_name")
+	@discord.option("new-name", str, description="The new name of the playlist", required=True, parameter_name="new_name")
 	async def rename(self, ctx: discord.ApplicationContext, name: str, new_name: str):
 		await ctx.response.defer()
 		if len(new_name) > 20:
