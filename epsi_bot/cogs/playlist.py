@@ -15,8 +15,7 @@ from ..utils import (Playlist,
                    EMBED_ERROR_QUEUE_EMPTY,
                    EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST,
                    EMBED_ERROR_BOT_NOT_CONNECTED,
-                   Server,
-                   get_user_playlists, PlaylistSong, ServerPlaylist, UserPlaylist,
+                   Server, PlaylistSong, ServerPlaylist, UserPlaylist,
 				   download_batch
                    )
 
@@ -37,8 +36,8 @@ class Playlists(commands.Cog):
 		await ctx.response.defer()
 		if len(name) > 20:
 			return await ctx.respond(embed=EMBED_ERROR_NAME_TOO_LONG)
-		server = Server.get(server_id=ctx.interaction.guild.id)
-		user_playlists = get_user_playlists(ctx.user.id)
+		server = await Server.get(server_id=ctx.interaction.guild.id)
+		user_playlists: UserPlaylist = (await Asker.get(discord_id=ctx.user.id)).playlists
 		if not server.queue and not user_playlists:
 			return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
 		if (name in [playlist.playlist.name for playlist in server.playlists] and playlist_type == "server") or \
@@ -63,8 +62,8 @@ class Playlists(commands.Cog):
 	@discord.option("playlist-type", str, description="The type of the playlist", required=False, choices=["server", "user"], default="server", parameter_name="playlist_type", min_length=4, max_length=6)
 	async def create_from_youtube(self, ctx: discord.ApplicationContext, url: str, name: str, playlist_type: str):
 		await ctx.response.defer()
-		server = Server.get(server_id=ctx.interaction.guild.id)
-		user_playlists = get_user_playlists(ctx.user.id)
+		server = await Server.get(server_id=ctx.interaction.guild.id)
+		user_playlists = (await Asker.get(ctx.user.id)).playlists
 		try:
 			playlist = pytubefix.Playlist(url)
 			if name is None:
@@ -96,7 +95,7 @@ class Playlists(commands.Cog):
 	@playlist.command(name="delete", description="Deletes a playlist")
 	@discord.option("name", str, description="The name of the playlist", required=True, autocomplete=discord.utils.basic_autocomplete(get_playlists))	
 	async def delete(self, ctx: discord.ApplicationContext, name: str):
-		user_playlists = get_user_playlists(ctx.user.id)
+		user_playlists = (await Asker.get(discord_id=ctx.user.id)).playlists
 		server: Server = Server.get(server_id=ctx.guild.id)
 		await ctx.response.defer()
 		if name.endswith(" - SERVER"):
