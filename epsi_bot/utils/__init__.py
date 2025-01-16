@@ -12,6 +12,7 @@ __all__ = [
 	'ServerPlaylist',
 	'UserPlaylist',
     'SongListenCount',
+    'database_context',
 	'ChannelData',
 	'UserData',
 	'GuildData',
@@ -65,7 +66,8 @@ from .models import (Asker,
 					 Queue,
 					 ServerPlaylist,
 					 UserPlaylist,
-                     SongListenCount
+                     SongListenCount,
+                     database_context
                      )
 
 from .panel_ import (ChannelData,

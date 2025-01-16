@@ -6,8 +6,9 @@ import traceback
 import subprocess
 from multiprocessing import Queue as mpQueue
 from typing import Optional
+
 from ..utils import GuildData, UserData, PanelBotRequest, PanelBotResponse, RequestType, get_logger, Event, set_callback, \
-	Server, download_batch, AudioCache, Song, SongListenCount
+	Server, download_batch, AudioCache, SongListenCount, database_context
 from discord.ext import commands
 from discord.ext import tasks
 from datetime import datetime
@@ -28,17 +29,15 @@ async def check_update() -> None:
 @tasks.loop(hours=36)
 async def update_top_songs(self: 'Bot') -> None:
 		# Calculate top 5 songs
-		top_songs: list[SongListenCount] = SongListenCount \
-			.select()\
-			.order_by(SongListenCount.count.desc())\
-			.limit(5)\
-			.prefetch(Song)
-
-		top_songs_data = [
-			{"name": song.song.name, "url": song.song.url, "listen_count": song.count}
-			for song in top_songs
-		]
-
+		async with database_context():
+			top_songs = await SongListenCount.all() \
+				.order_by("-count") \
+				.limit(5)
+			top_songs_data = [
+				{"name": song.song.name, "url": song.song.url, "listen_count": song.count}
+				for song in top_songs
+			]
+			SongListenCount.delete().execute()
 		async with AudioCache(len(top_songs_data)) as cache:
 			to_download = []
 			# First update TTL for cached songs and collect uncached ones
@@ -53,8 +52,6 @@ async def update_top_songs(self: 'Bot') -> None:
 			await download_batch(to_download)
 		self.logger.info("Top 5 songs updated and cached.")
 		# Reset listen counts
-		SongListenCount.delete().execute()
-
 
 class Bot(commands.Bot):
 	def __init__(self, queue, event: Event, bot_event: Event, *args, **options) -> None:
@@ -86,9 +83,10 @@ class Bot(commands.Bot):
 				self.memcached = None
 				exit(1)
 		self.logger.info(f"Bot ready in {datetime.now() - self.start_time}")
-		for guild in self.guilds:
-			# Si la guilde n'existe pas dans la db, on l'ajoute avec les paramètres par défaut
-			Server.get_or_create(server_id=guild.id)
+		async with database_context():
+			for guild in self.guilds:
+				# Si la guilde n'existe pas dans la db, on l'ajoute avec les paramètres par défaut
+				await Server.get_or_create(server_id=guild.id)
 		if not update_top_songs.is_running():
 			update_top_songs.start(self)
 
@@ -238,7 +236,7 @@ async def start(instance: Bot, start_time: datetime):
 
 	# Charger les cogs
 	instance.logger.info(
-		f"Script started at {start_time.strftime('%d/%m/%Y %H:%M:%S')} "
+		f"Bot started at {start_time.strftime('%d/%m/%Y %H:%M:%S')} "
 		f"using python executable {sys.executable}"
 	)
 	for file in os.listdir("./epsi_bot/cogs"):

@@ -165,7 +165,7 @@ async def download_batch(urls: list[str], download_logger: logging.Logger = get_
 		download_logger.info(f"Downloaded {url}")
 		return result
 	
-	async with AudioCache(len(urls)*3) as cache:
+	async with AudioCache(len(urls)) as cache:
 		tasks = [download_worker(url, cache) for url in urls]
 		results = await asyncio.gather(*tasks)
 		return results

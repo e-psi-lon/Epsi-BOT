@@ -1,4 +1,4 @@
-from typing import Any, Iterable, Type
+from typing import Any, AsyncGenerator, Iterable, Type
 from aiosqlite import OperationalError
 from tortoise import (
                     BaseDBAsyncClient,
@@ -6,9 +6,8 @@ from tortoise import (
                     Model,
                     Tortoise,
                     models,
-                    exceptions
+                    exceptions,   
                 )
-from tortoise.fields import ForeignKeyRelation
 
 from .loggers import get_logger
 from contextlib import asynccontextmanager
@@ -77,15 +76,15 @@ class Playlist(BaseModel):
 class Song(BaseModel):
     name = fields.CharField(100)
     song_id = fields.IntField(primary_key=True)
-    url = fields.TextField(unique=True)
+    url = fields.CharField(200, unique=True)
     class Meta:
         table = 'SONG'
 
 class PlaylistSong(BaseModel):
-    asker: ForeignKeyRelation[Asker] = fields.ForeignKeyField('models.Asker')
-    playlist: ForeignKeyRelation[Playlist] = fields.ForeignKeyField('models.Playlist', related_name='playlist_songs')
+    asker: fields.ForeignKeyRelation[Asker] = fields.ForeignKeyField('models.Asker')
+    playlist: fields.ForeignKeyRelation[Playlist] = fields.ForeignKeyField('models.Playlist', related_name='playlist_songs')
     position = fields.IntField()
-    song: ForeignKeyRelation[Song] = fields.ForeignKeyField('models.Song')
+    song: fields.ForeignKeyRelation[Song] = fields.ForeignKeyField('models.Song')
 
     class Meta:
         table = 'PLAYLIST_SONG'
@@ -104,17 +103,17 @@ class Server(BaseModel):
     random = fields.BooleanField(default=False)
     server_id = fields.IntField(primary_key=True)
     volume = fields.IntField(default=100)
-    queue = fields.ReverseRelation['Queue']
-    playlists = fields.ReverseRelation['ServerPlaylist']
+    queue: fields.ReverseRelation['Queue']
+    playlists: fields.ReverseRelation['ServerPlaylist']
 
     class Meta:
         table = 'SERVER'
 
 class Queue(BaseModel):
-    asker: ForeignKeyRelation[Asker] = fields.ForeignKeyField('models.Asker')
+    asker: fields.ForeignKeyRelation[Asker] = fields.ForeignKeyField('models.Asker')
     position = fields.IntField()
-    server: ForeignKeyRelation[Server] = fields.ForeignKeyField('models.Server')
-    song: ForeignKeyRelation[Song] = fields.ForeignKeyField('models.Song')
+    server: fields.ForeignKeyRelation[Server] = fields.ForeignKeyField('models.Server')
+    song: fields.ForeignKeyRelation[Song] = fields.ForeignKeyField('models.Song')
 
     class Meta:
         table = 'QUEUE'
@@ -127,8 +126,8 @@ class Queue(BaseModel):
         return await super().save(*args, **kwargs)
 
 class ServerPlaylist(BaseModel):
-    playlist: ForeignKeyRelation[Playlist] = fields.ForeignKeyField('models.Playlist')
-    server: ForeignKeyRelation[Server] = fields.ForeignKeyField('models.Server')
+    playlist: fields.ForeignKeyRelation[Playlist] = fields.ForeignKeyField('models.Playlist')
+    server: fields.ForeignKeyRelation[Server] = fields.ForeignKeyField('models.Server')
 
     class Meta:
         table = 'SERVER_PLAYLIST'
@@ -136,21 +135,21 @@ class ServerPlaylist(BaseModel):
 
 
 class UserPlaylist(BaseModel):
-    playlist: ForeignKeyRelation[Playlist] = fields.ForeignKeyField('models.Playlist')
-    user: ForeignKeyRelation[Asker] = fields.ForeignKeyField('models.Asker', related_name='playlists')
+    playlist: fields.ForeignKeyRelation[Playlist] = fields.ForeignKeyField('models.Playlist')
+    user: fields.ForeignKeyRelation[Asker] = fields.ForeignKeyField('models.Asker', related_name='playlists')
 
     class Meta:
         table = 'USER_PLAYLIST'
 
 class SongListenCount(BaseModel):
-    song: ForeignKeyRelation[Song] = fields.ForeignKeyField('models.Song', related_name='listen_count')
+    song: fields.ForeignKeyRelation[Song] = fields.ForeignKeyField('models.Song', related_name='listen_count')
     count = fields.IntField(default=0)
 
     class Meta:
         table = 'SONG_LISTEN_COUNT'
 
 @asynccontextmanager
-async def database_context():
+async def database_context() -> AsyncGenerator[None, None]:
     """
     Async context manager for database operations.
     
