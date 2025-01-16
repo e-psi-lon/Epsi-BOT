@@ -291,7 +291,6 @@ dev = [
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-aio" },
-    { name = "types-peewee" },
 ]
 
 [package.metadata]
@@ -318,7 +317,6 @@ dev = [
     { name = "mypy", specifier = ">=1.14.1" },
     { name = "pytest", specifier = ">=8.3.4" },
     { name = "pytest-aio", specifier = ">=1.9.0" },
-    { name = "types-peewee", specifier = ">=3.17.8.20241229" },
 ]
 
 [[package]]
@@ -801,15 +799,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/1b/6e/c23d788524750d84c75864eac0176f57c07a5316b36cc467d2914a109bef/tortoise_orm-0.23.0.tar.gz", hash = "sha256:f25d431ef4fb521a84edad582f4b9c53dccc5abf6cfbc6f228cbece5a13952fa", size = 146712 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/95/74/0f3388be6fe88254a02ccefccc1391a54a15fb3b56b9710f9560ef8838a4/tortoise_orm-0.23.0-py3-none-any.whl", hash = "sha256:deaabed1619ea8aab6213508dff025571a701b7f34ee534473d7bb7661aa9f4f", size = 184162 },
-]
-
-[[package]]
-name = "types-peewee"
-version = "3.17.8.20241229"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/56/61/2695256db2c0ee064ad3bd4ed306308344fa341a495a06c369ba28241c56/types_peewee-3.17.8.20241229.tar.gz", hash = "sha256:4ba1988e1b4a3bbf8e53415a0b1347ca04a6bcb42cf2d9540b6da1d605b222f9", size = 19703 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/c3/ad/ff56121e109a3d0a2868a45d1ab4d65c21a5ae636bf178524cca2ec863f1/types_peewee-3.17.8.20241229-py3-none-any.whl", hash = "sha256:545227c494b9ae1bfa9f52e45c2f8d905aa8092cd9365be859c8a2bd02b3e9b3", size = 18640 },
 ]
 
 [[package]]

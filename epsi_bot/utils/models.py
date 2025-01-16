@@ -4,16 +4,19 @@ from tortoise import (
                     BaseDBAsyncClient,
                     fields, 
                     Model,
-                    models
+                    Tortoise,
+                    models,
+                    exceptions
                 )
 from tortoise.fields import ForeignKeyRelation
 
 from .loggers import get_logger
+from contextlib import asynccontextmanager
 
 # database = SqliteDatabase('./database/database.db')
 
-__all__ = ['Asker', 'Playlist', 'Song', 'PlaylistSong', 'Server', 'Queue', 'ServerPlaylist', 'UserPlaylist', "BaseModel", "SongListenCount"]
-__models__ = __all__
+__all__ = ['Asker', 'Playlist', 'Song', 'PlaylistSong', 'Server', 'Queue', 'ServerPlaylist', 'UserPlaylist', "BaseModel", "SongListenCount", "database_context"]
+__models__ = list(set(__all__) - {'BaseModel', 'database_context'})
 
 class BaseModel(Model):
     async def save(self, using_db: BaseDBAsyncClient | None = None, update_fields: Iterable[str] | None = None, force_create: bool = False, force_update: bool = False) -> None:
@@ -57,7 +60,7 @@ class BaseModel(Model):
 class Asker(BaseModel):
     asker_id = fields.IntField(primary_key=True)
     discord_id = fields.IntField(unique=True)
-    playlists = fields.ReverseRelation['UserPlaylist']
+    playlists: fields.ReverseRelation['UserPlaylist']
 
     class Meta:
         table = 'ASKER'
@@ -65,7 +68,7 @@ class Asker(BaseModel):
 class Playlist(BaseModel):
     name = fields.CharField(100)
     playlist_id = fields.IntField(primary_key=True)
-    songs = fields.ReverseRelation['PlaylistSong']
+    songs: fields.ReverseRelation['PlaylistSong']
 
     class Meta:
         table = 'PLAYLIST'
@@ -114,8 +117,7 @@ class Queue(BaseModel):
     song: ForeignKeyRelation[Song] = fields.ForeignKeyField('models.Song')
 
     class Meta:
-        table_name = 'QUEUE'
-        primary_key = False
+        table = 'QUEUE'
 
     async def save(self, *args: Any, **kwargs: Any) -> Any:
         if self.position is None:
@@ -138,7 +140,7 @@ class UserPlaylist(BaseModel):
     user: ForeignKeyRelation[Asker] = fields.ForeignKeyField('models.Asker', related_name='playlists')
 
     class Meta:
-        table_name = 'USER_PLAYLIST'
+        table = 'USER_PLAYLIST'
 
 class SongListenCount(BaseModel):
     song: ForeignKeyRelation[Song] = fields.ForeignKeyField('models.Song', related_name='listen_count')
@@ -147,3 +149,25 @@ class SongListenCount(BaseModel):
     class Meta:
         table = 'SONG_LISTEN_COUNT'
 
+@asynccontextmanager
+async def database_context():
+    """
+    Async context manager for database operations.
+    
+    Yields
+    ------
+    None
+        Context manager doesn't yield any value.
+    """
+    try:
+        await Tortoise.init(
+            db_url='sqlite://database/database.db',
+            modules={'models': ['epsi_bot.utils.models']}
+        )
+        await Tortoise.generate_schemas(safe=True)
+        yield
+    except exceptions.BaseORMException as e:
+        logger = get_logger("Database")
+        logger.error(f"Error while accessing database: {e}")
+    finally:
+        await Tortoise.close_connections()

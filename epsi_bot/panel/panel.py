@@ -12,7 +12,7 @@ import aiohttp
 import discord
 import multiprocessing
 
-import peewee
+from tortoise import Tortoise
 import pytubefix  # type: ignore[import-untyped]
 from aiocache import MemcachedCache
 from dotenv import load_dotenv
@@ -71,8 +71,11 @@ class Panel(Quart):
 				os.mkdir("database/")
 			with open("database/database.db", "w") as f:
 				f.write("")
-			db = models.database
-			db.create_tables([models.Asker, models.Playlist, models.PlaylistSong, models.Queue, models.Server, models.ServerPlaylist, models.Song, models.UserPlaylist, models.SongListenCount], safe=True)
+			await Tortoise.init(
+				db_url='sqlite://database/database.db',
+				modules={'models': ['epsi_bot.utils.models']}
+			)
+			await Tortoise.generate_schemas(safe=True)
 		await set_callback(self.event, self.read_queue, asyncio.get_event_loop())
 		bot: Bot = Bot(queue, self.event, self.bot_event, intents=discord.Intents.all())
 		await start(bot, start_time)
@@ -365,7 +368,7 @@ async def revoke_access_token(access_token):
 	await AsyncRequests.post(f"{app.API_ENDPOINT}/oauth2/token/revoke", data=data, headers=headers,
 							 auth=aiohttp.BasicAuth(str(app.CLIENT_ID), str(app.CLIENT_SECRET)))
 
-def format_table_info(tables_metadata: dict[BaseModel, list[peewee.ColumnMetadata | peewee.ForeignKeyMetadata]]) -> dict[BaseModel, dict[str, bool | None]]:
+def format_table_info(tables_metadata: dict[BaseModel, list[ColumnMetadata | peewee.ForeignKeyMetadata]]) -> dict[BaseModel, dict[str, bool | None]]:
 	formatted = {}
 	for table_name, columns in tables_metadata.items():
 		formatted[table_name] = {
