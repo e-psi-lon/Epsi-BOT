@@ -2,7 +2,6 @@ import asyncio
 import io
 import logging
 import random
-import re
 from typing import Any
 import zlib
 import base64
@@ -19,7 +18,7 @@ from aiocache.serializers import JsonSerializer  # type: ignore[import-untyped]
 from discord.ext import commands
 from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError # type: ignore[import-error]
 
-from .constants import EMBED_ERROR_BOT_NOT_CONNECTED
+from .constants import EMBED_ERROR_BOT_NOT_CONNECTED, YOUTUBE_REGEX
 from .async_ import AsyncRequests
 from .models import Asker, Server, Song, Queue, SongListenCount, database_context
 from .loggers import get_logger
@@ -109,8 +108,7 @@ async def to_cache(url: str, cache: AudioCache) -> io.BytesIO:
 		return data
 	buffer = io.BytesIO()
 	buffer.seek(0)
-	youtube_regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/((watch\?v=)|(embed/)|(v/)|(.+\?v=))?([^&=%?]{11})')
-	if not youtube_regex.match(url):
+	if not YOUTUBE_REGEX.match(url):
 		r: bytes = await AsyncRequests.get(url, return_type="content")
 		buffer.write(r)
 	else:

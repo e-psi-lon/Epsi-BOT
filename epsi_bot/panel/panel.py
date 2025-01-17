@@ -4,7 +4,6 @@ import json
 import logging
 import os
 from asyncio import TimerHandle
-import re
 from typing import Any
 
 import aiocache.serializers  # type: ignore[import-untyped]
@@ -32,7 +31,8 @@ from ..utils import (PanelBotRequest,
 				   set_callback,
 				   parse_args,
 				   models,
-				   get_cache_stats
+				   get_cache_stats,
+				   YOUTUBE_REGEX
 				   )
 from ..utils.models import BaseModel
 from aiomultiprocess import Process  # type: ignore[import-untyped]
@@ -208,8 +208,7 @@ async def server(server_id: int) -> Response | str:
 		return redirect(url_for('server', server_id=server_id))
 	server_data = ConfigData(config.loop_song, config.loop_queue, config.random, config.position, config.queue,  # type: ignore[arg-type]
 							 server_id, (await app.get_from_bot("guild", server_id=server_id)).content.name, config.volume)  # type: ignore[arg-type, attr-defined]
-	yt_regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/((watch\?v=)|(embed/)|(v/)|(.+\?v=))?([^&=%\?]{11})')
-	return await render_template('server.html', server=server_data, app=app, pytubefix=pytubefix, yt_regex=yt_regex)
+	return await render_template('server.html', server=server_data, app=app, pytubefix=pytubefix, yt_regex=YOUTUBE_REGEX)
 
 
 @app.route('/server/<int:server_id>/clear')

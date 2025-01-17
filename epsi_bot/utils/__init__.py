@@ -52,6 +52,8 @@ __all__ = [
 	'EMBED_ERROR_NO_RESULTS_FOUND',
 	'EMBED_ERROR_VIDEO_TOO_LONG',
 	'EMBED_ERROR_NOT_BOT_OWNER',
+    'YOUTUBE_REGEX',
+    'GET_FILE_HTTP_URL',
 	'AudioCache',
 	'get_logger',
 	'CustomFormatter',
@@ -115,7 +117,9 @@ from .constants import (OWNER_ID,
 						EMBED_ERROR_NAME_TOO_LONG,
 						EMBED_ERROR_NO_RESULTS_FOUND,
 						EMBED_ERROR_VIDEO_TOO_LONG,
-						EMBED_ERROR_NOT_BOT_OWNER
+						EMBED_ERROR_NOT_BOT_OWNER,
+                        YOUTUBE_REGEX,
+                        GET_FILE_HTTP_URL
 						)
 
 from .loggers import (CustomFormatter,

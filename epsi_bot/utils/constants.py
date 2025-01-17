@@ -1,4 +1,5 @@
 import discord
+import re
 
 __all__ = [
 	"EMBED_ERROR_QUEUE_EMPTY", 
@@ -10,7 +11,9 @@ __all__ = [
 	"EMBED_ERROR_NO_RESULTS_FOUND", 
 	"EMBED_ERROR_VIDEO_TOO_LONG",
 	"EMBED_ERROR_NOT_BOT_OWNER",
-	"OWNER_ID"
+	"OWNER_ID",
+    "YOUTUBE_REGEX",
+    "GET_FILE_HTTP_URL"
 ]
 
 OWNER_ID = 708006478807695450
@@ -31,3 +34,5 @@ EMBED_ERROR_NAME_TOO_LONG = discord.Embed(title="Error", description="The name i
 EMBED_ERROR_NO_RESULTS_FOUND = discord.Embed(title="Error", description="No results found.", color=discord.Color.dark_red())
 EMBED_ERROR_VIDEO_TOO_LONG = discord.Embed(title="Error", description="The video is too long.", color=discord.Color.dark_red())
 EMBED_ERROR_NOT_BOT_OWNER = discord.Embed(title="Error", description="You are not the owner of the bot.", color=discord.Color.dark_red())
+YOUTUBE_REGEX = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/((watch\?v=)|(embed/)|(v/)|(.+\?v=))?([^&=%?]{11})')
+GET_FILE_HTTP_URL = re.compile(r'^https?://[^\s/$.?#]+\.[^\s/]+/.*?([^/]+\.[^/\s?#]+)(?:\?.*)?(?:#.*)?$')

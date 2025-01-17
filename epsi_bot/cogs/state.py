@@ -1,5 +1,4 @@
 import asyncio
-import re
 import threading
 from datetime import datetime
 from typing import Optional
@@ -21,7 +20,9 @@ from ..utils import (Sinks,
 				   Research,
 				   play_song,
 				   download,
-				   finished_record_callback
+				   finished_record_callback,
+				   YOUTUBE_REGEX,
+				   GET_FILE_HTTP_URL
 				   )
 
 
@@ -41,31 +42,29 @@ class State(commands.Cog):
 			return await ctx.respond(
 				embed=discord.Embed(title="Error", description="Non mais tu me prends pour qui, je te connais hein",
 									color=discord.Color.dark_red()))
-		youtube_regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/((watch\?v=)|(embed/)|(v/)|(.+\?v=))?([^&=%?]{11})')
-		if youtube_regex.match(url):
+		if YOUTUBE_REGEX.match(url):
 			return await self.play_youtube(ctx, url)
 		if ctx.guild.voice_client is None:
 			return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
-		http_link_regex = re.compile(r'^https?://[^\s/$.?#]+\.[^\s/]+/.*?([^/]+\.[^/\s?#]+)(?:\?.*)?(?:#.*)?$')
-		if not http_link_regex.match(url):
+		if not GET_FILE_HTTP_URL.match(url):
 			return await ctx.respond(embed=discord.Embed(title="Error", description="Invalid URL.", color=discord.Color.dark_red()))
-		if http_link_regex.match(url).group(1).split('.')[-1] not in ['mp3', 'wav', 'ogg', 'mp4']:
+		if GET_FILE_HTTP_URL.match(url).group(1).split('.')[-1] not in ['mp3', 'wav', 'ogg', 'mp4']:
 			return await ctx.respond(embed=discord.Embed(title="Error", description="Invalid URL.", color=discord.Color.dark_red()))
 		async with database_context():
 			server = await Server.get(server_id=ctx.guild.id)
-			song, _ = await Song.get_or_create_important(["url"], name=http_link_regex.match(url).group(1).split('.')[0], url=url)
+			song, _ = await Song.get_or_create_important(["url"], name=GET_FILE_HTTP_URL.match(url).group(1).split('.')[0], url=url)
 			asker, _ = await Asker.get_or_create(discord_id=ctx.author.id)	
 			if not await server.queue.all():
 				await Queue.create(server=server, song=song, position=0, asker=asker)
 				await ctx.respond(embed=discord.Embed(title="Play",
 													description=f"Playing song "
-																f"[{http_link_regex.match(url).group(1).split('.')[0]}]({url})",
+																f"[{GET_FILE_HTTP_URL.match(url).group(1).split('.')[0]}]({url})",
 													color=discord.Color.green()))
 				await play_song(ctx, url)
 				return await asyncio.sleep(1)
 			await Queue.create(server=server, song=song, position=len(server.queue), asker=asker)
 			await ctx.respond(embed=discord.Embed(title="Queue",
-												description=f"Song [{http_link_regex.match(url).group(1).split('.')[0]}]({url})"
+												description=f"Song [{GET_FILE_HTTP_URL.match(url).group(1).split('.')[0]}]({url})"
 															f" added to queue.",
 												color=discord.Color.green()))
 
