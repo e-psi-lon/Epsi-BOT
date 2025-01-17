@@ -101,9 +101,9 @@ class Todo(commands.Cog):
 		await ctx.response.defer()
 		if ctx.channel.id != 1128286383161745479:
 			embed = discord.Embed(title="Assignation d'une ligne", description="Cette commande ne peut être utilisée "
-			                                                                   "que dans le channel "
-			                                                                   "<#1128286383161745479>",
-			                      color=discord.Color.dark_red())
+																			   "que dans le channel "
+																			   "<#1128286383161745479>",
+								  color=discord.Color.dark_red())
 			return await ctx.respond(embed=embed, delete_after=30)
 		message = await ctx.channel.fetch_message(1128641774789861488)
 		lines: list[discord.EmbedField] = message.embeds[0].fields
@@ -118,14 +118,14 @@ class Todo(commands.Cog):
 			assigned_user = re.findall(regex2, match_result).copy()
 		if str(user.id) in assigned_user:
 			embed = discord.Embed(title="Assignation d'une ligne",
-			                      description=f"{user.mention} n'est plus assigné à la ligne {line.name} dans "
-			                                  f"le message {message.jump_url}")
+								  description=f"{user.mention} n'est plus assigné à la ligne {line.name} dans "
+											  f"le message {message.jump_url}")
 			await ctx.respond(embed=embed, delete_after=30)
 			assigned_user.remove(str(user.id))
 		else:
 			embed = discord.Embed(title="Assignation d'une ligne",
-			                      description=f"{user.mention} est maintenant assigné à la ligne {line.name} dans le"
-			                                  f" message {message.jump_url}")
+								  description=f"{user.mention} est maintenant assigné à la ligne {line.name} dans le"
+											  f" message {message.jump_url}")
 			await ctx.respond(embed=embed, delete_after=30)
 			assigned_user.append(str(user.id))
 		if " - Assigned to <@" in line.value:
@@ -140,9 +140,9 @@ class Todo(commands.Cog):
 		line.value += new_line
 		lines[index - 1] = line
 		await message.edit(embed=discord.Embed(title="To-Do List",
-		                                       description="Les points suivant sont les différentes tâches à "
-		                                                   "effectuer pour améliorer le bot",
-		                                       fields=lines))
+											   description="Les points suivant sont les différentes tâches à "
+														   "effectuer pour améliorer le bot",
+											   fields=lines))
 
 	@todo.command(name="tuto", description="Sends a tutorial on how to use the to-do list")
 	async def tuto(self, ctx: discord.ApplicationContext):

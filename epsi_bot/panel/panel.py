@@ -22,18 +22,18 @@ from werkzeug.utils import cached_property
 from werkzeug.wrappers.response import Response
 
 from ..utils import (PanelBotRequest,
-                   PanelBotResponse,
-                   UserData,
-                   RequestType,
-                   ConfigData,
-                   AsyncRequests,
-                   get_logger,
-                   Event,
-                   set_callback,
+				   PanelBotResponse,
+				   UserData,
+				   RequestType,
+				   ConfigData,
+				   AsyncRequests,
+				   get_logger,
+				   Event,
+				   set_callback,
 				   parse_args,
 				   models,
 				   get_cache_stats
-                   )
+				   )
 from ..utils.models import BaseModel
 from aiomultiprocess import Process  # type: ignore[import-untyped]
 from ..bot.bot import start, Bot
@@ -288,7 +288,7 @@ async def admin_ws():
 				columns_foreign = {table: models.database.get_foreign_keys(table) for table in tables}
 				# Pour chaque columns_metadata, si il existe une columns_foreign de la meme table et du meme nom, on remplace la colomn_metadata par la columns_foreign
 				columns = {table: [col for col in columns_metadata[table] if col.name not in [foreign.column for foreign in columns_foreign[table]]] + columns_foreign[table]
-				           						   for table in tables}
+						   						   for table in tables}
 				columns = format_table_info(columns)
 				values = {
 					table._meta.table_name: [

@@ -21,8 +21,8 @@ EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST = discord.Embed(
 	color=discord.Color.dark_red()
 )
 EMBED_ERROR_BOT_NOT_CONNECTED = discord.Embed(
-    title="Error", 
-    description="Bot is not connected to a voice channel.",
+	title="Error", 
+	description="Bot is not connected to a voice channel.",
 	color=discord.Color.dark_red()
 )
 EMBED_ERROR_BOT_NOT_PLAYING = discord.Embed(title="Error", description="Bot is not playing anything.", color=discord.Color.dark_red())

@@ -1,285 +1,285 @@
 <!DOCTYPE html>
 <html lang="fr">
-    <head>
-        <meta charset="UTF-8">
-        <title>Epsi BOT - Admin Dashboard</title>
-        <link href="{{ url_for('static', filename='admin.css') }}" rel="stylesheet" type="text/css">
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    </head>
-    <body>
-        <h1>Epsi BOT - Admin Dashboard</h1>
-        <div class="stats-container">
-            <!-- Performance Widget -->
-            <div class="stats-widget">
-                <div class="stats-title">Performance</div>
-                <div class="stats-value"></div>
-                <div class="stats-subtitle">Cache Hits</div>
-                <div class="stats-value"></div>
-                <div class="stats-subtitle">Cache Misses</div>
-            </div>
+	<head>
+		<meta charset="UTF-8">
+		<title>Epsi BOT - Admin Dashboard</title>
+		<link href="{{ url_for('static', filename='admin.css') }}" rel="stylesheet" type="text/css">
+		<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+	</head>
+	<body>
+		<h1>Epsi BOT - Admin Dashboard</h1>
+		<div class="stats-container">
+			<!-- Performance Widget -->
+			<div class="stats-widget">
+				<div class="stats-title">Performance</div>
+				<div class="stats-value"></div>
+				<div class="stats-subtitle">Cache Hits</div>
+				<div class="stats-value"></div>
+				<div class="stats-subtitle">Cache Misses</div>
+			</div>
 
-            <!-- Memory Usage Widget -->
-            <div class="stats-widget">
-                <div class="stats-title">Memory Usage</div>
-                <div class="chart-container">
-                    <canvas id="memoryChart"></canvas>
-                    <div class="chart-center-text">
-                        <div class="percentage" id="usagePercentage">0%</div>
-                        <div class="bytes-separator"></div>
-                        <div class="bytes-text" id="bytesText">0/0</div>
-                    </div>
-                </div>
-            </div>
+			<!-- Memory Usage Widget -->
+			<div class="stats-widget">
+				<div class="stats-title">Memory Usage</div>
+				<div class="chart-container">
+					<canvas id="memoryChart"></canvas>
+					<div class="chart-center-text">
+						<div class="percentage" id="usagePercentage">0%</div>
+						<div class="bytes-separator"></div>
+						<div class="bytes-text" id="bytesText">0/0</div>
+					</div>
+				</div>
+			</div>
 
-            <!-- Connections Widget -->
-            <div class="stats-widget">
-                <div class="stats-title">Connections</div>
-                <div class="stats-value"></div>
-                <div class="stats-subtitle">Current Connections</div>
-                <div class="stats-value"></div>
-                <div class="stats-subtitle">Total Connections</div>
-            </div>
+			<!-- Connections Widget -->
+			<div class="stats-widget">
+				<div class="stats-title">Connections</div>
+				<div class="stats-value"></div>
+				<div class="stats-subtitle">Current Connections</div>
+				<div class="stats-value"></div>
+				<div class="stats-subtitle">Total Connections</div>
+			</div>
 
-            <!-- Items Widget -->
-            <div class="stats-widget">
-                <div class="stats-title">Items</div>
-                <div class="stats-value"></div>
-                <div class="stats-subtitle">Current Items</div>
-                <div class="stats-value"></div>
-                <div class="stats-subtitle">Total Items</div>
-            </div>
+			<!-- Items Widget -->
+			<div class="stats-widget">
+				<div class="stats-title">Items</div>
+				<div class="stats-value"></div>
+				<div class="stats-subtitle">Current Items</div>
+				<div class="stats-value"></div>
+				<div class="stats-subtitle">Total Items</div>
+			</div>
 
-            <!-- Process Info Widget -->
-            <div class="stats-widget">
-                <div class="stats-title">Process Information</div>
-                <div class="process-info">
-                    <div class="info-row">
-                        <span class="info-label">Uptime:</span>
-                        <span class="info-value" id="uptimeValue"></span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">PID:</span>
-                        <span class="info-value" id="pidValue"></span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Version:</span>
-                        <span class="info-value" id="versionValue"></span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Threads:</span>
-                        <span class="info-value" id="threadsValue"></span>
-                    </div>
-                </div>
-            </div>
-            <!-- Database Widget -->
-            <div class="stats-widget database-widget">
-                <div class="stats-title">Database Tables</div>
-                <div class="sql-buttons">
-                </div>
-                <div class="sql-content">
-                </div>
-            </div>
-            <script>
-                document.addEventListener('DOMContentLoaded', () => {
-                    const currentTable = localStorage.getItem('currentTable');
-                    if (currentTable) {
-                        showTable(currentTable);
-                    }
-                });
-                function showTable(tableName) {
-                    // Hide all tables
-                    document.querySelectorAll('.sql-table').forEach(t => t.style.display = 'none');
-                    document.querySelectorAll('.sql-button').forEach(b => b.classList.remove('active'));
-                    
-                    // Show selected table and highlight button
-                    document.getElementById('table-' + tableName).style.display = 'block';
-                    document.getElementById('btn-' + tableName).classList.add('active');
+			<!-- Process Info Widget -->
+			<div class="stats-widget">
+				<div class="stats-title">Process Information</div>
+				<div class="process-info">
+					<div class="info-row">
+						<span class="info-label">Uptime:</span>
+						<span class="info-value" id="uptimeValue"></span>
+					</div>
+					<div class="info-row">
+						<span class="info-label">PID:</span>
+						<span class="info-value" id="pidValue"></span>
+					</div>
+					<div class="info-row">
+						<span class="info-label">Version:</span>
+						<span class="info-value" id="versionValue"></span>
+					</div>
+					<div class="info-row">
+						<span class="info-label">Threads:</span>
+						<span class="info-value" id="threadsValue"></span>
+					</div>
+				</div>
+			</div>
+			<!-- Database Widget -->
+			<div class="stats-widget database-widget">
+				<div class="stats-title">Database Tables</div>
+				<div class="sql-buttons">
+				</div>
+				<div class="sql-content">
+				</div>
+			</div>
+			<script>
+				document.addEventListener('DOMContentLoaded', () => {
+					const currentTable = localStorage.getItem('currentTable');
+					if (currentTable) {
+						showTable(currentTable);
+					}
+				});
+				function showTable(tableName) {
+					// Hide all tables
+					document.querySelectorAll('.sql-table').forEach(t => t.style.display = 'none');
+					document.querySelectorAll('.sql-button').forEach(b => b.classList.remove('active'));
+					
+					// Show selected table and highlight button
+					document.getElementById('table-' + tableName).style.display = 'block';
+					document.getElementById('btn-' + tableName).classList.add('active');
 
-                    localStorage.setItem('selectedTable', tableName);
-                }
-                function formatBytes(bytes) {
-                    if (bytes === 0) return '0 B';
-                    const k = 1024;
-                    const sizes = ['B', 'KB', 'MB', 'GB'];
-                    const i = Math.floor(Math.log(bytes) / Math.log(k));
-                    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-                }
-                function formatUptime(seconds) {
-                    const days = Math.floor(seconds / 86400);
-                    const hours = Math.floor((seconds % 86400) / 3600);
-                    const minutes = Math.floor((seconds % 3600) / 60);
-                    
-                    let uptime = '';
-                    if (days > 0) uptime += `${days}d `;
-                    if (hours > 0) uptime += `${hours}h `;
-                    if (minutes > 0) uptime += `${minutes}m`;
-                    return uptime.trim() || '< 1m';
-                }
+					localStorage.setItem('selectedTable', tableName);
+				}
+				function formatBytes(bytes) {
+					if (bytes === 0) return '0 B';
+					const k = 1024;
+					const sizes = ['B', 'KB', 'MB', 'GB'];
+					const i = Math.floor(Math.log(bytes) / Math.log(k));
+					return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+				}
+				function formatUptime(seconds) {
+					const days = Math.floor(seconds / 86400);
+					const hours = Math.floor((seconds % 86400) / 3600);
+					const minutes = Math.floor((seconds % 3600) / 60);
+					
+					let uptime = '';
+					if (days > 0) uptime += `${days}d `;
+					if (hours > 0) uptime += `${hours}h `;
+					if (minutes > 0) uptime += `${minutes}m`;
+					return uptime.trim() || '< 1m';
+				}
 
-                function isUrl(string) {
-                    const pattern = new RegExp('^(https?:\\/\\/)?' + // protocol
-                        '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|' + // domain name
-                        '((\\d{1,3}\\.){3}\\d{1,3}))' + // OR ip (v4) address
-                        '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // port and path
-                        '(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
-                        '(\\#[-a-z\\d_]*)?$', 'i'); // fragment locator
-                    return !!pattern.test(string);
-                }
+				function isUrl(string) {
+					const pattern = new RegExp('^(https?:\\/\\/)?' + // protocol
+						'((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|' + // domain name
+						'((\\d{1,3}\\.){3}\\d{1,3}))' + // OR ip (v4) address
+						'(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // port and path
+						'(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
+						'(\\#[-a-z\\d_]*)?$', 'i'); // fragment locator
+					return !!pattern.test(string);
+				}
 
-                // Update Memory Chart
-                let used = 0;
-                let total = 0;
-                let unused = 0;
-                let percentage = 0;
+				// Update Memory Chart
+				let used = 0;
+				let total = 0;
+				let unused = 0;
+				let percentage = 0;
 
-                const ctx = document.getElementById('memoryChart');
-                const memoryChart = new Chart(ctx, {
-                    type: 'doughnut',
-                    data: {
-                        datasets: [{
-                            data: [used, unused],
-                            backgroundColor: ['#007acc', '#e9ecef'],
-                            borderWidth: 0
-                        }]
-                    },
-                    options: {
-                        cutout: '75%',
-                        plugins: {
-                            legend: {
-                                display: false
-                            }
-                        },
-                        responsive: true,
-                        maintainAspectRatio: true
-                    }
-                });
+				const ctx = document.getElementById('memoryChart');
+				const memoryChart = new Chart(ctx, {
+					type: 'doughnut',
+					data: {
+						datasets: [{
+							data: [used, unused],
+							backgroundColor: ['#007acc', '#e9ecef'],
+							borderWidth: 0
+						}]
+					},
+					options: {
+						cutout: '75%',
+						plugins: {
+							legend: {
+								display: false
+							}
+						},
+						responsive: true,
+						maintainAspectRatio: true
+					}
+				});
 
-                const socket = new WebSocket(`ws://${window.location.host}/admin`);
-                socket.onopen = function(_) {
-                    socket.send('refresh');
-                    setInterval(() => {
-                        if (socket.readyState === WebSocket.OPEN) {
-                            socket.send('refresh');
-                        }
-                    }, 30000);
-                };
-                socket.onmessage = function(event) {
-                    const parsed = JSON.parse(event.data);
-                    const stats = parsed.stats;
-                    const tables = parsed.tables;
-                    const columns = parsed['columns'];
-                    const values = parsed['values'];
-                    try {
-                        // Update Performance Widget
-                        document.querySelector('.stats-widget:nth-child(1) .stats-value:nth-child(2)').textContent = stats.get_hits;
-                        document.querySelector('.stats-widget:nth-child(1) .stats-value:nth-child(4)').textContent = stats.get_misses;
-                        // Update Memory Chart
-                        used = parseInt(stats.bytes);
-                        total = parseInt(stats.limit_maxbytes);
-                        unused = total - used;
-                        percentage = ((used / total) * 100).toFixed(1);
-                            
-                        document.getElementById('usagePercentage').textContent = percentage + '%';
-                        document.getElementById('bytesText').textContent = `${formatBytes(used)}/${formatBytes(total)}`;
-                        memoryChart.data.datasets[0].data = [used, unused];
-                        memoryChart.update();
+				const socket = new WebSocket(`ws://${window.location.host}/admin`);
+				socket.onopen = function(_) {
+					socket.send('refresh');
+					setInterval(() => {
+						if (socket.readyState === WebSocket.OPEN) {
+							socket.send('refresh');
+						}
+					}, 30000);
+				};
+				socket.onmessage = function(event) {
+					const parsed = JSON.parse(event.data);
+					const stats = parsed.stats;
+					const tables = parsed.tables;
+					const columns = parsed['columns'];
+					const values = parsed['values'];
+					try {
+						// Update Performance Widget
+						document.querySelector('.stats-widget:nth-child(1) .stats-value:nth-child(2)').textContent = stats.get_hits;
+						document.querySelector('.stats-widget:nth-child(1) .stats-value:nth-child(4)').textContent = stats.get_misses;
+						// Update Memory Chart
+						used = parseInt(stats.bytes);
+						total = parseInt(stats.limit_maxbytes);
+						unused = total - used;
+						percentage = ((used / total) * 100).toFixed(1);
+							
+						document.getElementById('usagePercentage').textContent = percentage + '%';
+						document.getElementById('bytesText').textContent = `${formatBytes(used)}/${formatBytes(total)}`;
+						memoryChart.data.datasets[0].data = [used, unused];
+						memoryChart.update();
 
-                        // Update Connections Widget
-                        document.querySelector('.stats-widget:nth-child(3) .stats-value:nth-child(2)').textContent = stats.curr_connections;
-                        document.querySelector('.stats-widget:nth-child(3) .stats-value:nth-child(4)').textContent = stats.total_connections;
+						// Update Connections Widget
+						document.querySelector('.stats-widget:nth-child(3) .stats-value:nth-child(2)').textContent = stats.curr_connections;
+						document.querySelector('.stats-widget:nth-child(3) .stats-value:nth-child(4)').textContent = stats.total_connections;
 
-                        // Update Items Widget
-                        document.querySelector('.stats-widget:nth-child(4) .stats-value:nth-child(2)').textContent = stats.curr_items;
-                        document.querySelector('.stats-widget:nth-child(4) .stats-value:nth-child(4)').textContent = stats.total_items;
+						// Update Items Widget
+						document.querySelector('.stats-widget:nth-child(4) .stats-value:nth-child(2)').textContent = stats.curr_items;
+						document.querySelector('.stats-widget:nth-child(4) .stats-value:nth-child(4)').textContent = stats.total_items;
 
-                        // Update Process Info
-                        document.getElementById('uptimeValue').textContent = formatUptime(parseInt(stats.uptime));
-                        document.getElementById('pidValue').textContent = stats.pid;
-                        document.getElementById('versionValue').textContent = stats.version;
-                        document.getElementById('threadsValue').textContent = stats.threads;
+						// Update Process Info
+						document.getElementById('uptimeValue').textContent = formatUptime(parseInt(stats.uptime));
+						document.getElementById('pidValue').textContent = stats.pid;
+						document.getElementById('versionValue').textContent = stats.version;
+						document.getElementById('threadsValue').textContent = stats.threads;
 
-                        // Update Database Tables
-                        const sqlButtons = document.querySelector('.sql-buttons');
-                        const sqlContent = document.querySelector('.sql-content');
-                        sqlButtons.innerHTML = '';
-                        sqlContent.innerHTML = '';
+						// Update Database Tables
+						const sqlButtons = document.querySelector('.sql-buttons');
+						const sqlContent = document.querySelector('.sql-content');
+						sqlButtons.innerHTML = '';
+						sqlContent.innerHTML = '';
 
-                        for (const table of tables) {
-                            const button = document.createElement('button');
-                            button.className = 'sql-button';
-                            button.id = 'btn-' + table;
-                            button.textContent = table;
-                            button.onclick = () => showTable(table);
-                            sqlButtons.appendChild(button);
+						for (const table of tables) {
+							const button = document.createElement('button');
+							button.className = 'sql-button';
+							button.id = 'btn-' + table;
+							button.textContent = table;
+							button.onclick = () => showTable(table);
+							sqlButtons.appendChild(button);
 
-                            const tableDiv = document.createElement('div');
-                            tableDiv.className = 'sql-table';
-                            tableDiv.id = 'table-' + table;
-                            tableDiv.style.display = 'none';
+							const tableDiv = document.createElement('div');
+							tableDiv.className = 'sql-table';
+							tableDiv.id = 'table-' + table;
+							tableDiv.style.display = 'none';
 
-                            const tableElement = document.createElement('table');
-                            const thead = document.createElement('thead');
-                            const trHead = document.createElement('tr');
-                            const sortedColumns = Object.entries(columns[table]).sort(([, isPrimaryKeyA], [, isPrimaryKeyB]) => {
-                                const valueA = isPrimaryKeyA === null ? false : isPrimaryKeyA;
-                                const valueB = isPrimaryKeyB === null ? false : isPrimaryKeyB;
-                                return valueB - valueA;
-                            });
-                            sortedColumns.forEach(([column, isPrimaryKey]) => {
-                                const th = document.createElement('th');
-                                th.textContent = column;
-                                if (isPrimaryKey === true) {
-                                    th.classList.add('primary-key');
-                                } else if (isPrimaryKey === null) {
-                                    th.classList.add('foreign-key');
-                                }
-                                trHead.appendChild(th);
-                            });
-                            thead.appendChild(trHead);
-                            tableElement.appendChild(thead);
+							const tableElement = document.createElement('table');
+							const thead = document.createElement('thead');
+							const trHead = document.createElement('tr');
+							const sortedColumns = Object.entries(columns[table]).sort(([, isPrimaryKeyA], [, isPrimaryKeyB]) => {
+								const valueA = isPrimaryKeyA === null ? false : isPrimaryKeyA;
+								const valueB = isPrimaryKeyB === null ? false : isPrimaryKeyB;
+								return valueB - valueA;
+							});
+							sortedColumns.forEach(([column, isPrimaryKey]) => {
+								const th = document.createElement('th');
+								th.textContent = column;
+								if (isPrimaryKey === true) {
+									th.classList.add('primary-key');
+								} else if (isPrimaryKey === null) {
+									th.classList.add('foreign-key');
+								}
+								trHead.appendChild(th);
+							});
+							thead.appendChild(trHead);
+							tableElement.appendChild(thead);
 
-                            const tbody = document.createElement('tbody');
-                            values[table].forEach(value => {
-                                const trBody = document.createElement('tr');
-                                sortedColumns.forEach(([column]) => {
-                                    const td = document.createElement('td');
-                                    const cellValue = value[column];
-                                    if (isUrl(cellValue)) {
-                                        const a = document.createElement('a');
-                                        a.href = cellValue;
-                                        a.target = '_blank';
-                                        a.textContent = cellValue;
-                                        td.appendChild(a);
-                                    } else {
-                                        td.textContent = cellValue;
-                                    }
-                                    trBody.appendChild(td);
-                                });
-                                tbody.appendChild(trBody);
-                            });
-                            tableElement.appendChild(tbody);
+							const tbody = document.createElement('tbody');
+							values[table].forEach(value => {
+								const trBody = document.createElement('tr');
+								sortedColumns.forEach(([column]) => {
+									const td = document.createElement('td');
+									const cellValue = value[column];
+									if (isUrl(cellValue)) {
+										const a = document.createElement('a');
+										a.href = cellValue;
+										a.target = '_blank';
+										a.textContent = cellValue;
+										td.appendChild(a);
+									} else {
+										td.textContent = cellValue;
+									}
+									trBody.appendChild(td);
+								});
+								tbody.appendChild(trBody);
+							});
+							tableElement.appendChild(tbody);
 
-                            tableDiv.appendChild(tableElement);
-                            sqlContent.appendChild(tableDiv);
-                        }
-                        const currentTable = localStorage.getItem('selectedTable');
-                        if (currentTable) {
-                            showTable(currentTable);
-                        }
-                    } catch (error) {
-                        console.error('Failed to update data:', error);
-                    }
-                };
-                
-                socket.onclose = function(event) {
-                    console.log('Socket closed:', event);
-                };
+							tableDiv.appendChild(tableElement);
+							sqlContent.appendChild(tableDiv);
+						}
+						const currentTable = localStorage.getItem('selectedTable');
+						if (currentTable) {
+							showTable(currentTable);
+						}
+					} catch (error) {
+						console.error('Failed to update data:', error);
+					}
+				};
+				
+				socket.onclose = function(event) {
+					console.log('Socket closed:', event);
+				};
 
-                socket.onerror = function(error) {
-                    console.error('Socket error:', error);
-                };
-                setTimeout(() => socket.send('refresh'), 30000);
-            </script>
-        </div>
-    </body>
+				socket.onerror = function(error) {
+					console.error('Socket error:', error);
+				};
+				setTimeout(() => socket.send('refresh'), 30000);
+			</script>
+		</div>
+	</body>
 </html>
