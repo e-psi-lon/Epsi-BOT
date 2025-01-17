@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 
 from ..bot.bot import Bot
-from ..utils import OWNER_ID, EMBED_ERROR_NOT_BOT_OWNER, Server, AudioCache
+from ..utils import OWNER_ID, EMBED_ERROR_NOT_BOT_OWNER, Server, AudioCache, database_context
 
 removed_count = 0
 
@@ -25,11 +25,11 @@ class Admin(commands.Cog):
 		await ctx.response.defer()
 		if ctx.author.id != OWNER_ID:
 			return await ctx.respond(embed=EMBED_ERROR_NOT_BOT_OWNER, delete_after=30)
-		server: Server = Server.get(server_id=ctx.guild.id)
-		if ctx.voice_client is not None and ctx.voice_client.is_playing():
-			ctx.voice_client.stop()
-		for queue_elem in server.queue:
-			queue_elem.delete().execute()
+		async with database_context():
+			server = await Server.get(server_id=ctx.guild.id)
+			if ctx.voice_client is not None and ctx.voice_client.is_playing():
+				ctx.voice_client.stop()
+			await server.queue.all().delete()
 		async with AudioCache(1) as cache:
 			await cache.clear()
 		embed = discord.Embed(title="Cache removed", description="Removed the audio cache.", color=discord.Color.green())

@@ -5,7 +5,7 @@ import pytubefix.exceptions
 from discord.ext import commands
 
 from ..bot.bot import Bot
-from ..utils import Server, EMBED_ERROR_BOT_NOT_CONNECTED, convert, Research, get_lyrics, FfmpegFormats
+from ..utils import Server, EMBED_ERROR_BOT_NOT_CONNECTED, convert, Research, get_lyrics, FfmpegFormats, database_context
 
 
 class Others(commands.Cog):
@@ -52,15 +52,16 @@ class Others(commands.Cog):
 	@commands.slash_command(name="lyrics", description="Shows the lyrics of the current song")
 	async def lyrics(self, ctx: discord.ApplicationContext):
 		await ctx.response.defer()
-		server = Server.get(server_id=ctx.guild.id)
 		if ctx.guild.voice_client is None:
 			return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
-		if not server.queue:
-			return await ctx.respond(
-				embed=discord.Embed(title="Error", description="No song is currently playing.", color=discord.Color.dark_red()))
-		if not server.queue[server.position].song.url.startswith("https://www.youtube.com/watch?v="):
-			return await ctx.respond(
-				embed=discord.Embed(title="Error", description="This command is only available for youtube videos.",
+		async with database_context():
+			server = await Server.get(server_id=ctx.guild.id)
+			if not await server.queue.all():
+				return await ctx.respond(
+					embed=discord.Embed(title="Error", description="No song is currently playing.", color=discord.Color.dark_red()))
+			if not server.queue[server.position].song.url.startswith("https://www.youtube.com/watch?v="):
+				return await ctx.respond(
+					embed=discord.Embed(title="Error", description="This command is only available for youtube videos.",
 									color=discord.Color.dark_red()))
 		video = pytubefix.YouTube(server.queue[server.position].song.url)
 		lyrics = get_lyrics(video.title)

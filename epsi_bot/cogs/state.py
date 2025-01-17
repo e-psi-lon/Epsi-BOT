@@ -17,6 +17,7 @@ from ..utils import (Sinks,
 				   Asker,
 				   Server,
 				   Queue,
+				   database_context,
 				   Research,
 				   play_song,
 				   download,
@@ -50,21 +51,23 @@ class State(commands.Cog):
 			return await ctx.respond(embed=discord.Embed(title="Error", description="Invalid URL.", color=discord.Color.dark_red()))
 		if http_link_regex.match(url).group(1).split('.')[-1] not in ['mp3', 'wav', 'ogg', 'mp4']:
 			return await ctx.respond(embed=discord.Embed(title="Error", description="Invalid URL.", color=discord.Color.dark_red()))
-		server: Server = Server.get(server_id=ctx.guild.id)
-		if not server.queue:
-			song, _ = Song.get_or_create(name=http_link_regex.match(url).group(1).split('.')[0], url=url)
-			Queue.create(server=server, song=song[0], position=0, asker=Asker.get_or_create(discord_id=ctx.author.id)[0])
-			await ctx.respond(embed=discord.Embed(title="Play",
-												  description=f"Playing song "
-															  f"[{http_link_regex.match(url).group(1).split('.')[0]}]({url})",
-												  color=discord.Color.green()))
-			await play_song(ctx, url)
-			return await asyncio.sleep(1)
-		Queue.create(server=server, song=Song.get_or_create(name=http_link_regex.match(url).group(1).split('.')[0], url=url)[0], position=len(server.queue), asker=Asker.get_or_create(discord_id=ctx.author.id)[0])
-		await ctx.respond(embed=discord.Embed(title="Queue",
-											  description=f"Song [{http_link_regex.match(url).group(1).split('.')[0]}]({url})"
-														  f" added to queue.",
-											  color=discord.Color.green()))
+		async with database_context():
+			server = await Server.get(server_id=ctx.guild.id)
+			song, _ = await Song.get_or_create_important(["url"], name=http_link_regex.match(url).group(1).split('.')[0], url=url)
+			asker, _ = await Asker.get_or_create(discord_id=ctx.author.id)	
+			if not await server.queue.all():
+				await Queue.create(server=server, song=song, position=0, asker=asker)
+				await ctx.respond(embed=discord.Embed(title="Play",
+													description=f"Playing song "
+																f"[{http_link_regex.match(url).group(1).split('.')[0]}]({url})",
+													color=discord.Color.green()))
+				await play_song(ctx, url)
+				return await asyncio.sleep(1)
+			await Queue.create(server=server, song=song, position=len(server.queue), asker=asker)
+			await ctx.respond(embed=discord.Embed(title="Queue",
+												description=f"Song [{http_link_regex.match(url).group(1).split('.')[0]}]({url})"
+															f" added to queue.",
+												color=discord.Color.green()))
 
 	@play.command(name="file", description="Plays the audio of a file")
 	@discord.option("file", discord.Attachment, description="The file to play", required=True)
@@ -78,19 +81,21 @@ class State(commands.Cog):
 		if file.size > 10000000:
 			return await ctx.respond(embed=discord.Embed(title="Error", description="File is too big.", color=discord.Color.dark_red()))
 		url = file.url
-		server: Server = Server.get(server_id=ctx.guild.id)
-		if not server.queue:
-			song, _ = Song.get_or_create(name=file.filename, url=url)
-			Queue.create(server=server, song=song[0], position=0, asker=Asker.get_or_create(discord_id=ctx.author.id)[0])
-			await ctx.respond(embed=discord.Embed(title="Play",
-												  description=f"Playing song [{file.filename}]({url})",
-												  color=discord.Color.green()))
-			await play_song(ctx, url)
-			return await asyncio.sleep(1)
-		Queue.create(server=server, song=Song.get_or_create(name=file.filename, url=url)[0], position=len(server.queue), asker=Asker.get_or_create(discord_id=ctx.author.id)[0])
-		await ctx.respond(embed=discord.Embed(title="Queue",
-											  description=f"Song [{file.filename}]({url}) added to queue.",
-											  color=discord.Color.green()))
+		async with database_context():
+			server = await Server.get(server_id=ctx.guild.id)
+			song, _ = await Song.get_or_create_important(["url"], name=file.filename, url=url)
+			asker, _ = await Asker.get_or_create(discord_id=ctx.author.id)
+			if not await server.queue.all():
+				await Queue.create(server=server, song=song, position=0, asker=asker)
+				await ctx.respond(embed=discord.Embed(title="Play",
+													description=f"Playing song [{file.filename}]({url})",
+													color=discord.Color.green()))
+				await play_song(ctx, url)
+				return await asyncio.sleep(1)
+			await Queue.create(server=server, song=song, position=len(server.queue), asker=asker)
+			await ctx.respond(embed=discord.Embed(title="Queue",
+												description=f"Song [{file.filename}]({url}) added to queue.",
+												color=discord.Color.green()))
 
 	@play.command(name="youtube", description="Plays the audio of a YouTube video")
 	@discord.option("query", str, description="The YouTube audio to play", required=True)
@@ -101,22 +106,21 @@ class State(commands.Cog):
 		try:
 			url = pytubefix.YouTube(query).watch_url
 			try:
-				server: Server = Server.get(server_id=ctx.guild.id)
-				if pytubefix.YouTube(url).length > 12000:
-					return await ctx.respond(
-						discord.Embed(title="Error",
-									  description=f"The video [{pytubefix.YouTube(url).title}]({url}) is too long",
-									  color=discord.Color.dark_red())
-					)
-				if not server.queue:
-					server.position = 0
-					song, _ = Song.get_or_create(name=pytubefix.YouTube(url).title, url=url)
-					Queue.create(server=server, song=song[0], position=0,
-								 asker=Asker.get_or_create(discord_id=ctx.author.id)[0])
-				else:
-					song, _ = Song.get_or_create(name=pytubefix.YouTube(url).title, url=url)
-					Queue.create(server=server, song=song[0], position=len(server.queue),
-								 asker=Asker.get_or_create(discord_id=ctx.author.id)[0])
+				async with database_context():
+					server = await Server.get(server_id=ctx.guild.id)
+					if pytubefix.YouTube(url).length > 12000:
+						return await ctx.respond(
+							discord.Embed(title="Error",
+										description=f"The video [{pytubefix.YouTube(url).title}]({url}) is too long",
+										color=discord.Color.dark_red())
+						)
+					song, _ = await Song.get_or_create_important(["url"], name=pytubefix.YouTube(url).title, url=url)
+					asker, _ = await Asker.get_or_create(discord_id=ctx.author.id)
+					if not await server.queue.all():
+						server.position = 0
+						await Queue.create(server=server, song=song, position=0, asker=asker)
+					else:
+						await Queue.create(server=server, song=song, position=len(server.queue), asker=asker)
 				if not ctx.guild.voice_client.is_playing():
 					await ctx.respond(embed=discord.Embed(title="Play",
 														  description=f"Playing song "
@@ -127,7 +131,7 @@ class State(commands.Cog):
 					video = pytubefix.YouTube(url)
 					threading.Thread(target=self._download, args=(url,), name=f"Download-{video.video_id}").start()
 					await ctx.respond(embed=discord.Embed(title="Queue",
-														  description=f"Song [{pytubefix.YouTube(url).title}]({url})"
+														  description=f"Song [{video.title}]({url})"
 																	  f" added to queue.",
 														  color=discord.Color.green()))
 			except Exception as e:
@@ -185,10 +189,11 @@ class State(commands.Cog):
 		if not ctx.guild.voice_client.is_playing():
 			return await ctx.respond(
 				embed=discord.Embed(title="Error", description="There is no song playing.", color=discord.Color.dark_red()))
-		server: Server = Server.get(server_id=ctx.guild.id)
-		server.position = 0
-		server.queue = []
-		server.save()
+		async with database_context():
+			server = await Server.get(server_id=ctx.guild.id)
+			server.position = 0
+			await server.queue.all().delete()
+			await server.save()
 		ctx.guild.voice_client.stop()
 		await ctx.respond(embed=discord.Embed(title="Stop", description="Song stopped.", color=discord.Color.green()))
 
@@ -209,9 +214,10 @@ class State(commands.Cog):
 				ctx.guild.voice_client.source.volume = volume / 100
 			except AttributeError:
 				pass
-			server = Server.get(server_id=ctx.guild.id)
-			server.volume = volume
-			server.save()
+			async with database_context():
+				server = await Server.get(server_id=ctx.guild.id)
+				server.volume = volume
+				await server.save()
 			return await ctx.respond(embed=discord.Embed(title="Volume", description=f"Volume set to {volume}%",
 														 color=discord.Color.green()))
 
@@ -223,10 +229,11 @@ class State(commands.Cog):
 		except AttributeError:
 			# noinspection PyBroadException
 			try:
-				server: Server = await Server.get(server_id=ctx.guild.id)
-				await ctx.respond(embed=discord.Embed(title="Volume",
-													  description=f"Volume is {server.volume}%",
-													  color=discord.Color.green()))
+				async with database_context():
+					server = await Server.get(server_id=ctx.guild.id)
+					await ctx.respond(embed=discord.Embed(title="Volume",
+														description=f"Volume is {server.volume}%",
+														color=discord.Color.green()))
 			except Exception:
 				await ctx.respond(
 					embed=discord.Embed(title="Error", description="Error while getting volume.", color=discord.Color.dark_red()))

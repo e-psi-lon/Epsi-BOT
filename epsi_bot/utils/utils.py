@@ -3,7 +3,7 @@ import io
 import logging
 import random
 import re
-from typing import Any, Iterable
+from typing import Any
 import zlib
 import base64
 import binascii
@@ -21,7 +21,7 @@ from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError # type
 
 from .constants import EMBED_ERROR_BOT_NOT_CONNECTED
 from .async_ import AsyncRequests
-from .models import Asker, Server, Song, Playlist, Queue, SongListenCount
+from .models import Asker, Server, Song, Queue, SongListenCount, database_context
 from .loggers import get_logger
 
 pydub.AudioSegment.converter = "ffmpeg"
@@ -230,12 +230,11 @@ async def disconnect_from_channel(state: discord.VoiceState, bot: commands.Bot) 
 				return await client.disconnect(force=True)
 			if guild.id == state.channel.guild.id:
 				await client.disconnect(force=True)
-				server = await Server.get(server_id=guild.id)
-				server_queue: Iterable[Queue] = await (server.queue.all())
-				for queue_elem in server_queue:
-					await queue_elem.delete()
-				server.position = 0
-				await server.save()
+				async with database_context():
+					server = await Server.get(server_id=guild.id)
+					await server.queue.all().delete()
+					server.position = 0
+					await server.save()
 				ok = True
 			if ok:
 				break
@@ -288,7 +287,6 @@ class SelectVideo(discord.ui.Select):
 		await interaction.message.edit(
 			embed=discord.Embed(title="Select audio", description=f"You selected : {self.options[0].label}",
 								color=discord.Color.green()), view=None)
-		server = await Server.get(server_id=interaction.guild.id)
 		if self.download:
 			if pytubefix.YouTube(self.values[0]).length > 12000:
 				return await interaction.message.edit(embed=discord.Embed(title="Error",
@@ -305,34 +303,35 @@ class SelectVideo(discord.ui.Select):
 				embed=discord.Embed(title="Download", description="Song downloaded.", color=discord.Color.green()),
 				file=discord.File(buffer, filename=f"{stream.title}.mp3"),
 				view=None)
-		server_queue = await server.queue.all()
-		if not server_queue:
-			server.position = 0
-			await server.save()
-			yt_video = pytubefix.YouTube(self.values[0])
-			song, _ = await Song.get_or_create_important(["url"], url=self.values[0], name=yt_video.title)
-			asker, _ = await Asker.get_or_create(discord_id=interaction.user.id)
-			await Queue.create(song=song, asker=asker, position=0, server=server)
-		else:
-			yt_video = pytubefix.YouTube(self.values[0])
-			song, _ = await Song.get_or_create_important(["url"], url=self.values[0], name=yt_video.title)
-			asker, _ = await Asker.get_or_create(discord_id=interaction.user.id)
-			await Queue.create(song=song, asker=asker, position=len(server_queue), server=server)
-		if interaction.guild.voice_client is None:
-			return await interaction.message.edit(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
-		if not interaction.guild.voice_client.is_playing():
-			await interaction.message.edit(embed=discord.Embed(title="Play",
-															   description=f"Playing song "
-																		   f"[{pytubefix.YouTube(self.values[0]).title}]"
-																		   f"({self.values[0]})",
-															   color=discord.Color.green()))
-			await play_song(self.ctx, server_queue[server.position].song.url)
-		else:
-			await interaction.message.edit(embed=discord.Embed(title="Queue",
-															   description=f"Song "
-																		   f"[{pytubefix.YouTube(self.values[0]).title}]"
-																		   f"({self.values[0]}) added to queue.",
-															   color=discord.Color.green()))
+		async with database_context():
+				server = await Server.get(server_id=interaction.guild.id)
+				if not await server.queue.all():
+					server.position = 0
+					await server.save()
+					yt_video = pytubefix.YouTube(self.values[0])
+					song, _ = await Song.get_or_create_important(["url"], url=self.values[0], name=yt_video.title)
+					asker, _ = await Asker.get_or_create(discord_id=interaction.user.id)
+					await Queue.create(song=song, asker=asker, position=0, server=server)
+				else:
+					yt_video = pytubefix.YouTube(self.values[0])
+					song, _ = await Song.get_or_create_important(["url"], url=self.values[0], name=yt_video.title)
+					asker, _ = await Asker.get_or_create(discord_id=interaction.user.id)
+					await Queue.create(song=song, asker=asker, position=len(server.queue), server=server)
+				if interaction.guild.voice_client is None:
+					return await interaction.message.edit(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
+				if not interaction.guild.voice_client.is_playing():
+					await interaction.message.edit(embed=discord.Embed(title="Play",
+																	description=f"Playing song "
+																				f"[{pytubefix.YouTube(self.values[0]).title}]"
+																				f"({self.values[0]})",
+																	color=discord.Color.green()))
+					await play_song(self.ctx, server.queue[server.position].song.url)
+				else:
+					await interaction.message.edit(embed=discord.Embed(title="Queue",
+																	description=f"Song "
+																				f"[{pytubefix.YouTube(self.values[0]).title}]"
+																				f"({self.values[0]}) added to queue.",
+																	color=discord.Color.green()))
 
 
 class Research(discord.ui.View):
@@ -381,13 +380,14 @@ async def get_playlists(ctx: discord.AutocompleteContext) -> list[str]:
 	list[str]
 		The list of playlists
 	"""
-	config = await Server.get(server_id=ctx.interaction.guild.id)
-	user_playlists = (await Asker.get(discord_id=ctx.interaction.user.id)).playlists.all()
-	return ([playlist.playlist.name + " - SERVER" for playlist in config.playlists] +
-			[playlist.playlist.name + " - USER" for playlist in user_playlists])
+	async with database_context():	
+		config = await Server.get(server_id=ctx.interaction.guild.id)
+		user = await Asker.get(discord_id=ctx.interaction.user.id)
+		return ([playlist.playlist.name + " - SERVER" for playlist in config.playlists] +
+				[playlist.playlist.name + " - USER" for playlist in user.playlists])
 
 
-async def get_playlists_songs(ctx: discord.AutocompleteContext):
+async def get_playlists_songs(ctx: discord.AutocompleteContext) -> list[str]:
 	"""
 	Discord autocomplete function to get the songs of a playlist which name is
 	given as an argument to the command.
@@ -402,22 +402,23 @@ async def get_playlists_songs(ctx: discord.AutocompleteContext):
 	list[str]
 		The list of songs in the playlist
 	"""
-	if ctx.options['playlist'].endswith(" - SERVER"):
-		server_playlists = await (await Server.get(server_id=ctx.interaction.guild.id)).playlists.all()
-		for server_playlist in server_playlists:
-			playlist: Playlist = server_playlist.playlist 
-			if playlist.name == ctx.options['playlist'][:-9]:
-				return [song.song.name for song in playlist.songs]
-	elif ctx.options['playlist'].endswith(" - USER"):
-		user_playlists = await (await Asker.get(discord_id=ctx.interaction.user.id)).playlists.all()
-		for user_playlist in await user_playlists.all():
-			if user_playlist.playlist.name == ctx.options['playlist'][:-7]:
-				return [song.song.name for song in user_playlist.playlist.songs]
-	else:
-		return []
+	async with database_context():
+		if ctx.options['playlist'].endswith(" - SERVER"):
+			server = await Server.get(server_id=ctx.interaction.guild.id)
+			for server_playlist in server.playlists:
+				playlist = server_playlist.playlist 
+				if playlist.name == ctx.options['playlist'][:-9]:
+					return [song.song.name for song in playlist.songs]
+		elif ctx.options['playlist'].endswith(" - USER"):
+			user = await Asker.get(discord_id=ctx.interaction.user.id)
+			for user_playlist in await user.playlists:
+				if user_playlist.playlist.name == ctx.options['playlist'][:-7]:
+					return [song.song.name for song in user_playlist.playlist.songs]
+		else:
+			return []
 
 
-async def get_queue_songs(ctx: discord.AutocompleteContext):
+async def get_queue_songs(ctx: discord.AutocompleteContext) -> list[str]:
 	"""
 	Discord autocomplete function to get the songs in the queue.
 	
@@ -431,61 +432,63 @@ async def get_queue_songs(ctx: discord.AutocompleteContext):
 	list[str]
 		The list of songs in the queue
 	"""
-	config = await Server.get(server_id=ctx.interaction.guild.id)
-	if len(config.queue) < 1:
-		return []
-	queue_: list[Queue] = config.queue.all().copy()
-	queue_.pop(config.position)
-	queue_songs: list[Song] = list(map(lambda queue_elem: queue_elem.song, queue_))
-	return [song.name for song in queue_songs]
+	async with database_context():
+		config = await Server.get(server_id=ctx.interaction.guild.id)
+		if len(config.queue) < 1:
+			return []
+		queue = await config.queue.all()
+		queue.pop(config.position)
+		queue_songs = list(map(lambda queue_elem: queue_elem.song, queue))
+		return [song.name for song in queue_songs]
 
 
-def get_index_from_title(title: str, list_to_check: list[Song]):
-	"""Get the index of a song in a list of songs from its title."""
+def get_index_from_title(title: str, list_to_check: list[Song]) -> int:
+	"""Get the index of a song in a list of songs from its title.""" 
 	for index, song in enumerate(list_to_check):
 		if song.name == title:
 			return index
 	return -1
 
 
-async def change_song(ctx: discord.ApplicationContext):
+async def change_song(ctx: discord.ApplicationContext) -> None:
 	"""Callback function to execute when a song is finished to change the song taking into account the server's
 	configuration"""
-	server = await Server.get(server_id=ctx.guild.id)
-	server_queue = await server.queue.all()
-	if not server_queue:
-		return
-	if server.loop_song:
-		pass
-	elif server.loop_queue or server.position < len(server_queue) - 1:
-		server.position = (server.position + 1) % len(server_queue)
-		server.save()
-	else:
-		return
-	if server.random and len(server_queue) > 1:
-		server.position = random.sample(set(range(0, len(server_queue))) - {server.position}, 1)[0]
-		server.save()
-	try:
-		await play_song(ctx, server_queue[server.position].song.url)
-	except Exception as e:
-		get_logger("Bot").error(f"Error while playing song: {e}")
+	async with database_context():
+		server = await Server.get(server_id=ctx.guild.id)
+		if not await server.queue.all():
+			return
+		if server.loop_song:
+			pass
+		elif server.loop_queue or server.position < len(server.queue) - 1:
+			server.position = (server.position + 1) % len(server.queue)
+			await server.save()
+		else:
+			return
+		if server.random and len(server.queue) > 1:
+			server.position = random.sample(set(range(0, len(server.queue))) - {server.position}, 1)[0]
+			await server.save()
+		try:
+			await play_song(ctx, server.queue[server.position].song.url)
+		except Exception as e:
+			get_logger("Bot").error(f"Error while playing song: {e}")
 
 
-async def play_song(ctx: discord.ApplicationContext, url: str):
+async def play_song(ctx: discord.ApplicationContext, url: str) -> None:
 	"""Play a song from a URL"""
 	if ctx.guild.voice_client is None:
 		return
 	if ctx.guild.voice_client.is_playing():
 		ctx.guild.voice_client.stop()
-	server = await Server.get(server_id=ctx.guild.id)
 	loop = asyncio.get_event_loop()
-	song = await Song.get(url=url)
-	song_listen_lount = await SongListenCount.get_or_none(song=song)
-	if song_listen_lount is not None:
-		song_listen_lount.count += 1
-		await song_listen_lount.save()
-	else:
-		await SongListenCount.create(song=song, count=1)
+	async with database_context():
+		server = await Server.get(server_id=ctx.guild.id)
+		song = await Song.get(url=url)
+		song_listen_lount = await SongListenCount.get_or_none(song=song)
+		if song_listen_lount is not None:
+			song_listen_lount.count += 1
+			await song_listen_lount.save()
+		else:
+			await SongListenCount.create(song=song, count=1)
 	try:
 		video = pytubefix.YouTube(url)
 		if video.age_restricted:
