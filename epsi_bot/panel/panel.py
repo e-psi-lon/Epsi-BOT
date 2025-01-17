@@ -11,7 +11,8 @@ import aiohttp
 import discord
 import multiprocessing
 
-from tortoise import Tortoise
+from tortoise import Tortoise, fields
+import tortoise.fields.relational as relational
 import pytubefix  # type: ignore[import-untyped]
 from aiocache import MemcachedCache
 from dotenv import load_dotenv
@@ -77,7 +78,7 @@ class Panel(Quart):
 			)
 			await Tortoise.generate_schemas(safe=True)
 		await set_callback(self.event, self.read_queue, asyncio.get_event_loop())
-		bot: Bot = Bot(queue, self.event, self.bot_event, intents=discord.Intents.all())
+		bot = Bot(queue, self.event, self.bot_event, intents=discord.Intents.all())
 		await start(bot, start_time)
 
 	def run(
@@ -185,46 +186,50 @@ async def panel():
 
 @app.route('/server/<int:server_id>', methods=['GET', 'POST'])
 async def server(server_id: int) -> Response | str:
-	config: models.Server = models.Server.get_or_none(server_id=server_id)
-	if server_id not in [guild["id"] for guild in session.get('guilds', [])] or 'token' not in session or config is None:
-		return redirect(url_for('panel'))
-	if request.method == 'POST':
-		values = (await request.form).to_dict()
-		for key, value in values.items():
-			if isinstance(getattr(config, key), bool):
-				values[key] = value == "on"
-		if config.loop_song != values['loop_song']:
-			config.loop_song = values['loop_song']
-		if config.loop_queue != values['loop_queue']:
-			config.loop_queue = values['loop_queue']
-		if config.random != values['random']:
-			config.random = values['random']
-		if config.position != values['position']:
-			config.position = values['position']
-		if config.queue != values['queue']:
-			new_queue = [{"name": song['title'], "url": song['url'], "asker": song['asker_id']} for song in values['queue']]
-			config.queue = new_queue  # type: ignore[assignment]
-		config.save()
-		return redirect(url_for('server', server_id=server_id))
-	server_data = ConfigData(config.loop_song, config.loop_queue, config.random, config.position, config.queue,  # type: ignore[arg-type]
-							 server_id, (await app.get_from_bot("guild", server_id=server_id)).content.name, config.volume)  # type: ignore[arg-type, attr-defined]
-	return await render_template('server.html', server=server_data, app=app, pytubefix=pytubefix, yt_regex=YOUTUBE_REGEX)
+	async with models.database_context():
+		config = await models.Server.get_or_none(server_id=server_id)
+		if server_id not in [guild["id"] for guild in session.get('guilds', [])] or 'token' not in session or config is None:
+			return redirect(url_for('panel'))
+		if request.method == 'POST':
+			values = (await request.form).to_dict()
+			for key, value in values.items():
+				if isinstance(getattr(config, key), bool):
+					values[key] = value == "on"
+			if config.loop_song != values['loop_song']:
+				config.loop_song = values['loop_song']
+			if config.loop_queue != values['loop_queue']:
+				config.loop_queue = values['loop_queue']
+			if config.random != values['random']:
+				config.random = values['random']
+			if config.position != values['position']:
+				config.position = values['position']
+			if config.queue != values['queue']:
+				await config.queue.all().delete()
+				await models.Song.bulk_create([models.Song(name=song['title'], url=song['url']) for song in values['queue']], ignore_conflicts=True)
+				await models.Asker.bulk_create([models.Asker(discord_id=song['asker_id']) for song in values['queue']], ignore_conflicts=True)
+				await models.Queue.bulk_create([models.Queue(server=config, song=await models.Song.get(name=song['title']), asker=await models.Asker.get(discord_id=song['asker_id'])) for song in values['queue']], ignore_conflicts=True)
+			await config.save()
+			return redirect(url_for('server', server_id=server_id))
+		server_data = ConfigData(config.loop_song, config.loop_queue, config.random, config.position, config.queue,  # type: ignore[arg-type]
+								server_id, (await app.get_from_bot("guild", server_id=server_id)).content.name, config.volume)  # type: ignore[arg-type, attr-defined]
+		return await render_template('server.html', server=server_data, app=app, pytubefix=pytubefix, yt_regex=YOUTUBE_REGEX)
 
 
 @app.route('/server/<int:server_id>/clear')
 async def clear(server_id: int) -> Response:
-	config: models.Server = models.Server.get(server_id=server_id)
-	for song in config.queue:
-		song.delete().execute()
+	async with models.database_context():
+		config = await models.Server.get(server_id=server_id)
+		await config.queue.all().delete()
 	return redirect(url_for('server', server_id=server_id))
 
 
 @app.route('/server/<int:server_id>/add', methods=['POST'])
 async def add(server_id: int) -> Response:
-	config = models.Server.get(server_id=server_id)
-	song: models.Song = models.Song.get_or_create(name=(await request.form)['name'], url=(await request.form)['url'])[0]
-	asker: models.Asker = models.Asker.get_or_create(discord_id=session['user'].id)[0]
-	models.Queue.create(server=config, song=song, asker=asker).save()
+	async with models.database_context():
+		config = models.Server.get(server_id=server_id)
+		song, _ = models.Song.get_or_create(name=(await request.form)['name'], url=(await request.form)['url'])
+		asker, _ = models.Asker.get_or_create(discord_id=session['user'].id)
+		models.Queue.create(server=config, song=song, asker=asker).save()
 	return redirect(url_for('server', server_id=server_id))
 
 
@@ -282,21 +287,10 @@ async def admin_ws():
 			message = await websocket.receive()
 			if message == "refresh":
 				stats = {key.decode(): value.decode() for key, value in (await get_cache_stats()).items()}
-				tables = [table for table in models.database.get_tables() if table not in ("sqlite_sequence", "sqlite_master")]
-				columns_metadata = {table: models.database.get_columns(table) for table in tables}
-				columns_foreign = {table: models.database.get_foreign_keys(table) for table in tables}
-				# Pour chaque columns_metadata, si il existe une columns_foreign de la meme table et du meme nom, on remplace la colomn_metadata par la columns_foreign
-				columns = {table: [col for col in columns_metadata[table] if col.name not in [foreign.column for foreign in columns_foreign[table]]] + columns_foreign[table]
-						   						   for table in tables}
+				tables: list[type[models.BaseModel]] = [getattr(models, model_name) for model_name in models.__models__]
+				columns = {table: table._meta.fields_map for table in tables}
 				columns = format_table_info(columns)
-				values = {
-					table._meta.table_name: [
-						{col: (getattr(row, col).id if isinstance(getattr(row, col), models.BaseModel) else getattr(row, col))
-						 for col in columns[table._meta.table_name]}
-						for row in table.select(*[getattr(table, col) for col in columns[table._meta.table_name]])
-					]
-					for table in (models.Asker, models.Playlist, models.PlaylistSong, models.Queue, models.Server, models.ServerPlaylist, models.Song, models.UserPlaylist, models.SongListenCount)
-				}
+				values = {}
 				for table_data in values.values():
 					for row in table_data:
 						for key, value in row.items():
@@ -304,7 +298,8 @@ async def admin_ws():
 								row[key] = value.isoformat()
 							elif isinstance(value, bytes):
 								row[key] = value.decode()
-				await websocket.send_json({"stats": stats, "tables": tables, "columns": columns, "values": values})
+				tables_: list[str] = [table._meta.table for table in tables]
+				await websocket.send_json({"stats": stats, "tables": tables_, "columns": columns, "values": values})
 	except Exception as e:
 		app.logger.error(f"WebSocket error: {e}")
 		await websocket.close(code=1001)
@@ -367,12 +362,15 @@ async def revoke_access_token(access_token):
 	await AsyncRequests.post(f"{app.API_ENDPOINT}/oauth2/token/revoke", data=data, headers=headers,
 							 auth=aiohttp.BasicAuth(str(app.CLIENT_ID), str(app.CLIENT_SECRET)))
 
-def format_table_info(tables_metadata: dict[BaseModel, list[ColumnMetadata | peewee.ForeignKeyMetadata]]) -> dict[BaseModel, dict[str, bool | None]]:
-	formatted = {}
-	for table_name, columns in tables_metadata.items():
-		formatted[table_name] = {
-			col.name if isinstance(col, peewee.ColumnMetadata) else col.column:
-				col.primary_key if isinstance(col, peewee.ColumnMetadata) else None
-			for col in columns
-		}
-	return formatted
+def format_table_info(
+    tables_metadata: dict[type[BaseModel], dict[str, fields.Field]]
+) -> dict[str, dict[str, bool | None]]:
+    formatted = {}
+    for table, columns in tables_metadata.items():
+        formatted[table._meta.table] = {
+            name: True if col.pk
+                  else None if isinstance(col, relational.ForeignKeyFieldInstance)
+                  else False
+            for name, col in columns.items()
+        }
+    return formatted
