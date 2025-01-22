@@ -287,7 +287,7 @@ async def admin_ws():
 			message = await websocket.receive()
 			if message == "refresh":
 				cache_stats = {key.decode(): value.decode() for key, value in (await get_cache_stats()).items()}
-				tables: list[type[models.BaseModel]] = [getattr(models, model_name) for model_name in models.__models__]
+				tables: list[type[models.BaseModel]] = [getattr(models, model_name) for model_name in models.__all__ if issubclass(getattr(models, model_name), models.BaseModel)]
 				columns = {table: table._meta.fields_map for table in tables}
 				formatted_columns = format_table_info(columns)
 				database: dict[str, dict[str, tuple[bool | None, list[str]]]] = {}

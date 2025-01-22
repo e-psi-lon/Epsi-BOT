@@ -37,7 +37,7 @@ async def update_top_songs(self: 'Bot') -> None:
 				{"name": song.song.name, "url": song.song.url, "listen_count": song.count}
 				for song in top_songs
 			]
-			SongListenCount.delete().execute()
+			await SongListenCount.all().delete()
 		async with AudioCache(len(top_songs_data)) as cache:
 			to_download = []
 			# First update TTL for cached songs and collect uncached ones

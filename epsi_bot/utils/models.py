@@ -9,13 +9,16 @@ from tortoise import (
 					exceptions,   
 				)
 
+import epsi_bot.utils
+
+
 from .loggers import get_logger
 from contextlib import asynccontextmanager
 
 # database = SqliteDatabase('./database/database.db')
 
 __all__ = ['Asker', 'Playlist', 'Song', 'PlaylistSong', 'Server', 'Queue', 'ServerPlaylist', 'UserPlaylist', "BaseModel", "SongListenCount", "database_context"]
-__models__ = list(set(__all__) - {'BaseModel', 'database_context'})
+
 
 class BaseModel(Model):
 	async def save(self, using_db: BaseDBAsyncClient | None = None, update_fields: Iterable[str] | None = None, force_create: bool = False, force_update: bool = False) -> None:
@@ -161,7 +164,7 @@ async def database_context() -> AsyncGenerator[None, None]:
 	try:
 		await Tortoise.init(
 			db_url='sqlite://database/database.db',
-			modules={'models': ['epsi_bot.utils.models']}
+			modules={'models': [epsi_bot.utils.models]}
 		)
 		await Tortoise.generate_schemas(safe=True)
 		yield
