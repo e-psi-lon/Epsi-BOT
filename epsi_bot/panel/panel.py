@@ -286,23 +286,28 @@ async def admin_ws():
 		while True:
 			message = await websocket.receive()
 			if message == "refresh":
-				stats = {key.decode(): value.decode() for key, value in (await get_cache_stats()).items()}
+				cache_stats = {key.decode(): value.decode() for key, value in (await get_cache_stats()).items()}
 				tables: list[type[models.BaseModel]] = [getattr(models, model_name) for model_name in models.__models__]
 				columns = {table: table._meta.fields_map for table in tables}
-				columns = format_table_info(columns)
-				values = {}
-				for table_data in values.values():
-					for row in table_data:
-						for key, value in row.items():
-							if isinstance(value, datetime.datetime):
-								row[key] = value.isoformat()
-							elif isinstance(value, bytes):
-								row[key] = value.decode()
-				tables_: list[str] = [table._meta.table for table in tables]
-				await websocket.send_json({"stats": stats, "tables": tables_, "columns": columns, "values": values})
+				formatted_columns = format_table_info(columns)
+				database: dict[str, dict[str, tuple[bool | None, list[str]]]] = {}
+				for table, formatted_cols in formatted_columns.items():
+					# Fetch all rows for the table in a single query
+					all_rows = await table.all()
+					table_data = {}
+					
+					for col_name, col_type in formatted_cols.items():
+						# Extract values for each column from the already fetched rows
+						values = [str(getattr(row, col_name)) for row in all_rows]
+						table_data[col_name] = (col_type, values)
+					
+					database[table._meta.table] = table_data
+				await websocket.send_json({"cache_stats": cache_stats, "database": database})
 	except Exception as e:
 		app.logger.error(f"WebSocket error: {e}")
 		await websocket.close(code=1001)
+
+
 
 def register_error_handlers():
 	for code in range(400, 500):
@@ -364,10 +369,10 @@ async def revoke_access_token(access_token):
 
 def format_table_info(
     tables_metadata: dict[type[BaseModel], dict[str, fields.Field]]
-) -> dict[str, dict[str, bool | None]]:
+) -> dict[type[BaseModel], dict[str, bool | None]]:
     formatted = {}
     for table, columns in tables_metadata.items():
-        formatted[table._meta.table] = {
+        formatted[table] = {
             name: True if col.pk
                   else None if isinstance(col, relational.ForeignKeyFieldInstance)
                   else False

@@ -165,10 +165,8 @@
 				};
 				socket.onmessage = function(event) {
 					const parsed = JSON.parse(event.data);
-					const stats = parsed.stats;
-					const tables = parsed.tables;
-					const columns = parsed['columns'];
-					const values = parsed['values'];
+					const stats = parsed.cache_stats;
+					
 					try {
 						// Update Performance Widget
 						document.querySelector('.stats-widget:nth-child(1) .stats-value:nth-child(2)').textContent = stats.get_hits;
@@ -198,39 +196,39 @@
 						document.getElementById('versionValue').textContent = stats.version;
 						document.getElementById('threadsValue').textContent = stats.threads;
 
-						// Update Database Tables
+						// Replace the database tables update section with this code
 						const sqlButtons = document.querySelector('.sql-buttons');
 						const sqlContent = document.querySelector('.sql-content');
 						sqlButtons.innerHTML = '';
 						sqlContent.innerHTML = '';
 
-						for (const table of tables) {
+						// Iterate through each table in the database
+						Object.entries(parsed.database).forEach(([tableName, columnData]) => {
+							// Create button for the table
 							const button = document.createElement('button');
 							button.className = 'sql-button';
-							button.id = 'btn-' + table;
-							button.textContent = table;
-							button.onclick = () => showTable(table);
+							button.id = 'btn-' + tableName;
+							button.textContent = tableName;
+							button.onclick = () => showTable(tableName);
 							sqlButtons.appendChild(button);
 
+							// Create table container
 							const tableDiv = document.createElement('div');
 							tableDiv.className = 'sql-table';
-							tableDiv.id = 'table-' + table;
+							tableDiv.id = 'table-' + tableName;
 							tableDiv.style.display = 'none';
 
 							const tableElement = document.createElement('table');
 							const thead = document.createElement('thead');
 							const trHead = document.createElement('tr');
-							const sortedColumns = Object.entries(columns[table]).sort(([, isPrimaryKeyA], [, isPrimaryKeyB]) => {
-								const valueA = isPrimaryKeyA === null ? false : isPrimaryKeyA;
-								const valueB = isPrimaryKeyB === null ? false : isPrimaryKeyB;
-								return valueB - valueA;
-							});
-							sortedColumns.forEach(([column, isPrimaryKey]) => {
+
+							// Process columns
+							Object.entries(columnData).forEach(([columnName, [keyType, _]]) => {
 								const th = document.createElement('th');
-								th.textContent = column;
-								if (isPrimaryKey === true) {
+								th.textContent = columnName;
+								if (keyType === true) {
 									th.classList.add('primary-key');
-								} else if (isPrimaryKey === null) {
+								} else if (keyType === null) {
 									th.classList.add('foreign-key');
 								}
 								trHead.appendChild(th);
@@ -238,30 +236,35 @@
 							thead.appendChild(trHead);
 							tableElement.appendChild(thead);
 
+							// Create table body with values
 							const tbody = document.createElement('tbody');
-							values[table].forEach(value => {
-								const trBody = document.createElement('tr');
-								sortedColumns.forEach(([column]) => {
+							const columnNames = Object.keys(columnData);
+							const rowCount = columnData[columnNames[0]][1].length;
+
+							for (let i = 0; i < rowCount; i++) {
+								const tr = document.createElement('tr');
+								columnNames.forEach(columnName => {
 									const td = document.createElement('td');
-									const cellValue = value[column];
-									if (isUrl(cellValue)) {
+									const value = columnData[columnName][1][i];
+									if (isUrl(value)) {
 										const a = document.createElement('a');
-										a.href = cellValue;
+										a.href = value;
 										a.target = '_blank';
-										a.textContent = cellValue;
+										a.textContent = value;
 										td.appendChild(a);
 									} else {
-										td.textContent = cellValue;
+										td.textContent = value;
 									}
-									trBody.appendChild(td);
+									tr.appendChild(td);
 								});
-								tbody.appendChild(trBody);
-							});
+								tbody.appendChild(tr);
+							}
+							
 							tableElement.appendChild(tbody);
-
 							tableDiv.appendChild(tableElement);
 							sqlContent.appendChild(tableDiv);
-						}
+						});
+						
 						const currentTable = localStorage.getItem('selectedTable');
 						if (currentTable) {
 							showTable(currentTable);
