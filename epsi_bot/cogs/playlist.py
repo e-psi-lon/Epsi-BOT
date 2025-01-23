@@ -40,7 +40,8 @@ class Playlists(commands.Cog):
 			return await ctx.respond(embed=EMBED_ERROR_NAME_TOO_LONG)
 		async with database_context():
 			server = await Server.get(server_id=ctx.interaction.guild.id)
-			user_playlists = await (await Asker.get(discord_id=ctx.user.id)).playlists.all()
+			asker, _ = await Asker.get_or_create(discord_id=ctx.user.id)
+			user_playlists = await asker.playlists.all()
 			if not await server.queue.all() and not user_playlists:
 				return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
 			if (name in [playlist.playlist.name for playlist in server.playlists] and playlist_type == "server") or \
@@ -67,7 +68,8 @@ class Playlists(commands.Cog):
 		try:
 			async with database_context():
 				server = await Server.get(server_id=ctx.interaction.guild.id)
-				user_playlists = (await Asker.get(ctx.user.id)).playlists
+				asker, _ = await Asker.get_or_create(discord_id=ctx.user.id)
+				user_playlists = await asker.playlists.all()
 				playlist = pytubefix.Playlist(url)
 				if name is None:
 					name = playlist.title
@@ -99,7 +101,8 @@ class Playlists(commands.Cog):
 	@discord.option("name", str, description="The name of the playlist", required=True, autocomplete=discord.utils.basic_autocomplete(get_playlists))	
 	async def delete(self, ctx: discord.ApplicationContext, name: str):
 		async with database_context():
-			user_playlists = (await Asker.get(discord_id=ctx.user.id)).playlists
+			asker, _ = await Asker.get_or_create(discord_id=ctx.user.id)
+			user_playlists = await asker.playlists.all()
 			server: Server = Server.get(server_id=ctx.guild.id)
 			await ctx.response.defer()
 			if name.endswith(" - SERVER"):
@@ -127,7 +130,8 @@ class Playlists(commands.Cog):
 	async def add(self, ctx: discord.ApplicationContext, name: str, query: str):
 		await ctx.response.defer()
 		async with database_context():
-			user_playlists = await (await Asker.get(ctx.user.id)).playlists.all()
+			asker, _ = await Asker.get_or_create(discord_id=ctx.user.id)
+			user_playlists = await asker.playlists.all()
 			server = await Server.get(server_id=ctx.guild.id)
 			if name.endswith(" - SERVER"):
 				name = name[:-9]
@@ -171,7 +175,8 @@ class Playlists(commands.Cog):
 				name = name[:-7]
 			else:
 				server = await Server.get(server_id=ctx.guild.id)
-				user_playlists = await (await Asker.get(discord_id=ctx.user.id)).playlists.all()
+				asker = await Asker.get(discord_id=ctx.user.id)
+				user_playlists = await asker.playlists.all()
 				return await ctx.respond(embed=EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
 										.add_field(name="Existing server playlists:",
 													value="\n".join(
@@ -197,7 +202,8 @@ class Playlists(commands.Cog):
 			return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
 		async with database_context():
 			server = await Server.get(server_id=ctx.guild.id)
-			user_playlist = await (await Asker.get(discord_id=ctx.user.id)).playlists.all()
+			asker = await Asker.get(discord_id=ctx.user.id)
+			user_playlist = await asker.playlists.all()
 			playlist: Playlist
 			if name.endswith(" - SERVER") and name[:-9] in [playlists.playlist.name for playlists in server.playlists]:
 				playlist = Playlist.get(name=name[:-9])
@@ -290,7 +296,8 @@ class Playlists(commands.Cog):
 		else:
 			async with database_context():
 				server = await Server.get(server_id=ctx.guild.id)
-				user_playlists = await (await Asker.get(discord_id=ctx.user.id)).playlists.all()
+				asker = await Asker.get(discord_id=ctx.user.id)
+				user_playlists = await asker.playlists.all()
 				return await ctx.respond(embed=EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
 										.add_field(name="Existing server playlists:",
 													value="\n- ".join([playlist.playlist.name for playlist in server.playlists]))
@@ -337,11 +344,12 @@ class Playlists(commands.Cog):
 					embed=discord.Embed(title="Error", description="A playlist with this name already exists.",
 										color=discord.Color.dark_red()))
 			# Si la playlist est une playlist utilisateur
-			if playlist in (await Asker.get(discord_id=ctx.user.id)).playlists:
+			asker, _ = await Asker.get_or_create(discord_id=ctx.user.id)
+			if playlist in asker.playlists:
 				new_playlist = await Playlist.create(name=name)
 				await new_playlist.save()
 				await PlaylistSong.bulk_create((await Playlist.get(name=name)).songs)
-				await UserPlaylist.create(playlist=new_playlist, user=(await Asker.get_or_create(discord_id=ctx.user.id))[0]).save()
+				await UserPlaylist.create(playlist=new_playlist, user=asker).save()
 			else:
 				new_playlist = await Playlist.create(name=name)
 				await new_playlist.save()

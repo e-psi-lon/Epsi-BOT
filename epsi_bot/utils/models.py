@@ -64,33 +64,23 @@ class Asker(BaseModel):
 	discord_id = fields.IntField(unique=True)
 	playlists: fields.ReverseRelation['UserPlaylist']
 
-	class Meta:
-		table = 'ASKER'
 
 class Playlist(BaseModel):
 	name = fields.CharField(100)
 	playlist_id = fields.IntField(primary_key=True)
 	songs: fields.ReverseRelation['PlaylistSong']
 
-	class Meta:
-		table = 'PLAYLIST'
-
-
 class Song(BaseModel):
 	name = fields.CharField(100)
 	song_id = fields.IntField(primary_key=True)
 	url = fields.CharField(200, unique=True)
-	class Meta:
-		table = 'SONG'
 
 class PlaylistSong(BaseModel):
 	asker: fields.ForeignKeyRelation[Asker] = fields.ForeignKeyField('models.Asker')
-	playlist: fields.ForeignKeyRelation[Playlist] = fields.ForeignKeyField('models.Playlist', related_name='playlist_songs')
+	playlist: fields.ForeignKeyRelation[Playlist] = fields.ForeignKeyField('models.Playlist', related_name='songs')
 	position = fields.IntField()
 	song: fields.ForeignKeyRelation[Song] = fields.ForeignKeyField('models.Song')
 
-	class Meta:
-		table = 'PLAYLIST_SONG'
 
 	async def save(self, *args: Any, **kwargs: Any) -> Any:
 		if self.position is None:
@@ -109,17 +99,11 @@ class Server(BaseModel):
 	queue: fields.ReverseRelation['Queue']
 	playlists: fields.ReverseRelation['ServerPlaylist']
 
-	class Meta:
-		table = 'SERVER'
-
 class Queue(BaseModel):
 	asker: fields.ForeignKeyRelation[Asker] = fields.ForeignKeyField('models.Asker')
 	position = fields.IntField()
-	server: fields.ForeignKeyRelation[Server] = fields.ForeignKeyField('models.Server')
+	server: fields.ForeignKeyRelation[Server] = fields.ForeignKeyField('models.Server', related_name='queue')
 	song: fields.ForeignKeyRelation[Song] = fields.ForeignKeyField('models.Song')
-
-	class Meta:
-		table = 'QUEUE'
 
 	async def save(self, *args: Any, **kwargs: Any) -> Any:
 		if self.position is None:
@@ -130,26 +114,17 @@ class Queue(BaseModel):
 
 class ServerPlaylist(BaseModel):
 	playlist: fields.ForeignKeyRelation[Playlist] = fields.ForeignKeyField('models.Playlist')
-	server: fields.ForeignKeyRelation[Server] = fields.ForeignKeyField('models.Server')
-
-	class Meta:
-		table = 'SERVER_PLAYLIST'
-
+	server: fields.ForeignKeyRelation[Server] = fields.ForeignKeyField('models.Server', related_name='playlists')
 
 
 class UserPlaylist(BaseModel):
 	playlist: fields.ForeignKeyRelation[Playlist] = fields.ForeignKeyField('models.Playlist')
 	user: fields.ForeignKeyRelation[Asker] = fields.ForeignKeyField('models.Asker', related_name='playlists')
 
-	class Meta:
-		table = 'USER_PLAYLIST'
-
 class SongListenCount(BaseModel):
 	song: fields.ForeignKeyRelation[Song] = fields.ForeignKeyField('models.Song', related_name='listen_count')
 	count = fields.IntField(default=0)
 
-	class Meta:
-		table = 'SONG_LISTEN_COUNT'
 
 @asynccontextmanager
 async def database_context() -> AsyncGenerator[None, None]:

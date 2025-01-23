@@ -409,7 +409,7 @@ async def get_playlists_songs(ctx: discord.AutocompleteContext) -> list[str]:
 					return [song.song.name for song in playlist.songs]
 		elif ctx.options['playlist'].endswith(" - USER"):
 			user = await Asker.get(discord_id=ctx.interaction.user.id)
-			for user_playlist in await user.playlists:
+			for user_playlist in user.playlists:
 				if user_playlist.playlist.name == ctx.options['playlist'][:-7]:
 					return [song.song.name for song in user_playlist.playlist.songs]
 		else:
