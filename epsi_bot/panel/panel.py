@@ -33,7 +33,8 @@ from ..utils import (PanelBotRequest,
 				   parse_args,
 				   models,
 				   get_cache_stats,
-				   YOUTUBE_REGEX
+				   YOUTUBE_REGEX,
+				   database_context
 				   )
 from ..utils.models import BaseModel
 from aiomultiprocess import Process  # type: ignore[import-untyped]
@@ -272,7 +273,7 @@ async def logout():
 @app.route('/admin')
 async def admin():
 	app.logger.info(f"Admin page requested by {request.remote_addr}")
-	if not request.remote_addr.startswith("192.168.83."):
+	if not request.remote_addr.startswith("192.168.83.") and request.remote_addr != "127.0.0.1":
 		return 403
 	return await render_template('admin.html')
 
@@ -280,31 +281,38 @@ async def admin():
 @app.websocket('/admin')
 async def admin_ws():
 	app.logger.info(f"Admin websocket requested by {websocket.remote_addr}")
-	if not websocket.remote_addr.startswith("192.168.83."):
+	if not websocket.remote_addr.startswith("192.168.83.") and websocket.remote_addr != "127.0.0.1":
 		return 403
 	try:
 		while True:
 			message = await websocket.receive()
 			if message == "refresh":
 				cache_stats = {key.decode(): value.decode() for key, value in (await get_cache_stats()).items()}
-				tables: list[type[models.BaseModel]] = [getattr(models, model_name) for model_name in models.__all__ if issubclass(getattr(models, model_name), models.BaseModel)]
-				columns = {table: table._meta.fields_map for table in tables}
-				formatted_columns = format_table_info(columns)
-				database: dict[str, dict[str, tuple[bool | None, list[str]]]] = {}
-				for table, formatted_cols in formatted_columns.items():
-					# Fetch all rows for the table in a single query
-					all_rows = await table.all()
-					table_data = {}
-					
-					for col_name, col_type in formatted_cols.items():
-						# Extract values for each column from the already fetched rows
-						values = [str(getattr(row, col_name)) for row in all_rows]
-						table_data[col_name] = (col_type, values)
-					
-					database[table._meta.table] = table_data
+				async with database_context():
+					tables: list[type[models.BaseModel]] = [
+						getattr(models, model_name) 
+						for model_name in models.__all__ 
+						if isinstance(getattr(models, model_name), type)
+						and issubclass(getattr(models, model_name), models.BaseModel)
+						and getattr(models, model_name) != models.BaseModel
+					]
+					columns = {table: table._meta.fields_map for table in tables}
+					formatted_columns = format_table_info(columns)
+					database: dict[str, dict[str, tuple[bool | None, list[str]]]] = {}
+					for table, formatted_cols in formatted_columns.items():
+						# Fetch all rows for the table in a single query
+						all_rows = await table.all()
+						table_data = {}
+						
+						for col_name, col_type in formatted_cols.items():
+							# Extract values for each column from the already fetched rows
+							values = [str(getattr(row, col_name)) for row in all_rows]
+							table_data[col_name] = (col_type, values)
+						
+						database[table.__name__] = table_data
 				await websocket.send_json({"cache_stats": cache_stats, "database": database})
 	except Exception as e:
-		app.logger.error(f"WebSocket error: {e}")
+		app.logger.exception(e)
 		await websocket.close(code=1001)
 
 
@@ -368,14 +376,14 @@ async def revoke_access_token(access_token):
 							 auth=aiohttp.BasicAuth(str(app.CLIENT_ID), str(app.CLIENT_SECRET)))
 
 def format_table_info(
-    tables_metadata: dict[type[BaseModel], dict[str, fields.Field]]
+	tables_metadata: dict[type[BaseModel], dict[str, fields.Field]]
 ) -> dict[type[BaseModel], dict[str, bool | None]]:
-    formatted = {}
-    for table, columns in tables_metadata.items():
-        formatted[table] = {
-            name: True if col.pk
-                  else None if isinstance(col, relational.ForeignKeyFieldInstance)
-                  else False
-            for name, col in columns.items()
-        }
-    return formatted
+	formatted = {}
+	for table, columns in tables_metadata.items():
+		formatted[table] = {
+			name: True if col.pk
+				else None if isinstance(col, relational.ForeignKeyFieldInstance)
+				else False
+			for name, col in columns.items() if not isinstance(col, relational.BackwardFKRelation)
+		}
+	return formatted
