@@ -13,6 +13,7 @@ import multiprocessing
 
 from tortoise import Tortoise, fields
 import tortoise.fields.relational as relational
+from tortoise.contrib.quart import register_tortoise
 import pytubefix  # type: ignore[import-untyped]
 from aiocache import MemcachedCache
 from dotenv import load_dotenv
@@ -33,8 +34,7 @@ from ..utils import (PanelBotRequest,
 				   parse_args,
 				   models,
 				   get_cache_stats,
-				   YOUTUBE_REGEX,
-				   database_context
+				   YOUTUBE_REGEX
 				   )
 from ..utils.models import BaseModel
 from aiomultiprocess import Process  # type: ignore[import-untyped]
@@ -59,6 +59,11 @@ class Panel(Quart):
 		self.bot_event = Event()
 		self.event = Event()
 		Session(self)
+		register_tortoise(
+			self,
+			db_url='sqlite://database/database.db',
+			modules={'models': ['epsi_bot.utils.models']}
+		)
 
 	@cached_property
 	def logger(self) -> logging.Logger:
@@ -147,6 +152,7 @@ class Panel(Quart):
 app = Panel(os.environ['PANEL_SECRET_KEY'], __name__)
 
 
+
 def to_url(url: str) -> str:
 	return url.replace(' ', '%20') \
 		.replace('?', '%3F') \
@@ -187,28 +193,27 @@ async def panel():
 
 @app.route('/server/<int:server_id>', methods=['GET', 'POST'])
 async def server(server_id: int) -> Response | str:
-	async with models.database_context():
-		config = await models.Server.get_or_none(server_id=server_id)
-		if server_id not in [guild["id"] for guild in session.get('guilds', [])] or 'token' not in session or config is None:
-			return redirect(url_for('panel'))
-		if request.method == 'POST':
-			values = (await request.form).to_dict()
-			for key, value in values.items():
-				if isinstance(getattr(config, key), bool):
-					values[key] = value == "on"
-			if config.loop_song != values['loop_song']:
-				config.loop_song = values['loop_song']
-			if config.loop_queue != values['loop_queue']:
-				config.loop_queue = values['loop_queue']
-			if config.random != values['random']:
-				config.random = values['random']
-			if config.position != values['position']:
-				config.position = values['position']
-			if config.queue != values['queue']:
-				await config.queue.all().delete()
-				await models.Song.bulk_create([models.Song(name=song['title'], url=song['url']) for song in values['queue']], ignore_conflicts=True)
-				await models.Asker.bulk_create([models.Asker(discord_id=song['asker_id']) for song in values['queue']], ignore_conflicts=True)
-				await models.Queue.bulk_create([models.Queue(server=config, song=await models.Song.get(name=song['title']), asker=await models.Asker.get(discord_id=song['asker_id'])) for song in values['queue']], ignore_conflicts=True)
+	config = await models.Server.get_or_none(server_id=server_id)
+	if server_id not in [guild["id"] for guild in session.get('guilds', [])] or 'token' not in session or config is None:
+		return redirect(url_for('panel'))
+	if request.method == 'POST':
+		values = (await request.form).to_dict()
+		for key, value in values.items():
+			if isinstance(getattr(config, key), bool):
+				values[key] = value == "on"
+		if config.loop_song != values['loop_song']:
+			config.loop_song = values['loop_song']
+		if config.loop_queue != values['loop_queue']:
+			config.loop_queue = values['loop_queue']
+		if config.random != values['random']:
+			config.random = values['random']
+		if config.position != values['position']:
+			config.position = values['position']
+		if config.queue != values['queue']:
+			await config.queue.all().delete()
+			await models.Song.bulk_create([models.Song(name=song['title'], url=song['url']) for song in values['queue']], ignore_conflicts=True)
+			await models.Asker.bulk_create([models.Asker(discord_id=song['asker_id']) for song in values['queue']], ignore_conflicts=True)
+			await models.Queue.bulk_create([models.Queue(server=config, song=await models.Song.get(name=song['title']), asker=await models.Asker.get(discord_id=song['asker_id'])) for song in values['queue']], ignore_conflicts=True)
 			await config.save()
 			return redirect(url_for('server', server_id=server_id))
 		server_data = ConfigData(config.loop_song, config.loop_queue, config.random, config.position, config.queue,  # type: ignore[arg-type]
@@ -218,19 +223,17 @@ async def server(server_id: int) -> Response | str:
 
 @app.route('/server/<int:server_id>/clear')
 async def clear(server_id: int) -> Response:
-	async with models.database_context():
-		config = await models.Server.get(server_id=server_id)
-		await config.queue.all().delete()
+	config = await models.Server.get(server_id=server_id)
+	await config.queue.all().delete()
 	return redirect(url_for('server', server_id=server_id))
 
 
 @app.route('/server/<int:server_id>/add', methods=['POST'])
 async def add(server_id: int) -> Response:
-	async with models.database_context():
-		config = models.Server.get(server_id=server_id)
-		song, _ = models.Song.get_or_create(name=(await request.form)['name'], url=(await request.form)['url'])
-		asker, _ = models.Asker.get_or_create(discord_id=session['user'].id)
-		models.Queue.create(server=config, song=song, asker=asker).save()
+	config = models.Server.get(server_id=server_id)
+	song, _ = models.Song.get_or_create(name=(await request.form)['name'], url=(await request.form)['url'])
+	asker, _ = models.Asker.get_or_create(discord_id=session['user'].id)
+	models.Queue.create(server=config, song=song, asker=asker).save()
 	return redirect(url_for('server', server_id=server_id))
 
 
@@ -288,29 +291,28 @@ async def admin_ws():
 			message = await websocket.receive()
 			if message == "refresh":
 				cache_stats = {key.decode(): value.decode() for key, value in (await get_cache_stats()).items()}
-				async with database_context():
-					tables: list[type[models.BaseModel]] = [
-						getattr(models, model_name) 
-						for model_name in models.__all__ 
-						if isinstance(getattr(models, model_name), type)
-						and issubclass(getattr(models, model_name), models.BaseModel)
-						and getattr(models, model_name) != models.BaseModel
-					]
-					columns = {table: table._meta.fields_map for table in tables}
-					formatted_columns = format_table_info(columns)
-					database: dict[str, dict[str, tuple[bool | None, list[str]]]] = {}
-					for table, formatted_cols in formatted_columns.items():
-						# Fetch all rows for the table in a single query
-						all_rows = await table.all()
-						table_data = {}
-						
-						for col_name, col_type in formatted_cols.items():
-							# Extract values for each column from the already fetched rows
-							values = [str(getattr(row, col_name)) for row in all_rows]
-							table_data[col_name] = (col_type, values)
-						
-						database[table.__name__] = table_data
-				await websocket.send_json({"cache_stats": cache_stats, "database": database})
+				tables: list[type[models.BaseModel]] = [
+					getattr(models, model_name) 
+					for model_name in models.__all__ 
+					if isinstance(getattr(models, model_name), type)
+					and issubclass(getattr(models, model_name), models.BaseModel)
+					and getattr(models, model_name) != models.BaseModel
+				]
+				columns = {table: table._meta.fields_map for table in tables}
+				formatted_columns = format_table_info(columns)
+				database: dict[str, dict[str, tuple[bool | None, list[str]]]] = {}
+				for table, formatted_cols in formatted_columns.items():
+					# Fetch all rows for the table in a single query
+					all_rows = await table.all()
+					table_data = {}
+					
+					for col_name, col_type in formatted_cols.items():
+						# Extract values for each column from the already fetched rows
+						values = [str(getattr(row, col_name)) for row in all_rows]
+						table_data[col_name] = (col_type, values)
+					
+					database[table.__name__] = table_data
+			await websocket.send_json({"cache_stats": cache_stats, "database": database})
 	except Exception as e:
 		app.logger.exception(e)
 		await websocket.close(code=1001)
