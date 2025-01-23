@@ -2,6 +2,7 @@ from typing import Any, AsyncGenerator, Iterable, Type
 from aiosqlite import OperationalError
 from tortoise import (
 					BaseDBAsyncClient,
+					connections,
 					fields, 
 					Model,
 					Tortoise,
@@ -136,6 +137,7 @@ async def database_context() -> AsyncGenerator[None, None]:
 	None
 		Context manager doesn't yield any value.
 	"""
+	logger = get_logger("Database")
 	try:
 		await Tortoise.init(
 			db_url='sqlite://database/database.db',
@@ -144,7 +146,7 @@ async def database_context() -> AsyncGenerator[None, None]:
 		await Tortoise.generate_schemas(safe=True)
 		yield
 	except exceptions.BaseORMException as e:
-		logger = get_logger("Database")
 		logger.error(f"Error while accessing database: {e}")
 	finally:
-		await Tortoise.close_connections()
+		await connections.close_all()
+		logger.debug("Tortoise-ORM shutdown")
