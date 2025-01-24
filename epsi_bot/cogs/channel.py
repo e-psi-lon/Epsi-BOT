@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 
 from ..bot.bot import Bot
-from ..utils import EMBED_ERROR_BOT_NOT_CONNECTED, play_song, Server, download_batch, database_context
+from ..utils import EMBED_ERROR_BOT_NOT_CONNECTED, play_song, Server, download_bulk
 
 
 class Channel(commands.Cog):
@@ -18,11 +18,10 @@ class Channel(commands.Cog):
 		await ctx.guild.voice_client.disconnect(force=True)
 		await ctx.respond(embed=discord.Embed(title="Leave", description="Bot left the voice channel.",
 											  color=discord.Color.green()))
-		async with database_context():
-			server = await Server.get(server_id=ctx.guild.id)
-			await server.queue.all().delete()
-			server.position = 0
-			await server.save()
+		server = await Server.get(server_id=ctx.guild.id)
+		await server.queue.all().delete()
+		server.position = 0
+		await server.save()
 
 	@commands.slash_command(name='join', description='Join the voice channel you are in.')
 	async def join(self, ctx: discord.ApplicationContext):
@@ -38,16 +37,15 @@ class Channel(commands.Cog):
 
 		await ctx.author.voice.channel.connect()
 		await ctx.respond(embed=discord.Embed(title="Join", description="Bot joined the voice channel.", color=discord.Color.green()))
-		async with database_context():
-			server = await Server.get(server_id=ctx.guild.id)
-			if await server.queue.all():
-				if server.position > len(server.queue) - 1:
-					server.position = 0
-					await server.save()
-				await play_song(ctx, server.queue[server.position].song.url)
-				if len(server.queue) > 1:
-					queue = [queue.song.url for queue in server.queue][1:]
-					await download_batch(queue[1:])
+		server = await Server.get(server_id=ctx.guild.id)
+		if await server.queue.all():
+			if server.position > len(server.queue) - 1:
+				server.position = 0
+				await server.save()
+			await play_song(ctx, server.queue[server.position].song.url)
+			if len(server.queue) > 1:
+				queue = [queue.song.url for queue in server.queue][1:]
+				await download_bulk(queue[1:])
 
 def setup(bot: commands.Bot):
 	bot.add_cog(Channel(bot))

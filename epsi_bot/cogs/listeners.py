@@ -7,7 +7,7 @@ import discord
 from discord.ext import commands
 
 from ..bot.bot import Bot
-from ..utils import disconnect_from_channel, Server, database_context
+from ..utils import disconnect_from_channel, Server
 
 
 class Listeners(commands.Cog):
@@ -70,8 +70,7 @@ class Listeners(commands.Cog):
 				await guild.text_channels[0].send(text)
 			except discord.Forbidden:
 				pass
-		async with database_context():
-			await Server.get_or_create(server_id=guild.id)
+		await Server.get_or_create(server_id=guild.id)
 
 
 def setup(bot: Bot):

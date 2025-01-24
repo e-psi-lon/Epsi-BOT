@@ -12,7 +12,6 @@ __all__ = [
 	'ServerPlaylist',
 	'UserPlaylist',
 	'SongListenCount',
-	'database_context',
 	'ChannelData',
 	'UserData',
 	'GuildData',
@@ -21,7 +20,7 @@ __all__ = [
 	'RequestType',
 	'ConfigData',
 	'download',
-	'download_batch',
+	'download_bulk',
 	'Sinks',
 	'finished_record_callback',
 	'disconnect_from_channel',
@@ -68,8 +67,7 @@ from .models import (Asker,
 					 Queue,
 					 ServerPlaylist,
 					 UserPlaylist,
-					 SongListenCount,
-					 database_context
+					 SongListenCount
 					 )
 
 from .panel_ import (ChannelData,
@@ -83,7 +81,7 @@ from .panel_ import (ChannelData,
 					 )
 
 from .utils import (download,
-					download_batch,
+					download_bulk,
 					Sinks,
 					finished_record_callback,
 					disconnect_from_channel,

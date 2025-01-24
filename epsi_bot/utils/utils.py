@@ -141,9 +141,9 @@ async def download(url: str, download_logger: logging.Logger = get_logger("Audio
 	return value
 	
 	
-async def download_batch(urls: list[str], download_logger: logging.Logger = get_logger("Audio-Downloader")) -> list[io.BytesIO]:
+async def download_bulk(urls: list[str], download_logger: logging.Logger = get_logger("Audio-Downloader")) -> list[io.BytesIO]:
 	"""
-	Download a list of videos from YouTube (or other) URLs.
+	Download a list of videos from YouTube (or other) URLs in bulk.
 	
 	Parameters
 	----------

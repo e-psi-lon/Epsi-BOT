@@ -7,8 +7,10 @@ import subprocess
 from multiprocessing import Queue as mpQueue
 from typing import Optional
 
+from tortoise import Tortoise, connections
+
 from ..utils import GuildData, UserData, PanelBotRequest, PanelBotResponse, RequestType, get_logger, Event, set_callback, \
-	Server, download_batch, AudioCache, SongListenCount, database_context
+	Server, download_bulk, AudioCache, SongListenCount, models
 from discord.ext import commands
 from discord.ext import tasks
 from datetime import datetime
@@ -29,15 +31,19 @@ async def check_update() -> None:
 @tasks.loop(hours=36)
 async def update_top_songs(self: 'Bot') -> None:
 		# Calculate top 5 songs
-		async with database_context():
-			top_songs = await SongListenCount.all() \
-				.order_by("-count") \
-				.limit(5)
-			top_songs_data = [
-				{"name": song.song.name, "url": song.song.url, "listen_count": song.count}
-				for song in top_songs
-			]
-			await SongListenCount.all().delete()
+		await Tortoise.init(
+			db_url='sqlite://database/database.db',
+			modules={'models': [models]}
+		)
+		top_songs = await SongListenCount.all() \
+			.order_by("-count") \
+			.limit(5)
+		top_songs_data = [
+			{"name": song.song.name, "url": song.song.url, "listen_count": song.count}
+			for song in top_songs
+		]
+		await SongListenCount.all().delete()
+		await connections.close_all()
 		async with AudioCache(len(top_songs_data)) as cache:
 			to_download = []
 			# First update TTL for cached songs and collect uncached ones
@@ -49,9 +55,10 @@ async def update_top_songs(self: 'Bot') -> None:
 				
 		# Batch download uncached songs
 		if to_download:
-			await download_batch(to_download)
+			await download_bulk(to_download)
 		self.logger.info("Top 5 songs updated and cached.")
-		# Reset listen counts
+
+	
 
 class Bot(commands.Bot):
 	def __init__(self, queue, event: Event, bot_event: Event, *args, **options) -> None:
@@ -83,10 +90,14 @@ class Bot(commands.Bot):
 				self.memcached = None
 				exit(1)
 		self.logger.info(f"Bot ready in {datetime.now() - self.start_time}")
-		async with database_context():
-			for guild in self.guilds:
-				# Si la guilde n'existe pas dans la db, on l'ajoute avec les paramètres par défaut
-				await Server.get_or_create(server_id=guild.id)
+		await Tortoise.init(
+			db_url='sqlite://database/database.db',
+			modules={'models': [models]}
+		) 
+		for guild in self.guilds:
+			# Si la guilde n'existe pas dans la db, on l'ajoute avec les paramètres par défaut
+			await Server.get_or_create(server_id=guild.id)
+		await connections.close_all()
 		if not update_top_songs.is_running():
 			update_top_songs.start(self)
 
@@ -233,6 +244,23 @@ async def start(instance: Bot, start_time: datetime):
 	async def send_message_error(ctx: discord.ApplicationContext, error: commands.CommandError):
 		if isinstance(error, commands.NotOwner):
 			await ctx.respond("Vous n'êtes pas propriétaire du bot !", ephemeral=True)
+
+	db_logger = get_logger("Database")
+
+	@instance.before_invoke
+	async def before_invoke(ctx: commands.Context):
+		await Tortoise.init(
+			db_url='sqlite://database/database.db',
+			modules={'models': [models]}
+		)
+		db_logger.debug("Tortoise-ORM started, %s, %s", connections._get_storage(), Tortoise.apps)
+
+
+	@instance.after_invoke
+	async def after_invoke(ctx: commands.Context):
+		await connections.close_all()
+		db_logger.info("Tortoise-ORM shutdown")
+
 
 	# Charger les cogs
 	instance.logger.info(
