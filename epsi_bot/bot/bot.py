@@ -53,7 +53,7 @@ async def update_top_songs(self: 'Bot') -> None:
 				else:
 					to_download.append(song["url"])
 				
-		# Batch download uncached songs
+		# Bulk download uncached songs
 		if to_download:
 			await download_bulk(to_download)
 		self.logger.info("Top 5 songs updated and cached.")

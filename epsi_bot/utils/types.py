@@ -1,6 +1,25 @@
+from enum import Enum
 from typing import Any, Union, TYPE_CHECKING
 
-__all__ = ["type_checking"]
+import discord
+
+__all__ = ["type_checking", "Sinks", "FfmpegFormats"]
+
+
+class Sinks(Enum):
+	"""Enum for the different types of audio sinks"""
+	mp3 = discord.sinks.MP3Sink()
+	wav = discord.sinks.WaveSink()
+	ogg = discord.sinks.OGGSink()
+	mp4 = discord.sinks.MP4Sink()
+
+class FfmpegFormats(Enum):
+	MP3 = ("-codec:a", "libmp3lame")
+	FLAC = ("-codec:a", "flac", "-sample_fmt", "s16")
+	OGG = ("-codec:a", "libvorbis")
+	OPUS = ("-codec:a", "libopus")
+	M4A = ("-codec:a", "aac")
+	WAV = ("-codec:a", "pcm_s16le")
 
 def type_checking(var: Any, type_: Union[type, tuple[type]], *indexed_types: Union[type, tuple[type]],
 				  use_attr: bool = False, raise_error: bool = TYPE_CHECKING, **named_types: Union[type, tuple[type]]) -> None:

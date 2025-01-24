@@ -80,9 +80,7 @@ from .panel_ import (ChannelData,
 					 get_cache_stats
 					 )
 
-from .utils import (download,
-					download_bulk,
-					Sinks,
+from .utils import (
 					finished_record_callback,
 					disconnect_from_channel,
 					Research,
@@ -91,10 +89,8 @@ from .utils import (download,
 					get_queue_songs,
 					get_index_from_title,
 					play_song,
-					FfmpegFormats,
 					convert,
-					get_lyrics,
-					AudioCache
+					get_lyrics
 					)
 
 from .async_ import (AsyncRequests,
@@ -104,7 +100,10 @@ from .async_ import (AsyncRequests,
 					 set_callback
 					)
 
-from .type_ import (type_checking, )
+from .types import (FfmpegFormats,
+					Sinks,
+                    type_checking
+                    )
 
 from .constants import (OWNER_ID,
 						EMBED_ERROR_QUEUE_EMPTY,
@@ -124,3 +123,8 @@ from .loggers import (CustomFormatter,
 						parse_args,
 						get_logger
 						)
+
+from .cache import (download,
+					download_bulk,
+					AudioCache
+					)
