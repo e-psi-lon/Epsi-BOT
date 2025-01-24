@@ -80,13 +80,9 @@ from .panel_ import (ChannelData,
 					 get_cache_stats
 					 )
 
-from .utils import (
+from .audio import (
 					finished_record_callback,
 					disconnect_from_channel,
-					Research,
-					get_playlists,
-					get_playlists_songs,
-					get_queue_songs,
 					get_index_from_title,
 					play_song,
 					convert,
@@ -128,3 +124,10 @@ from .cache import (download,
 					download_bulk,
 					AudioCache
 					)
+
+from .autocomplete import (get_playlists,
+					get_playlists_songs,
+					get_queue_songs
+                    )
+
+from .views import Research
