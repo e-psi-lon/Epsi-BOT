@@ -39,6 +39,7 @@ from ..utils import (PanelBotRequest,
 from ..utils.models import BaseModel
 from aiomultiprocess import Process  # type: ignore[import-untyped]
 from ..bot.bot import start, Bot
+import psutil
 
 load_dotenv()
 
@@ -113,14 +114,18 @@ class Panel(Quart):
 		async with MemcachedCache(serializer=aiocache.serializers.PickleSerializer()) as cache:
 			if await cache.exists(f"{content}:{kwargs}", namespace="panel"):
 				return await cache.get(f"{content}:{kwargs}", namespace="panel")
+		
 		self.queue.put(data)
 		await self.bot_event.set()
 		self.logger.info(f"Getting {data} from bot")
+		
 		await self.event.wait()
+		await self.event.clear()  # Clear panel event immediately after waking up
+		
 		response = self.queue.get()
 		if not isinstance(response, PanelBotResponse):
 			raise TypeError(f"The bot is supposed to return a {PanelBotResponse.__name__}, but got {type(response).__name__}")
-		await self.event.clear()
+		
 		self.logger.info(f"Got {response} from bot")
 		async with MemcachedCache(serializer=aiocache.serializers.PickleSerializer()) as cache:
 			await cache.set(f"{content}:{kwargs}", response, namespace="panel")
@@ -290,8 +295,34 @@ async def admin_ws():
 		while True:
 			message = await websocket.receive()
 			if message == "refresh":
+				# Get cache stats
 				cache_stats = {key.decode(): value.decode() for key, value in (await get_cache_stats()).items()}
-				tables: list[type[models.BaseModel]] = [
+				
+				# Get process information
+				current_process = psutil.Process(os.getpid())
+				bot_process = psutil.Process(app.bot_process.pid)
+				
+				process_info = {
+					"main": {
+						"pid": current_process.pid,
+						"cpu_percent": current_process.cpu_percent(interval=0.1),
+						"memory_percent": current_process.memory_percent(),
+						"memory_usage": current_process.memory_info().rss,
+						"threads": len(current_process.threads()),
+						"uptime": (datetime.datetime.now() - app.start_time).total_seconds()
+					},
+					"bot": {
+						"pid": bot_process.pid,
+						"cpu_percent": bot_process.cpu_percent(interval=0.1),
+						"memory_percent": current_process.memory_percent(),
+						"memory_usage": bot_process.memory_info().rss,
+						"voice_channels": (await app.get_from_bot("voice_channels")).content,
+						"connected_servers": (await app.get_from_bot("connected_servers")).content
+					}
+				}
+
+				# Get database information
+				tables = [
 					getattr(models, model_name) 
 					for model_name in models.__all__ 
 					if isinstance(getattr(models, model_name), type)
@@ -312,7 +343,11 @@ async def admin_ws():
 						table_data[col_name] = (col_type, values)
 					
 					database[table.__name__] = table_data
-			await websocket.send_json({"cache_stats": cache_stats, "database": database})
+			await websocket.send_json({
+				"cache_stats": cache_stats,
+				"process_info": process_info,
+				"database": database
+			})
 	except Exception as e:
 		app.logger.exception(e)
 		await websocket.close(code=1001)

@@ -1,7 +1,6 @@
 import os
 import sys
 import discord
-import asyncio
 import traceback
 import subprocess
 from multiprocessing import Queue as mpQueue
@@ -127,6 +126,23 @@ class Bot(commands.Bot):
 		match message.type:
 			case RequestType.GET:
 				match message.content:
+					case "voice_channels":
+						# Count voice channels with active users
+						active_voice = sum(
+							1 for guild in self.guilds 
+							for vc in guild.voice_channels 
+							if len(vc.members) > 0
+						)
+						self.logger.info("Got a request for active voice channels count")
+						self.queue.put(PanelBotResponse.create(RequestType.GET, active_voice))
+						await self.panel_event.set(True)
+						await self.event_listener.clear()  # Clear the event after handling
+					case "connected_servers":
+						server_count = len(self.guilds)
+						self.logger.info("Got a request for connected servers count")
+						self.queue.put(PanelBotResponse.create(RequestType.GET, server_count))
+						await self.panel_event.set(True)
+						await self.event_listener.clear()  # Clear the event after handling
 					case "guilds":
 						if message.extra.get("user_id", None) is None or int(
 								message.extra["user_id"]) == 708006478807695450:
@@ -137,23 +153,25 @@ class Bot(commands.Bot):
 						self.logger.info("Got a request for all guilds of a user")
 						self.queue.put(PanelBotResponse.create(RequestType.GET, guilds))
 						await self.panel_event.set(True)
-						await asyncio.sleep(0.1)
+						await self.event_listener.clear()  # Clear the event after handling
 					case "guild":
 						guild = self.get_guild(int(message.extra["server_id"]))
 						guild = GuildData.from_guild(guild)
 						self.logger.info(f"Got a request for a specific guild : {message.extra['server_id']}")
 						self.queue.put(PanelBotResponse.create(RequestType.GET, guild))
 						await self.panel_event.set(True)
-						await asyncio.sleep(0.1)
+						await self.event_listener.clear()  # Clear the event after handling
 					case "user":
 						user = self.get_user(int(message.extra["user_id"]))
 						user = UserData.from_user(user)
 						self.logger.info(f"Got a request for a specific user : {message.extra['user_id']}")
 						self.queue.put(PanelBotResponse.create(RequestType.GET, user))
 						await self.panel_event.set(True)
-						await asyncio.sleep(0.1)
+						await self.event_listener.clear()  # Clear the event after handling
 					case _:
 						self.logger.error(f"Unknown request {message}")
+						await self.event_listener.clear()  # Clear the event after handling
+						
 			case RequestType.POST:
 				pass
 
@@ -161,9 +179,9 @@ class Bot(commands.Bot):
 		exc_type, exc_value, exc_traceback = type(error), error, error.__traceback__
 		traceback_str = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
 		self.logger.error(f"Error in {ctx.command} from module {ctx.command.cog.__class__.__name__}"
-					  f"\n Error message: {exc_value}\n Traceback: {traceback_str}")
+					f"\n Error message: {exc_value}\n Traceback: {traceback_str}")
 		embed = discord.Embed(title="Une erreur est survenue", description=f"Erreur provoquée par {ctx.author.mention}",
-							  color=discord.Color.dark_red())
+							color=discord.Color.dark_red())
 		embed.add_field(name="Commande", value=f"`/{ctx.command}`")
 		embed.add_field(name="Module", value=f"`{ctx.command.cog.__class__.__name__!r}`")
 		embed.add_field(name="Message d'erreur", value=f"`{exc_value}`")
@@ -193,8 +211,8 @@ class Bot(commands.Bot):
 				f"Error in {event_method}\n Error message: {exc_value}\n Traceback: {traceback_str}\n Args: {args}"
 				f"\n Kwargs: {kwargs}")
 			embed = discord.Embed(title="Une erreur est survenue",
-								  description=f"Erreur provoquée par {context.author.mention}",
-								  color=discord.Color.dark_red())
+								description=f"Erreur provoquée par {context.author.mention}",
+								color=discord.Color.dark_red())
 			embed.add_field(name="Commande", value=f"`{context.command}`")
 			embed.add_field(name="Module", value=f"`{context.command.cog.__class__.__name__}`")
 			embed.add_field(name="Message d'erreur", value=f"`{exc_value}`")
