@@ -4,7 +4,7 @@ import pytubefix
 
 from .models import Asker, Queue, Server, Song, database_context
 from .constants import EMBED_ERROR_BOT_NOT_CONNECTED
-from .audio import play_song
+from .audio import play_song, get_youtube
 
 
 class SelectVideo(discord.ui.Select):
@@ -53,14 +53,14 @@ class SelectVideo(discord.ui.Select):
 			embed=discord.Embed(title="Select audio", description=f"You selected : {self.options[0].label}",
 								color=discord.Color.green()), view=None)
 		if self.download:
-			if pytubefix.YouTube(self.values[0]).length > 12000:
+			if get_youtube(self.values[0]).length > 12000:
 				return await interaction.message.edit(embed=discord.Embed(title="Error",
 																		  description=f"The video "
-																					  f"""[{pytubefix.YouTube(self.values[0])
+																					  f"""[{get_youtube(self.values[0])
 																		  .title}]({self.values[0]}) is too long""",
 																		  color=discord.Color.dark_red()))
 			
-			stream = pytubefix.YouTube(self.values[0]).streams.get_audio_only()
+			stream = get_youtube(self.values[0]).streams.get_audio_only()
 			buffer = io.BytesIO()
 			stream.stream_to_buffer(buffer)
 			buffer.seek(0)
@@ -73,12 +73,12 @@ class SelectVideo(discord.ui.Select):
 				if not await server.queue.all():
 					server.position = 0
 					await server.save()
-					yt_video = pytubefix.YouTube(self.values[0])
+					yt_video = get_youtube(self.values[0])
 					song, _ = await Song.get_or_create_important(["url"], url=self.values[0], name=yt_video.title)
 					asker, _ = await Asker.get_or_create(discord_id=interaction.user.id)
 					await Queue.create(song=song, asker=asker, position=0, server=server)
 				else:
-					yt_video = pytubefix.YouTube(self.values[0])
+					yt_video = get_youtube(self.values[0])
 					song, _ = await Song.get_or_create_important(["url"], url=self.values[0], name=yt_video.title)
 					asker, _ = await Asker.get_or_create(discord_id=interaction.user.id)
 					await Queue.create(song=song, asker=asker, position=len(server.queue), server=server)
@@ -87,14 +87,14 @@ class SelectVideo(discord.ui.Select):
 				if not interaction.guild.voice_client.is_playing():
 					await interaction.message.edit(embed=discord.Embed(title="Play",
 																	description=f"Playing song "
-																				f"[{pytubefix.YouTube(self.values[0]).title}]"
+																				f"[{get_youtube(self.values[0]).title}]"
 																				f"({self.values[0]})",
 																	color=discord.Color.green()))
 					await play_song(self.ctx, server.queue[server.position].song.url)
 				else:
 					await interaction.message.edit(embed=discord.Embed(title="Queue",
 																	description=f"Song "
-																				f"[{pytubefix.YouTube(self.values[0]).title}]"
+																				f"[{get_youtube(self.values[0]).title}]"
 																				f"({self.values[0]}) added to queue.",
 																	color=discord.Color.green()))
 

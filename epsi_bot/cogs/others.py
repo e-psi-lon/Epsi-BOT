@@ -5,7 +5,7 @@ import pytubefix.exceptions
 from discord.ext import commands
 
 from ..bot.bot import Bot
-from ..utils import Server, EMBED_ERROR_BOT_NOT_CONNECTED, convert, Research, get_lyrics, FfmpegFormats
+from ..utils import Server, EMBED_ERROR_BOT_NOT_CONNECTED, convert, Research, get_lyrics, FfmpegFormats, get_youtube
 
 
 class Others(commands.Cog):
@@ -18,7 +18,7 @@ class Others(commands.Cog):
 	async def download_file(self, ctx: discord.ApplicationContext, query: str, file_format: str):
 		await ctx.response.defer()
 		try:
-			video = pytubefix.YouTube(query)
+			video = get_youtube(query)
 			try:
 				stream = video.streams.get_audio_only()
 				buffer = io.BytesIO()
@@ -41,7 +41,7 @@ class Others(commands.Cog):
 				return await ctx.respond(
 					embed=discord.Embed(title="Error", description="Error while downloading song.", color=discord.Color.dark_red()))
 		except pytubefix.exceptions.RegexMatchError:
-			videos = pytubefix.Search(query).results
+			videos = pytubefix.Search(query, client="WEB").results
 			if not videos:
 				return await ctx.respond(
 					embed=discord.Embed(title="Error", description="No results found.", color=discord.Color.dark_red()))
@@ -62,7 +62,7 @@ class Others(commands.Cog):
 			return await ctx.respond(
 				embed=discord.Embed(title="Error", description="This command is only available for youtube videos.",
 								color=discord.Color.dark_red()))
-		video = pytubefix.YouTube(server.queue[server.position].song.url)
+		video = get_youtube(server.queue[server.position].song.url)
 		lyrics = get_lyrics(video.title)
 		if not lyrics:
 			return await ctx.respond(embed=discord.Embed(title="Error", description="No lyrics found.", color=discord.Color.dark_red()))

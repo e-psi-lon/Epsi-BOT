@@ -14,13 +14,14 @@ import multiprocessing
 from tortoise import Tortoise, fields
 import tortoise.fields.relational as relational
 from tortoise.contrib.quart import register_tortoise
-import pytubefix  # type: ignore[import-untyped]
 from aiocache import MemcachedCache
 from dotenv import load_dotenv
 from quart import Quart, session, redirect, url_for, render_template, request, websocket
 from quart_session import Session  # type: ignore[import-untyped]
 from werkzeug.utils import cached_property
 from werkzeug.wrappers.response import Response
+
+from epsi_bot.utils.audio import get_youtube
 
 from ..utils import (PanelBotRequest,
 				   PanelBotResponse,
@@ -223,7 +224,7 @@ async def server(server_id: int) -> Response | str:
 			return redirect(url_for('server', server_id=server_id))
 		server_data = ConfigData(config.loop_song, config.loop_queue, config.random, config.position, config.queue,  # type: ignore[arg-type]
 								server_id, (await app.get_from_bot("guild", server_id=server_id)).content.name, config.volume)  # type: ignore[arg-type, attr-defined]
-		return await render_template('server.html', server=server_data, app=app, pytubefix=pytubefix, yt_regex=YOUTUBE_REGEX)
+		return await render_template('server.html', server=server_data, app=app, get_youtube=get_youtube, yt_regex=YOUTUBE_REGEX)
 
 
 @app.route('/server/<int:server_id>/clear')

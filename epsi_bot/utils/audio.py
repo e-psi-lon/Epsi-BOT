@@ -24,6 +24,7 @@ __all__ = [
 	"get_index_from_title",
 	"play_song",
 	"convert",
+	"get_youtube",
 	"get_lyrics"
 ]
 
@@ -142,7 +143,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str) -> None:
 		else:
 			await SongListenCount.create(song=song, count=1)
 	try:
-		video = pytubefix.YouTube(url)
+		video = get_youtube(url)
 		if video.age_restricted:
 			return await ctx.respond(
 				embed=discord.Embed(title="Error", description=f"The [video]({url}) is age restricted",
@@ -210,6 +211,10 @@ async def convert(audio: io.BytesIO, file_format: FfmpegFormats, log: logging.Lo
 	byte = await ffmpeg.execute(audio.getvalue())
 	log.info(f"Converted audio to {file_format}")
 	return io.BytesIO(byte)
+
+def get_youtube(url: str) -> pytubefix.YouTube:
+	"""Get a YouTube video from a URL"""
+	return pytubefix.YouTube(url, client="WEB")
 
 
 def get_lyrics(title: str) -> str:

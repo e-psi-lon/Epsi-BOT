@@ -16,7 +16,8 @@ from ..utils import (Playlist,
 				   EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST,
 				   EMBED_ERROR_BOT_NOT_CONNECTED,
 				   Server, PlaylistSong, ServerPlaylist, UserPlaylist, Queue,
-				   download_bulk
+				   download_bulk,
+				   get_youtube
 				   )
 
 
@@ -66,7 +67,7 @@ class Playlists(commands.Cog):
 			server = await Server.get(server_id=ctx.interaction.guild.id)
 			asker, _ = await Asker.get_or_create(discord_id=ctx.user.id)
 			user_playlists = await asker.playlists.all()
-			playlist = pytubefix.Playlist(url)
+			playlist = pytubefix.Playlist(url, client="WEB")
 			if name is None:
 				name = playlist.title
 			if len(name) > 20:
@@ -139,9 +140,9 @@ class Playlists(commands.Cog):
 									.add_field(name="Existing user playlists:",
 												value="\n".join([playlist.playlist.name for playlist in user_playlists])))
 		try:
-			url = pytubefix.YouTube(query).watch_url
+			url = get_youtube(query).watch_url
 			try:
-				song, _ = await Song.get_or_create(name=pytubefix.YouTube(query).title, url=url)
+				song, _ = await Song.get_or_create(name=get_youtube(query).title, url=url)
 				playlist = await Playlist.get(name=name)
 				asker, _ = await Asker.get_or_create(discord_id=ctx.user.id)
 				await PlaylistSong.create(asker=asker, playlist=playlist, song=song)

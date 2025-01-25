@@ -36,14 +36,14 @@
 		<div class="preview_div">
 			{% if yt_regex.match(queue.song.url) %}
 			<iframe class="preview"
-					src="{{ pytubefix.YouTube(queue.song.url).embed_url}}" title="{{ pytubefix.YouTube(queue.song.url).title }}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope;
+					src="{{ get_youtube(queue.song.url).embed_url}}" title="{{ get_youtube(queue.song.url).title }}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope;
 			picture-in-picture; web-share" allowfullscreen></iframe>
 			{% else %}
 			<img alt="Video Thumbnail" class="preview" src="{{ url_for('static', filename='default_thumbnail.png') }}">
 			{% endif %}
 		</div>
 		<div class="song_info">
-			<div class="title">{{ pytubefix.YouTube(queue.song.url).title }}</div>
+			<div class="title">{{ get_youtube(queue.song.url).title }}</div>
 			<div class="url" draggable="false"><a draggable="false"  target="_blank" href={{ queue.song.url }}>{{ queue.song.url }}</a></div>
 			<div class="asker">Asked by {{ app.get_from_bot("user", user_id=queue.asker.discord_id).global_name }}
 			</div>

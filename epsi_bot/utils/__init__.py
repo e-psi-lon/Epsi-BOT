@@ -57,6 +57,7 @@ __all__ = [
 	'get_logger',
 	'CustomFormatter',
 	'get_cache_stats',
+    "get_youtube"
 ]
 
 from .models import (Asker,
@@ -86,7 +87,8 @@ from .audio import (
 					get_index_from_title,
 					play_song,
 					convert,
-					get_lyrics
+					get_lyrics,
+					get_youtube
 					)
 
 from .async_ import (AsyncRequests,

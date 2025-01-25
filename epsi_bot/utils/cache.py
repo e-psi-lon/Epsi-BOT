@@ -6,9 +6,9 @@ import logging
 import asyncio
 import io
 
-import pytubefix
 from aiocache import MemcachedCache  # type: ignore[import-untyped]
-from aiocache.serializers import JsonSerializer  # type: ignore[import-untyped]
+from aiocache.serializers import JsonSerializer
+import pytubefix  # type: ignore[import-untyped]
 
 from .constants import YOUTUBE_REGEX
 from .async_ import AsyncRequests
@@ -86,7 +86,7 @@ async def to_cache(url: str, cache: AudioCache) -> io.BytesIO:
 		r: bytes = await AsyncRequests.get(url, return_type="content")
 		buffer.write(r)
 	else:
-		yt_video = pytubefix.YouTube(url)
+		yt_video = pytubefix.YouTube(url, client="WEB")
 		stream = yt_video.streams.get_audio_only()
 		stream.stream_to_buffer(buffer)
 	buffer.seek(0)
