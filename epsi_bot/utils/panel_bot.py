@@ -1,15 +1,18 @@
+import asyncio
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Callable, Coroutine, Generic, Optional, TypeVar
+from multiprocessing import Queue as mpQueue
+import uuid
 
 from discord import Guild, User
 from discord.abc import GuildChannel
-import aiomcache
 
 from .models import Queue
+from .async_ import Event
 
 
-__all__ = ["RequestType", "PanelBotRequest", "PanelBotResponse", "ChannelData", "UserData", "GuildData", "ConfigData", "get_cache_stats"]
+__all__ = ["RequestType", "PanelBotRequest", "PanelBotResponse", "ChannelData", "UserData", "GuildData", "ConfigData"]
 
 
 class RequestType(Enum):
@@ -401,17 +404,40 @@ class ConfigData:
 			The dictionary representation of the ConfigData instance.
 		"""
 		return dict(self.__getstate__().__dict__)
+	
 
 
-async def get_cache_stats() -> Optional[dict[bytes, bytes]]:
-	"""Function to get the cache statistics.
+class RequestHub:
+	def __init__(self, queue: mpQueue[PanelBotRequest | PanelBotResponse], event: Event, handler: Callable[[PanelBotRequest], Coroutine[Any, Any, PanelBotResponse]]) -> None:
+		self.queue = queue
+		self.event = event
+		self.handler = handler
+		self.pending_requests: dict[str, asyncio.Future] = {}
 
-	Returns
-	-------
-	dict
-		The cache statistics.
-	"""
-	mc = aiomcache.Client("127.0.0.1", 11211)
-	stats = await mc.stats()
-	await mc.close()
-	return stats
+	async def send_request(self, request_type: RequestType, content: str, **kwargs: Any) -> PanelBotResponse:
+		"""
+		Send a request with a unique ID and wait for the corresponding response.
+		"""
+		request_id = str(uuid.uuid4())
+		fut: asyncio.Future = asyncio.get_event_loop().create_future()
+		self.pending_requests[request_id] = fut
+		req = PanelBotRequest.create(request_type, content, request_id=request_id, **kwargs)
+		self.queue.put(req)
+		await self.event.set(is_response=False)
+		return await fut
+
+	async def handle_incoming(self) -> None:
+		"""
+		Call this when receiving data from the queue, to match and set results on futures.
+		"""
+		while True:
+			await self.event.wait()
+			if not self.queue.empty():
+				message = self.queue.get()
+				request_id = message.extra.get("request_id", None)
+				if request_id in self.pending_requests:
+					self.pending_requests[request_id].set_result(await self.handler(message))
+					del self.pending_requests[request_id]
+				else:
+					# Unknown message handling
+					pass

@@ -4,10 +4,11 @@ import json
 import logging
 import os
 from asyncio import TimerHandle
-from typing import Any
+from typing import Any, Optional
 
 import aiocache.serializers  # type: ignore[import-untyped]
 import aiohttp
+import aiomcache
 import discord
 import multiprocessing
 
@@ -22,6 +23,7 @@ from werkzeug.utils import cached_property
 from werkzeug.wrappers.response import Response
 
 from epsi_bot.utils.audio import get_youtube
+from epsi_bot.utils.panel_bot import RequestHub
 
 from ..utils import (PanelBotRequest,
 				   PanelBotResponse,
@@ -34,7 +36,6 @@ from ..utils import (PanelBotRequest,
 				   set_callback,
 				   parse_args,
 				   models,
-				   get_cache_stats,
 				   YOUTUBE_REGEX
 				   )
 from ..utils.models import BaseModel
@@ -55,11 +56,9 @@ class Panel(Quart):
 		self.CLIENT_SECRET = os.environ['CLIENT_SECRET']
 		self.REDIRECT_URI = "http://86.196.98.254/auth/discord/callback"
 		self.timers: dict[int, TimerHandle] = {}
-		self.queue: multiprocessing.Queue[PanelBotRequest | PanelBotResponse] = multiprocessing.Queue()
+		self.handler = RequestHub(multiprocessing.Queue(), Event(), self.read_queue)
 		self.config['SESSION_TYPE'] = 'memcached'
 		self.start_time: datetime.datetime
-		self.bot_event = Event()
-		self.event = Event()
 		Session(self)
 		register_tortoise(
 			self,
@@ -74,7 +73,7 @@ class Panel(Quart):
 	def set_start_time(self, start_time: datetime.datetime) -> None:
 		self.start_time = start_time
 
-	async def start_bot(self, queue: multiprocessing.Queue, start_time: datetime.datetime) -> None:
+	async def start_bot(self) -> None:
 		if not os.path.exists("database/database.db"):
 			if not os.path.exists("database/"):
 				os.mkdir("database/")
@@ -85,9 +84,8 @@ class Panel(Quart):
 				modules={'models': ['epsi_bot.utils.models']}
 			)
 			await Tortoise.generate_schemas(safe=True)
-		await set_callback(self.event, self.read_queue, asyncio.get_event_loop())
-		bot = Bot(queue, self.event, self.bot_event, intents=discord.Intents.all())
-		await start(bot, start_time)
+		bot = Bot(self.handler.queue, intents=discord.Intents.all())
+		await start(bot, self.start_time)
 
 	def run(
 			self,
@@ -101,7 +99,7 @@ class Panel(Quart):
 			keyfile: str | None = None,
 			**kwargs: Any,
 	) -> None:
-		self.bot_process = Process(target=self.start_bot, args=(self.queue, self.start_time))
+		self.bot_process = Process(target=self.start_bot, args=())
 		self.bot_process.start()
 		super().run(host=host, port=port, use_reloader=use_reloader, loop=loop, ca_certs=ca_certs, certfile=certfile, debug=debug,
 					keyfile=keyfile, **kwargs)
@@ -140,8 +138,7 @@ class Panel(Quart):
 		await self.bot_event.set()
 		self.logger.info(f"Posting {request_} to bot")
 
-	async def read_queue(self) -> None:
-		message = self.queue.get()
+	async def read_queue(self, message: PanelBotRequest) -> None:
 		self.logger.info(f"Got {message} from connection")
 		if not isinstance(message, PanelBotRequest):
 			raise TypeError("")
@@ -425,3 +422,17 @@ def format_table_info(
 			for name, col in columns.items() if not isinstance(col, relational.BackwardFKRelation)
 		}
 	return formatted
+
+
+async def get_cache_stats() -> Optional[dict[bytes, bytes]]:
+	"""Function to get the cache statistics.
+
+	Returns
+	-------
+	dict
+		The cache statistics.
+	"""
+	mc = aiomcache.Client("127.0.0.1", 11211)
+	stats = await mc.stats()
+	await mc.close()
+	return stats

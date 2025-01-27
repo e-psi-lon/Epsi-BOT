@@ -56,7 +56,6 @@ __all__ = [
 	'AudioCache',
 	'get_logger',
 	'CustomFormatter',
-	'get_cache_stats',
     "get_youtube"
 ]
 
@@ -71,14 +70,13 @@ from .models import (Asker,
 					 SongListenCount
 					 )
 
-from .panel_ import (ChannelData,
+from .panel_bot import (ChannelData,
 					 UserData,
 					 GuildData,
 					 PanelBotRequest,
 					 PanelBotResponse,
 					 RequestType,
-					 ConfigData,
-					 get_cache_stats
+					 ConfigData
 					 )
 
 from .audio import (
