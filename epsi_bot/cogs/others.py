@@ -41,7 +41,7 @@ class Others(commands.Cog):
 				return await ctx.respond(
 					embed=discord.Embed(title="Error", description="Error while downloading song.", color=discord.Color.dark_red()))
 		except pytubefix.exceptions.RegexMatchError:
-			videos = pytubefix.Search(query, client="WEB").results
+			videos = pytubefix.Search(query, client="ANDROID_VR").results
 			if not videos:
 				return await ctx.respond(
 					embed=discord.Embed(title="Error", description="No results found.", color=discord.Color.dark_red()))
@@ -54,7 +54,7 @@ class Others(commands.Cog):
 		await ctx.response.defer()
 		if ctx.guild.voice_client is None:
 			return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
-		server = await Server.get(server_id=ctx.guild.id)
+		server = await Server.get(server_id=ctx.guild.id).prefetch_related("queue", "queue__song")
 		if not await server.queue.all():
 			return await ctx.respond(
 				embed=discord.Embed(title="Error", description="No song is currently playing.", color=discord.Color.dark_red()))

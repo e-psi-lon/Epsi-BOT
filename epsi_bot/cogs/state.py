@@ -52,7 +52,7 @@ class State(commands.Cog):
 			return await ctx.respond(embed=discord.Embed(title="Error", description="Invalid URL.", color=discord.Color.dark_red()))
 		server = await Server.get(server_id=ctx.guild.id)
 		song, _ = await Song.get_or_create_important(["url"], name=GET_FILE_HTTP_URL.match(url).group(1).split('.')[0], url=url)
-		asker, _ = await Asker.get_or_create(discord_id=ctx.author.id)	
+		asker, _ = await Asker.get_or_create(discord_id=ctx.author.id)
 		if not await server.queue.all():
 			await Queue.create(server=server, song=song, position=0, asker=asker)
 			await ctx.respond(embed=discord.Embed(title="Play",
@@ -103,7 +103,7 @@ class State(commands.Cog):
 		try:
 			url = get_youtube(query).watch_url
 			try:
-				server = await Server.get(server_id=ctx.guild.id)
+				server = await Server.get(server_id=ctx.guild.id).prefetch_related("queue", "queue__song")
 				if get_youtube(url).length > 12000:
 					return await ctx.respond(
 						discord.Embed(title="Error",
@@ -138,7 +138,7 @@ class State(commands.Cog):
 																   f"(Error: {e})", color=discord.Color.dark_red())
 				)
 		except PytubeRegexMatchError:
-			videos = pytubefix.Search(query, client="WEB").videos
+			videos = pytubefix.Search(query, client="ANDROID_VR").videos
 			if not videos:
 				return await ctx.respond(
 					embed=discord.Embed(title="Error", description="No results found.", color=discord.Color.dark_red()))

@@ -107,7 +107,7 @@ async def change_song(ctx: discord.ApplicationContext) -> None:
 	"""Callback function to execute when a song is finished to change the song taking into account the server's
 	configuration"""
 	async with database_context():
-		server = await Server.get(server_id=ctx.guild.id)
+		server = await Server.get(server_id=ctx.guild.id).prefetch_related("queue", "queue__song")
 		if not await server.queue.all():
 			return
 		if server.loop_song:
@@ -214,7 +214,7 @@ async def convert(audio: io.BytesIO, file_format: FfmpegFormats, log: logging.Lo
 
 def get_youtube(url: str) -> pytubefix.YouTube:
 	"""Get a YouTube video from a URL"""
-	return pytubefix.YouTube(url, client="WEB")
+	return pytubefix.YouTube(url, client="ANDROID_VR")
 
 
 def get_lyrics(title: str) -> str:

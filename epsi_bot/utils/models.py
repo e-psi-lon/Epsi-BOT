@@ -33,13 +33,16 @@ class BaseModel(Model):
 	@classmethod
 	async def get_or_create_important(cls: Type[models.MODEL], important_fields: list[str], **kwargs: Any) -> tuple[models.MODEL, bool]:
 		importants = {key: kwargs.pop(key) for key in important_fields}
-		item, created = await cls.get_or_create(**importants)
-		if not created:
-			return item, created
-		for key, value in kwargs.items():
-			setattr(item, key, value)
-		await item.save()
-		return item, created
+		
+		# First try to get existing
+		try:
+			item = await cls.get(**importants)
+			return item, False
+		except exceptions.DoesNotExist:
+			# Create new with all fields at once
+			create_data = {**importants, **kwargs}
+			item = await cls.create(**create_data)
+			return item, True
 
 	def __repr__(self) -> str:
 		return str(self)

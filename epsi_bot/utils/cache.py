@@ -86,7 +86,7 @@ async def to_cache(url: str, cache: AudioCache) -> io.BytesIO:
 		r: bytes = await AsyncRequests.get(url, return_type="content")
 		buffer.write(r)
 	else:
-		yt_video = pytubefix.YouTube(url, client="WEB")
+		yt_video = pytubefix.YouTube(url, client="ANDROID_VR")
 		stream = yt_video.streams.get_audio_only()
 		stream.stream_to_buffer(buffer)
 	buffer.seek(0)

@@ -36,6 +36,7 @@ async def update_top_songs(self: 'Bot') -> None:
 			modules={'models': [models]}
 		)
 		top_songs = await SongListenCount.all() \
+			.prefetch_related("song") \
 			.order_by("-count") \
 			.limit(5)
 		top_songs_data = [

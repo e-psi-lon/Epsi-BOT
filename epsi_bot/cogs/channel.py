@@ -37,7 +37,7 @@ class Channel(commands.Cog):
 
 		await ctx.author.voice.channel.connect()
 		await ctx.respond(embed=discord.Embed(title="Join", description="Bot joined the voice channel.", color=discord.Color.green()))
-		server = await Server.get(server_id=ctx.guild.id)
+		server = await Server.get(server_id=ctx.guild.id).prefetch_related("queue", "queue__song")
 		if await server.queue.all():
 			if server.position > len(server.queue) - 1:
 				server.position = 0

@@ -28,7 +28,8 @@ class Queue(commands.Cog):
 										f"- Volume: {server.volume}",
 							color=discord.Color.green())
 		for i, queue_elem in enumerate(server.queue):
-			song = queue_elem.song
+			song = await queue_elem.song
+			await queue_elem.fetch_related("asker")
 			if i == server.position:
 				embed.add_field(name=f"{i + 1}. {song.name} - __**Now Playing**__",
 								value=f"{song.url} asked by <@{queue_elem.asker.discord_id}>", inline=False)
@@ -41,7 +42,7 @@ class Queue(commands.Cog):
 	@discord.option("by", int, description="How many songs to skip", required=False)
 	async def skip(self, ctx: discord.ApplicationContext, by: int):
 		await ctx.response.defer()
-		server = await Server.get(server_id=ctx.guild.id)
+		server = await Server.get(server_id=ctx.guild.id).prefetch_related("queue", "queue__song")
 		loop_song = server.loop_song
 		loop_queue = server.loop_queue
 		server.loop_song = False
@@ -109,7 +110,7 @@ class Queue(commands.Cog):
 	@commands.slash_command(name="now", description="Shows the current song")
 	async def now(self, ctx: discord.ApplicationContext):
 		await ctx.response.defer()
-		server = await Server.get(server_id=ctx.guild.id)
+		server = await Server.get(server_id=ctx.guild.id).prefetch_related("queue", "queue__song", "queue__asker")
 		if not server.queue:
 			return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
 		queue_elem = server.queue[server.position]
@@ -198,7 +199,7 @@ class Queue(commands.Cog):
 	@commands.slash_command(name="shuffle", description="Shuffles the queue")
 	async def shuffle(self, ctx: discord.ApplicationContext):
 		await ctx.response.defer()
-		server = await Server.get(server_id=ctx.guild.id)
+		server = await Server.get(server_id=ctx.guild.id).prefetch_related("queue")
 		if not server.queue:
 			return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
 		temp_queue = (await server.queue.all()).copy()
@@ -237,7 +238,7 @@ class Queue(commands.Cog):
 	@discord.option("song", str, description="The song to play", required=True, autocomplete=discord.utils.basic_autocomplete(get_queue_songs))
 	async def play_queue_song(self, ctx: discord.ApplicationContext, song: str):
 		await ctx.response.defer()
-		server = await Server.get(server_id=ctx.guild.id)
+		server = await Server.get(server_id=ctx.guild.id).prefetch_related("queue", "queue__song")
 		if not await server.queue.all():
 			return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
 		index = get_index_from_title(song, [queue_elem.song for queue_elem in server.queue])
@@ -255,7 +256,7 @@ class Queue(commands.Cog):
 	@discord.option("index", int, description="The index of the song to play", required=True)
 	async def play_queue_index(self, ctx: discord.ApplicationContext, index: int):
 		await ctx.response.defer()
-		server = await Server.get(server_id=ctx.guild.id)
+		server = await Server.get(server_id=ctx.guild.id).prefetch_related("queue", "queue__song")
 		if not await server.queue.all():
 			return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
 		if index < 0 or index > len(server.queue):

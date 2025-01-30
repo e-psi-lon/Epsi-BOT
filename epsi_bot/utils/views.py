@@ -69,7 +69,7 @@ class SelectVideo(discord.ui.Select):
 				file=discord.File(buffer, filename=f"{stream.title}.mp3"),
 				view=None)
 		async with database_context():
-				server = await Server.get(server_id=interaction.guild.id)
+				server = await Server.get(server_id=interaction.guild.id).prefetch_related("queue", "queue__song")
 				if not await server.queue.all():
 					server.position = 0
 					await server.save()
