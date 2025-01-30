@@ -233,10 +233,10 @@ async def clear(server_id: int) -> Response:
 
 @app.route('/server/<int:server_id>/add', methods=['POST'])
 async def add(server_id: int) -> Response:
-	config = models.Server.get(server_id=server_id)
-	song, _ = models.Song.get_or_create(name=(await request.form)['name'], url=(await request.form)['url'])
-	asker, _ = models.Asker.get_or_create(discord_id=session['user'].id)
-	models.Queue.create(server=config, song=song, asker=asker).save()
+	config = await models.Server.get(server_id=server_id)
+	song, _ = await models.Song.get_or_create(name=(await request.form)['name'], url=(await request.form)['url'])
+	asker, _ = await models.Asker.get_or_create(discord_id=session['user'].id)
+	await models.Queue.create(server=config, song=song, asker=asker).save()
 	return redirect(url_for('server', server_id=server_id))
 
 
