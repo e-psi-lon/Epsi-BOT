@@ -3,12 +3,13 @@ import sys
 import discord
 import traceback
 import subprocess
-from multiprocessing import Queue as mpQueue
 from typing import Optional
 
 from tortoise import Tortoise, connections
 
-from ..utils import GuildData, UserData, PanelBotRequest, PanelBotResponse, RequestType, get_logger, Event, set_callback, \
+from epsi_bot.utils.ipc import IPCManager
+
+from ..utils import GuildData, UserData, get_logger, \
 	Server, download_bulk, AudioCache, SongListenCount, models
 from discord.ext import commands
 from discord.ext import tasks
@@ -60,21 +61,22 @@ async def update_top_songs(self: 'Bot') -> None:
 	
 
 class Bot(commands.Bot):
-	def __init__(self, queue, event: Event, bot_event: Event, *args, **options) -> None:
+	def __init__(self, manager: IPCManager, *args, **options) -> None:
 		super().__init__(*args, **options)
-		self.queue: mpQueue[PanelBotRequest | PanelBotResponse] = queue
-		self.panel_event: Event = event
-		self.event_listener: Event = bot_event
+		self.ipc: IPCManager = manager
 		self.memcached: Optional[subprocess.Popen] = None
 		self.logger = get_logger("Bot")
 		self.start_time: datetime
+		self.handle = self.ipc.handle
+		self.post_to_panel = self.ipc.send
+		self.get_from_panel = self.ipc.request
+		self.respond_panel = self.ipc.respond
 
 	async def on_ready(self) -> None:
 		await self.change_presence(
 			activity=discord.Activity(type=discord.ActivityType.watching, name=f"/help | {len(self.guilds)} servers"))
 		if os.popen("git branch --show-current").read().strip() == "main" and not check_update.is_running():
 			check_update.start()
-		await set_callback(self.event_listener, self.read_queue, self.loop)
 		if self.memcached is None:
 			try:
 				# noinspection PyTypeChecker
@@ -99,81 +101,6 @@ class Bot(commands.Bot):
 		await connections.close_all()
 		if not update_top_songs.is_running():
 			update_top_songs.start(self)
-
-
-	async def get_from_panel(self, content: str, **kwargs):
-		data = PanelBotRequest.create(RequestType.GET, content, **kwargs)
-		if self.queue is None:
-			raise ValueError("Queue is not set")
-		self.queue.put(data)
-		await self.panel_event.set()
-		self.logger.info(f"Getting {data} from panel")
-		await self.event_listener.wait()
-		response = self.queue.get()
-		self.logger.info(f"Got {response} from panel")
-		return response
-	
-	async def post_to_panel(self, data: dict | str):
-		request_ = PanelBotRequest.create(RequestType.POST, data)  # type: ignore[arg-type]
-		if self.queue is None:
-			raise ValueError("Queue is not set")
-		self.queue.put(request_)
-		await self.panel_event.set()
-		self.logger.info(f"Posting {request_} to panel")
-
-	async def read_queue(self):
-		message = self.queue.get()
-		match message.type:
-			case RequestType.GET:
-				match message.content:
-					case "voice_channels":
-						# Count voice channels with active users
-						active_voice = sum(
-							1 for guild in self.guilds 
-							for vc in guild.voice_channels 
-							if len(vc.members) > 0
-						)
-						self.logger.info("Got a request for active voice channels count")
-						self.queue.put(PanelBotResponse.create(RequestType.GET, active_voice))
-						await self.panel_event.set(True)
-						await self.event_listener.clear()  # Clear the event after handling
-					case "connected_servers":
-						server_count = len(self.guilds)
-						self.logger.info("Got a request for connected servers count")
-						self.queue.put(PanelBotResponse.create(RequestType.GET, server_count))
-						await self.panel_event.set(True)
-						await self.event_listener.clear()  # Clear the event after handling
-					case "guilds":
-						if message.extra.get("user_id", None) is None or int(
-								message.extra["user_id"]) == 708006478807695450:
-							guilds = [GuildData.from_guild(guild) for guild in self.guilds]
-						else:
-							guilds = [GuildData.from_guild(guild) for guild in self.guilds if
-										int(message.extra["user_id"]) in [member.id for member in guild.members]]
-						self.logger.info("Got a request for all guilds of a user")
-						self.queue.put(PanelBotResponse.create(RequestType.GET, guilds))
-						await self.panel_event.set(True)
-						await self.event_listener.clear()  # Clear the event after handling
-					case "guild":
-						guild = self.get_guild(int(message.extra["server_id"]))
-						guild = GuildData.from_guild(guild)
-						self.logger.info(f"Got a request for a specific guild : {message.extra['server_id']}")
-						self.queue.put(PanelBotResponse.create(RequestType.GET, guild))
-						await self.panel_event.set(True)
-						await self.event_listener.clear()  # Clear the event after handling
-					case "user":
-						user = self.get_user(int(message.extra["user_id"]))
-						user = UserData.from_user(user)
-						self.logger.info(f"Got a request for a specific user : {message.extra['user_id']}")
-						self.queue.put(PanelBotResponse.create(RequestType.GET, user))
-						await self.panel_event.set(True)
-						await self.event_listener.clear()  # Clear the event after handling
-					case _:
-						self.logger.error(f"Unknown request {message}")
-						await self.event_listener.clear()  # Clear the event after handling
-						
-			case RequestType.POST:
-				pass
 
 	async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
 		exc_type, exc_value, exc_traceback = type(error), error, error.__traceback__
@@ -279,6 +206,43 @@ async def start(instance: Bot, start_time: datetime):
 		await connections.close_all()
 		db_logger.info("Tortoise-ORM shutdown")
 
+	@instance.handle("guilds")
+	async def handle_guilds(request_id: int, user_id: int):
+		if user_id is None or user_id == 708006478807695450:
+			guilds = [GuildData.from_guild(guild) for guild in instance.guilds]
+		else:
+			guilds = [GuildData.from_guild(guild) for guild in instance.guilds if
+						user_id in [member.id for member in guild.members]]
+		instance.logger.info("Got a request for all guilds of a user")
+		await instance.respond_panel(request_id, guilds)
+	
+	@instance.handle("guild")
+	async def handle_guild(request_id: int, server_id: int):
+		guild = instance.get_guild(server_id)
+		guild = GuildData.from_guild(guild)
+		instance.logger.info(f"Got a request for a specific guild : {server_id}")
+		await instance.respond_panel(request_id, guild)
+	
+	@instance.handle("user")
+	async def handle_user(request_id: int, user_id: int):
+		user = instance.get_user(user_id)
+		user = UserData.from_user(user)
+		instance.logger.info(f"Got a request for a specific user : {user_id}")
+		await instance.respond_panel(request_id, user)
+	
+	@instance.handle("connected_servers")
+	async def handle_connected_servers(request_id: int):
+		server_count = len(instance.guilds)
+		instance.logger.info("Got a request for connected servers count")
+		await instance.respond_panel(request_id, server_count)
+	
+	@instance.handle("voice_channels")
+	async def handle_voice_channels(request_id: int):
+		active_voice = sum(
+			1 for guild in instance.guilds for vc in guild.voice_channels if len(vc.members) > 0
+		)
+		instance.logger.info("Got a request for active voice channels count")
+		await instance.respond_panel(request_id, active_voice)
 
 	# Charger les cogs
 	instance.logger.info(

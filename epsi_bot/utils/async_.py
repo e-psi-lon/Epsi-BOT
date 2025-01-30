@@ -155,8 +155,11 @@ class Event:
 		self._event = _Event()
 		self.is_response: Optional[bool] = None
 
-	async def wait(self) -> None:
-		await asyncio.get_event_loop().run_in_executor(None, self._event.wait)
+	async def wait(self, timeout: Optional[float] = None) -> None:
+		if timeout is None:
+			await asyncio.get_event_loop().run_in_executor(None, self._event.wait)
+		else:
+			await asyncio.get_event_loop().run_in_executor(None, self._event.wait, timeout)
 
 	def __await__(self) -> Any:
 		return self.wait().__await__()

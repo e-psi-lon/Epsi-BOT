@@ -1,16 +1,14 @@
 import asyncio
 import datetime
-import json
 import logging
 import os
 from asyncio import TimerHandle
 from typing import Any, Optional
 
-import aiocache.serializers  # type: ignore[import-untyped]
 import aiohttp
 import aiomcache
 import discord
-import multiprocessing
+from  aiocache.serializers import PickleSerializer
 
 from tortoise import Tortoise, fields
 import tortoise.fields.relational as relational
@@ -23,17 +21,12 @@ from werkzeug.utils import cached_property
 from werkzeug.wrappers.response import Response
 
 from epsi_bot.utils.audio import get_youtube
-from epsi_bot.utils.panel_bot import RequestHub
+from epsi_bot.utils.ipc import IPCManager
 
-from ..utils import (PanelBotRequest,
-				   PanelBotResponse,
-				   UserData,
-				   RequestType,
+from ..utils import (UserData,
 				   ConfigData,
 				   AsyncRequests,
 				   get_logger,
-				   Event,
-				   set_callback,
 				   parse_args,
 				   models,
 				   YOUTUBE_REGEX
@@ -56,9 +49,12 @@ class Panel(Quart):
 		self.CLIENT_SECRET = os.environ['CLIENT_SECRET']
 		self.REDIRECT_URI = "http://86.196.98.254/auth/discord/callback"
 		self.timers: dict[int, TimerHandle] = {}
-		self.handler = RequestHub(multiprocessing.Queue(), Event(), self.read_queue)
+		self.ipc, self.bot_ipc = IPCManager.create_pair()
 		self.config['SESSION_TYPE'] = 'memcached'
 		self.start_time: datetime.datetime
+		self.handle = self.ipc.handle
+		self.get_from_bot = self.ipc.request
+		self.post_to_bot = self.ipc.send
 		Session(self)
 		register_tortoise(
 			self,
@@ -84,8 +80,11 @@ class Panel(Quart):
 				modules={'models': ['epsi_bot.utils.models']}
 			)
 			await Tortoise.generate_schemas(safe=True)
-		bot = Bot(self.handler.queue, intents=discord.Intents.all())
+		bot = Bot(self.bot_ipc, intents=discord.Intents.all())
+		await self.bot_ipc.start()
+		await self.ipc.start()
 		await start(bot, self.start_time)
+		
 
 	def run(
 			self,
@@ -103,56 +102,27 @@ class Panel(Quart):
 		self.bot_process.start()
 		super().run(host=host, port=port, use_reloader=use_reloader, loop=loop, ca_certs=ca_certs, certfile=certfile, debug=debug,
 					keyfile=keyfile, **kwargs)
-
-
-	async def get_from_bot(self, content: str, **kwargs) -> PanelBotResponse:
-		data = PanelBotRequest.create(RequestType.GET, content, **kwargs)
-		if self.queue is None:
-			raise ValueError("Queue is not set")
-		# Avoid bot call if data already cached
-		async with MemcachedCache(serializer=aiocache.serializers.PickleSerializer()) as cache:
-			if await cache.exists(f"{content}:{kwargs}", namespace="panel"):
-				return await cache.get(f"{content}:{kwargs}", namespace="panel")
 		
-		self.queue.put(data)
-		await self.bot_event.set()
-		self.logger.info(f"Getting {data} from bot")
-		
-		await self.event.wait()
-		await self.event.clear()  # Clear panel event immediately after waking up
-		
-		response = self.queue.get()
-		if not isinstance(response, PanelBotResponse):
-			raise TypeError(f"The bot is supposed to return a {PanelBotResponse.__name__}, but got {type(response).__name__}")
-		
-		self.logger.info(f"Got {response} from bot")
-		async with MemcachedCache(serializer=aiocache.serializers.PickleSerializer()) as cache:
-			await cache.set(f"{content}:{kwargs}", response, namespace="panel")
-		return response
-
-	async def post_to_bot(self, data: dict):
-		request_ = PanelBotRequest.create(RequestType.POST, json.dumps(data))
-		if self.queue is None:
-			raise ValueError("Queue is not set")
-		self.queue.put(request_)
-		await self.bot_event.set()
-		self.logger.info(f"Posting {request_} to bot")
-
-	async def read_queue(self, message: PanelBotRequest) -> None:
-		self.logger.info(f"Got {message} from connection")
-		if not isinstance(message, PanelBotRequest):
-			raise TypeError("")
-		match message.type:
-			case RequestType.GET:
-				return self.queue.put(message)
-			case RequestType.POST:
-				if message.content == "stop":
-					await self.shutdown()
-					exit(0)
-				return self.queue.put(message)
+	async def get_from_bot(channel: str, **payload) -> Any:
+		async with MemcachedCache(serializer=PickleSerializer(), namespace="ipc_cache") as cache:
+			if await cache.exists(f"{channel}_{payload}"):
+				return await cache.get(f"{channel}_{payload}")
+			else:
+				response = await app.bot_ipc.request(channel, payload)
+				await cache.set(f"{channel}_{payload}", response, ttl=60)
+				return response
 
 
 app = Panel(os.environ['PANEL_SECRET_KEY'], __name__)
+
+
+@app.ipc.handle("stop")
+async def shutdown():
+	await app.bot_process.join()
+	await Tortoise.close_connections()
+	await app.ipc.stop()
+	await app.shutdown()
+	exit(0)
 
 
 
@@ -186,10 +156,10 @@ async def panel():
 		user = await AsyncRequests.get(f"{app.API_ENDPOINT}/users/@me",
 									   headers={"Authorization": f"Bearer {token['access_token']}"})
 		user = UserData.from_api_response(user)
-		session['guilds'] = (await app.get_from_bot("guilds", user_id=session['user_id'])).content
+		session['guilds'] = await app.ipc.request("guilds", session['user_id'])
 		session['user'] = user
 	if session.get('guilds', None) is None:
-		session['guilds'] = (await app.get_from_bot("guilds", user_id=session['user_id'])).content
+		session['guilds'] = await app.ipc.request("guilds", user_id=session['user_id'])
 	app.logger.debug(f"Showing panel with user:\n- {session['user']}\nwho has guilds:\n- {session['guilds']}")
 	return await render_template('panel.html', servers=session['guilds'], user=session['user'])
 
@@ -220,7 +190,7 @@ async def server(server_id: int) -> Response | str:
 			await config.save()
 			return redirect(url_for('server', server_id=server_id))
 		server_data = ConfigData(config.loop_song, config.loop_queue, config.random, config.position, config.queue,  # type: ignore[arg-type]
-								server_id, (await app.get_from_bot("guild", server_id=server_id)).content.name, config.volume)  # type: ignore[arg-type, attr-defined]
+								server_id, (await app.get_from_bot("guild", server_id=server_id)).name, config.volume)  # type: ignore[arg-type, attr-defined]
 		return await render_template('server.html', server=server_data, app=app, get_youtube=get_youtube, yt_regex=YOUTUBE_REGEX)
 
 
@@ -314,13 +284,13 @@ async def admin_ws():
 						"cpu_percent": bot_process.cpu_percent(interval=0.1),
 						"memory_percent": current_process.memory_percent(),
 						"memory_usage": bot_process.memory_info().rss,
-						"voice_channels": (await app.get_from_bot("voice_channels")).content,
-						"connected_servers": (await app.get_from_bot("connected_servers")).content
+						"voice_channels": await app.get_from_bot("voice_channels"),
+						"connected_servers": await app.get_from_bot("connected_servers")
 					}
 				}
 
 				# Get database information
-				tables = [
+				tables: list[type[BaseModel]] = [
 					getattr(models, model_name) 
 					for model_name in models.__all__ 
 					if isinstance(getattr(models, model_name), type)

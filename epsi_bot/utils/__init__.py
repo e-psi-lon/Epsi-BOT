@@ -15,9 +15,9 @@ __all__ = [
 	'ChannelData',
 	'UserData',
 	'GuildData',
-	'PanelBotRequest',
-	'PanelBotResponse',
-	'RequestType',
+	'IPCMessage',
+	'IPCManager',
+	'MessageType',
 	'ConfigData',
 	'download',
 	'download_bulk',
@@ -70,14 +70,16 @@ from .models import (Asker,
 					 SongListenCount
 					 )
 
-from .panel_bot import (ChannelData,
+from .panel_data import (ChannelData,
 					 UserData,
 					 GuildData,
-					 PanelBotRequest,
-					 PanelBotResponse,
-					 RequestType,
 					 ConfigData
 					 )
+
+from .ipc import (MessageType,
+                  IPCMessage,
+                  IPCManager
+				  )
 
 from .audio import (
 					finished_record_callback,
