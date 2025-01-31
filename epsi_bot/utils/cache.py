@@ -11,7 +11,7 @@ from aiocache.serializers import JsonSerializer
 import pytubefix  # type: ignore[import-untyped]
 
 from .constants import YOUTUBE_REGEX
-from .async_ import AsyncRequests
+from .async_utils import AsyncRequests
 from .loggers import get_logger
 
 __all__ = ["AudioCache", "download", "download_bulk"]

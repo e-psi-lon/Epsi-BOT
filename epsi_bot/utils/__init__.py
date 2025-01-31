@@ -91,7 +91,7 @@ from .audio import (
 					get_youtube
 					)
 
-from .async_ import (AsyncRequests,
+from .async_utils import (AsyncRequests,
 					 run_async,
 					 run_sync,
 					 Event,

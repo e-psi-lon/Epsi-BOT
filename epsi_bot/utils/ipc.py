@@ -6,7 +6,7 @@ from typing import Any, Callable, Coroutine, Optional
 from multiprocessing import Queue
 import uuid
 
-from .async_ import Event
+from .async_utils import Event
 
 
 __all__ = ["IPCMessage", "IPCManager", "MessageType"]
