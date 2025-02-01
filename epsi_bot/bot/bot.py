@@ -208,7 +208,7 @@ async def start(instance: Bot, start_time: datetime):
 		db_logger.info("Tortoise-ORM shutdown")
 
 	@instance.handle("guilds")
-	async def handle_guilds(request_id: int, user_id: int):
+	async def handle_guilds(request_id: str, user_id: int):
 		if user_id is None or user_id == 708006478807695450:
 			guilds = [GuildData.from_guild(guild) for guild in instance.guilds]
 		else:
@@ -218,27 +218,27 @@ async def start(instance: Bot, start_time: datetime):
 		await instance.respond_panel(request_id, guilds)
 	
 	@instance.handle("guild")
-	async def handle_guild(request_id: int, server_id: int):
+	async def handle_guild(request_id: str, server_id: int):
 		guild = instance.get_guild(server_id)
 		guild = GuildData.from_guild(guild)
 		instance.logger.info(f"Got a request for a specific guild : {server_id}")
 		await instance.respond_panel(request_id, guild)
 	
 	@instance.handle("user")
-	async def handle_user(request_id: int, user_id: int):
+	async def handle_user(request_id: str, user_id: int):
 		user = instance.get_user(user_id)
 		user = UserData.from_user(user)
 		instance.logger.info(f"Got a request for a specific user : {user_id}")
 		await instance.respond_panel(request_id, user)
 	
 	@instance.handle("connected_servers")
-	async def handle_connected_servers(request_id: int):
+	async def handle_connected_servers(request_id: str):
 		server_count = len(instance.guilds)
 		instance.logger.info("Got a request for connected servers count")
 		await instance.respond_panel(request_id, server_count)
 	
 	@instance.handle("voice_channels")
-	async def handle_voice_channels(request_id: int):
+	async def handle_voice_channels(request_id: str):
 		active_voice = sum(
 			1 for guild in instance.guilds for vc in guild.voice_channels if len(vc.members) > 0
 		)
