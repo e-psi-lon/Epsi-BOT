@@ -1,21 +1,23 @@
 import asyncio
 from dataclasses import dataclass, field
 from enum import Enum
+import threading
 from typing import Any, Callable, Coroutine, Optional
-from multiprocessing import Queue
+from multiprocessing import Queue, Event as Event
+from multiprocessing.synchronize import Event as EventClass
 import uuid
 
-from .async_utils import Event
 from .loggers import get_logger
 
 
 __all__ = ["IPCMessage", "IPCManager", "MessageType"]
+
+
 class MessageType(Enum):
 	EVENT = "event"
 	DATA = "data"
 	REQUEST = "request"
 	RESPONSE = "response"
-
 
 @dataclass
 class IPCMessage:
@@ -26,36 +28,46 @@ class IPCMessage:
 
 
 class IPCManager:
-	def __init__(self, side: str, in_queue: Optional[Queue] = None, out_queue: Optional[Queue] = None, event: Optional[Event] = None):
-		self._in_queue = in_queue or Queue()
-		self._out_queue = out_queue or Queue()
+	def __init__(self, side: str, in_queue: Queue, out_queue: Queue, event: Optional[EventClass] = None):
+		self._in_queue: Queue[IPCMessage] = in_queue
+		self._async_in_queue: asyncio.Queue[IPCMessage] = asyncio.Queue()
+		self._out_queue: Queue[IPCMessage] = out_queue
 		self._handlers: dict[str, Callable[[str, Any], Coroutine]] = {}
 		self._running = True
-		self._event: Event = event or Event()
-		self._logger = get_logger(f"IPC ({side})")
+		self._event: EventClass = event or Event()
+		self._logger = get_logger(f"IPC [{side}]")
 		self._pending_requests: dict[str, asyncio.Future] = {}
 		self._side = side
-		self._pending_requests_lock = asyncio.Lock()
+		self._thread = None
+		self._pending_lock = asyncio.Lock()
 
 	
 	async def start(self):
 		self._logger.info(f"Starting IPCManager for {self._side}")
 		asyncio.create_task(self._process_queue())
-	
+		threading.Thread(target=self._sync_reader, name=f"IPCManager-{self._side}", args=(asyncio.get_event_loop(),)).start()
+
+	def _sync_reader(self, loop):
+		while self._running:
+			msg = self._in_queue.get()
+			loop.call_soon_threadsafe(self._async_in_queue.put_nowait, msg)
+
+
 	async def _process_queue(self):
 		while self._running:
-			if self._in_queue.empty():
-				await self._event.wait(timeout=1.0)
-				await self._event.clear()
-				continue
-				
-			msg: IPCMessage = self._in_queue.get_nowait()
+			msg = await self._async_in_queue.get()
+			self._logger.info(f"Received message: {msg}")
 			if msg.type == MessageType.RESPONSE:
-				self._logger.info(f"Pending requests BEFORE handling response : {self._pending_requests}")
-				if msg.id in self._pending_requests:
-					future = self._pending_requests.pop(msg.id)
-					future.set_result(msg.payload)
+				async with self._pending_lock:
+					self._logger.info(f"Received response for {msg.id}")
+					self._logger.info(f"Pending requests: {self._pending_requests}")
+					pending_requests = self._pending_requests
+					if msg.id in pending_requests:
+						self._logger.info(f"Resolving future for {msg.id}")
+						future = pending_requests.pop(msg.id)
+						future.set_result(msg.payload)
 			elif msg.channel in self._handlers:
+				self._logger.info(f"Handling message for {msg.channel}")
 				if isinstance(msg.payload, dict):
 					await self._handlers[msg.channel](msg.id, **msg.payload)
 				elif msg.payload is None:
@@ -69,7 +81,7 @@ class IPCManager:
 		msg = IPCMessage(MessageType.EVENT, channel, payload)
 		self._logger.info(f"Sending event: {msg}")
 		self._out_queue.put(msg)
-		await self._event.set()
+		self._event.set()
 	
 	async def request(self, channel: str, payload: Optional[Any] = None, timeout: float = 5.0) -> Any:
 		"""Make a request on a channel and wait for response
@@ -95,26 +107,23 @@ class IPCManager:
 		"""
 		msg = IPCMessage(MessageType.REQUEST, channel, payload)
 		request_id = msg.id
-		self._logger.info(f"Making request {request_id} on channel {channel}")
 		future = asyncio.Future()
-		async with self._pending_requests_lock:
+		async with self._pending_lock:
 			self._pending_requests[request_id] = future
-			self._logger.info(f"Pending requests: {self._pending_requests}")
+		self._logger.info(f"Sending request with id {request_id}")
+		self._logger.info(f"Pending requests: {self._pending_requests}")
 		self._out_queue.put(msg)
-		await self._event.set()
+		self._event.set()
 		try:
-			self._logger.info(f"[REQUEST] Waiting for response: {request_id}")
-			result = await asyncio.wait_for(future, timeout)
-			self._logger.info(f"[REQUEST] Got response: {request_id}")
-			return result
+			return await asyncio.wait_for(future, timeout)
 		except asyncio.TimeoutError:
 			self._logger.warning(f"Request {request_id} timed out after {timeout}s")
-			async with self._pending_requests_lock:
+			async with self._pending_lock:
 				self._pending_requests.pop(request_id, None)
 			raise
 		except Exception as e:
-			self._logger.error(f"[REQUEST] Error for {request_id}: {e}")
-			async with self._pending_requests_lock:
+			self._logger.error(f"Error for {request_id}: {e}")
+			async with self._pending_lock:
 				self._pending_requests.pop(request_id, None)
 			raise
 
@@ -123,7 +132,7 @@ class IPCManager:
 		self._logger.info(f"Sending response for {id}")
 		msg = IPCMessage(MessageType.RESPONSE, "", payload, id)
 		self._out_queue.put(msg)
-		await self._event.set()
+		self._event.set()
 
 	def handle(self, channel: str):
 		"""Register a handler for a specific channel.
@@ -153,7 +162,7 @@ class IPCManager:
 	def stop(self):
 		self._logger.info("Stopping IPCManager")
 		self._running = False
-		self._event._event.set()
+		self._event.set()
 
 	@classmethod
 	def create_pair(cls) -> tuple["IPCManager", "IPCManager"]:

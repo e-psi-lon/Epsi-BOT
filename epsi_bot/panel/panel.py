@@ -20,8 +20,6 @@ from quart_session import Session  # type: ignore[import-untyped]
 from werkzeug.utils import cached_property
 from werkzeug.wrappers.response import Response
 
-from epsi_bot.utils.audio import get_youtube
-from epsi_bot.utils.ipc import IPCManager
 
 from ..utils import (UserData,
 				   ConfigData,
@@ -29,7 +27,9 @@ from ..utils import (UserData,
 				   get_logger,
 				   parse_args,
 				   models,
-				   YOUTUBE_REGEX
+				   YOUTUBE_REGEX,
+				   IPCManager,
+				   get_youtube,
 				   )
 from ..utils.models import BaseModel
 from aiomultiprocess import Process  # type: ignore[import-untyped]
@@ -69,7 +69,8 @@ class Panel(Quart):
 	def set_start_time(self, start_time: datetime.datetime) -> None:
 		self.start_time = start_time
 
-	async def start_bot(self) -> None:
+
+	async def startup(self):
 		if not os.path.exists("database/database.db"):
 			if not os.path.exists("database/"):
 				os.mkdir("database/")
@@ -81,9 +82,10 @@ class Panel(Quart):
 			)
 			await Tortoise.generate_schemas(safe=True)
 		bot = Bot(self.bot_ipc, intents=discord.Intents.all())
-		await self.bot_ipc.start()
+		self.bot_process = Process(target=start, args=(bot, self.start_time), name="Bot")
 		await self.ipc.start()
-		await start(bot, self.start_time)
+		self.bot_process.start()
+		return await super().startup()
 		
 
 	def run(
@@ -98,11 +100,10 @@ class Panel(Quart):
 			keyfile: str | None = None,
 			**kwargs: Any,
 	) -> None:
-		self.bot_process = Process(target=self.start_bot, args=())
-		self.bot_process.start()
 		super().run(host=host, port=port, use_reloader=use_reloader, loop=loop, ca_certs=ca_certs, certfile=certfile, debug=debug,
 					keyfile=keyfile, **kwargs)
 		
+
 	async def get_from_bot(channel: str, **payload) -> Any:
 		async with MemcachedCache(serializer=PickleSerializer(), namespace="ipc_cache") as cache:
 			if await cache.exists(f"{channel}_{payload}"):

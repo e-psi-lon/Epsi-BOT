@@ -258,6 +258,7 @@ async def start(instance: Bot, start_time: datetime):
 				instance.logger.error(f"Failed to load extension {file}")
 				instance.logger.error(e)
 
+	await instance.ipc.start()
 	# Lancer l'instance du bot
 	try:
 		token = os.getenv("TOKEN")
