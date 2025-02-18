@@ -28,7 +28,7 @@ from ..utils import (UserData,
 				   parse_args,
 				   models,
 				   YOUTUBE_REGEX,
-				   IPCManager,
+				   AsyncIPC,
 				   get_youtube,
 				   )
 from ..utils.models import BaseModel
@@ -49,12 +49,12 @@ class Panel(Quart):
 		self.CLIENT_SECRET = os.environ['CLIENT_SECRET']
 		self.REDIRECT_URI = "http://86.196.98.254/auth/discord/callback"
 		self.timers: dict[int, TimerHandle] = {}
-		self.ipc, self.bot_ipc = IPCManager.create_pair()
+		self.ipc, self.bot_ipc = AsyncIPC.create_ipc_pair()
 		self.config['SESSION_TYPE'] = 'memcached'
 		self.start_time: datetime.datetime
-		self.handle = self.ipc.handle
-		self.get_from_bot = self.ipc.request
-		self.post_to_bot = self.ipc.send
+		self.handle = self.ipc.handler
+		self.get_from_bot = self.ipc.send_request
+		self.post_to_bot = self.ipc.send_event
 		Session(self)
 		register_tortoise(
 			self,
@@ -70,6 +70,11 @@ class Panel(Quart):
 		self.start_time = start_time
 
 
+	async def start_bot(self):
+		bot = Bot(self.bot_ipc, intents=discord.Intents.all())
+		await start(bot, self.start_time)
+
+
 	async def startup(self):
 		if not os.path.exists("database/database.db"):
 			if not os.path.exists("database/"):
@@ -81,8 +86,7 @@ class Panel(Quart):
 				modules={'models': ['epsi_bot.utils.models']}
 			)
 			await Tortoise.generate_schemas(safe=True)
-		bot = Bot(self.bot_ipc, intents=discord.Intents.all())
-		self.bot_process = Process(target=start, args=(bot, self.start_time), name="Bot")
+		self.bot_process = Process(target=self.start_bot, name="Bot")
 		await self.ipc.start()
 		self.bot_process.start()
 		return await super().startup()
@@ -117,7 +121,7 @@ class Panel(Quart):
 app = Panel(os.environ['PANEL_SECRET_KEY'], __name__)
 
 
-@app.ipc.handle("stop")
+@app.ipc.handler("stop")
 async def shutdown():
 	await app.bot_process.join()
 	await Tortoise.close_connections()

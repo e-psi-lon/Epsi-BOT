@@ -16,7 +16,7 @@ __all__ = [
 	'UserData',
 	'GuildData',
 	'IPCMessage',
-	'IPCManager',
+	'AsyncIPC',
 	'MessageType',
 	'ConfigData',
 	'download',
@@ -78,7 +78,7 @@ from .panel_data import (ChannelData,
 
 from .ipc import (MessageType,
                   IPCMessage,
-                  IPCManager
+                  AsyncIPC
 				  )
 
 from .audio import (
