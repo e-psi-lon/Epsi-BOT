@@ -1,39 +1,42 @@
+from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator, Iterable, Type
+
 from aiosqlite import OperationalError
 from tortoise import (
-					BaseDBAsyncClient,
-					connections,
-					fields, 
-					Model,
-					Tortoise,
-					models,
-					exceptions,   
-				)
+	BaseDBAsyncClient,
+	connections,
+	fields,
+	Model,
+	Tortoise,
+	models,
+	exceptions,
+)
 
 import epsi_bot.utils
-
-
 from .loggers import get_logger
-from contextlib import asynccontextmanager
 
 # database = SqliteDatabase('./database/database.db')
 
-__all__ = ['Asker', 'Playlist', 'Song', 'PlaylistSong', 'Server', 'Queue', 'ServerPlaylist', 'UserPlaylist', "BaseModel", "SongListenCount", "database_context"]
+__all__ = ['Asker', 'Playlist', 'Song', 'PlaylistSong', 'Server', 'Queue', 'ServerPlaylist', 'UserPlaylist',
+           "BaseModel", "SongListenCount", "database_context"]
 
 
 class BaseModel(Model):
-	async def save(self, using_db: BaseDBAsyncClient | None = None, update_fields: Iterable[str] | None = None, force_create: bool = False, force_update: bool = False) -> None:
+	async def save(self, using_db: BaseDBAsyncClient | None = None, update_fields: Iterable[str] | None = None,
+	               force_create: bool = False, force_update: bool = False) -> None:
 		logger = get_logger("Database")
 		try:
-			await super().save(using_db=using_db, update_fields=update_fields, force_create=force_create, force_update=force_update)
+			await super().save(using_db=using_db, update_fields=update_fields, force_create=force_create,
+			                   force_update=force_update)
 			logger.debug(f"Saved {self}")
 		except Exception as e:
 			logger.error(f"Error while saving {self}: {e}")
 
 	@classmethod
-	async def get_or_create_important(cls: Type[models.MODEL], important_fields: list[str], **kwargs: Any) -> tuple[models.MODEL, bool]:
+	async def get_or_create_important(cls: Type[models.MODEL], important_fields: list[str], **kwargs: Any) -> tuple[
+		models.MODEL, bool]:
 		importants = {key: kwargs.pop(key) for key in important_fields}
-		
+
 		# First try to get existing
 		try:
 			item = await cls.get(**importants)
@@ -46,7 +49,7 @@ class BaseModel(Model):
 
 	def __repr__(self) -> str:
 		return str(self)
-	
+
 	def __str__(self) -> str:
 		class_name = self.__class__.__name__
 		elements = []
@@ -58,10 +61,10 @@ class BaseModel(Model):
 			except TypeError:
 				elements.append(f"{elem}=<not serializable>")
 		return f"{class_name}({', '.join(elements)})"
-	
+
 	class Meta:
 		abstract = True
-		
+
 
 class Asker(BaseModel):
 	asker_id = fields.IntField(primary_key=True)
@@ -74,10 +77,12 @@ class Playlist(BaseModel):
 	playlist_id = fields.IntField(primary_key=True)
 	songs: fields.ReverseRelation['PlaylistSong']
 
+
 class Song(BaseModel):
 	name = fields.CharField(100)
 	song_id = fields.IntField(primary_key=True)
 	url = fields.CharField(200, unique=True)
+
 
 class PlaylistSong(BaseModel):
 	asker: fields.ForeignKeyRelation[Asker] = fields.ForeignKeyField('models.Asker')
@@ -85,13 +90,13 @@ class PlaylistSong(BaseModel):
 	position = fields.IntField()
 	song: fields.ForeignKeyRelation[Song] = fields.ForeignKeyField('models.Song')
 
-
 	async def save(self, *args: Any, **kwargs: Any) -> Any:
 		if self.position is None:
 			values = await PlaylistSong.filter(playlist=self.playlist)
 			max_position = max([value.position for value in values], default=0)
 			self.position = max_position + 1
 		return await super().save(*args, **kwargs)
+
 
 class Server(BaseModel):
 	loop_queue = fields.BooleanField(default=False)
@@ -102,6 +107,7 @@ class Server(BaseModel):
 	volume = fields.IntField(default=100)
 	queue: fields.ReverseRelation['Queue']
 	playlists: fields.ReverseRelation['ServerPlaylist']
+
 
 class Queue(BaseModel):
 	asker: fields.ForeignKeyRelation[Asker] = fields.ForeignKeyField('models.Asker')
@@ -116,6 +122,7 @@ class Queue(BaseModel):
 			self.position = max_position + 1
 		return await super().save(*args, **kwargs)
 
+
 class ServerPlaylist(BaseModel):
 	playlist: fields.ForeignKeyRelation[Playlist] = fields.ForeignKeyField('models.Playlist')
 	server: fields.ForeignKeyRelation[Server] = fields.ForeignKeyField('models.Server', related_name='playlists')
@@ -124,6 +131,7 @@ class ServerPlaylist(BaseModel):
 class UserPlaylist(BaseModel):
 	playlist: fields.ForeignKeyRelation[Playlist] = fields.ForeignKeyField('models.Playlist')
 	user: fields.ForeignKeyRelation[Asker] = fields.ForeignKeyField('models.Asker', related_name='playlists')
+
 
 class SongListenCount(BaseModel):
 	song: fields.ForeignKeyRelation[Song] = fields.ForeignKeyField('models.Song', related_name='listen_count')

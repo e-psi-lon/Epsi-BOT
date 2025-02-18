@@ -1,21 +1,20 @@
 import os
-import sys
-import discord
-import traceback
 import subprocess
+import sys
+import traceback
+from datetime import datetime
 from typing import Optional
 
+import discord
+from discord.ext import commands
+from discord.ext import tasks
 from tortoise import Tortoise, connections
 
 from epsi_bot.utils.ipc import AsyncIPC
-
+from .memcached_std import MemcachedStd
 from ..utils import GuildData, UserData, get_logger, \
 	Server, download_bulk, AudioCache, SongListenCount, models
-from discord.ext import commands
-from discord.ext import tasks
-from datetime import datetime
 
-from .memcached_std import MemcachedStd
 
 @tasks.loop(hours=5)
 async def check_update() -> None:
@@ -28,38 +27,38 @@ async def check_update() -> None:
 	else:
 		get_logger("Updater").info("Bot is already up to date")
 
+
 @tasks.loop(hours=36)
 async def update_top_songs(self: 'Bot') -> None:
-		# Calculate top 5 songs
-		await Tortoise.init(
-			db_url='sqlite://database/database.db',
-			modules={'models': [models]}
-		)
-		top_songs = await SongListenCount.all() \
-			.prefetch_related("song") \
-			.order_by("-count") \
-			.limit(5)
-		top_songs_data = [
-			{"name": song.song.name, "url": song.song.url, "listen_count": song.count}
-			for song in top_songs
-		]
-		await SongListenCount.all().delete()
-		await connections.close_all()
-		async with AudioCache(len(top_songs_data)) as cache:
-			to_download = []
-			# First update TTL for cached songs and collect uncached ones
-			for song in top_songs_data:
-				if await cache.exists(song["url"]):
-					await cache.update_ttl(song["url"], 60*60*24*3)
-				else:
-					to_download.append(song["url"])
-				
-		# Bulk download uncached songs
-		if to_download:
-			await download_bulk(to_download)
-		self.logger.info("Top 5 songs updated and cached.")
+	# Calculate top 5 songs
+	await Tortoise.init(
+		db_url='sqlite://database/database.db',
+		modules={'models': [models]}
+	)
+	top_songs = await SongListenCount.all() \
+		.prefetch_related("song") \
+		.order_by("-count") \
+		.limit(5)
+	top_songs_data = [
+		{"name": song.song.name, "url": song.song.url, "listen_count": song.count}
+		for song in top_songs
+	]
+	await SongListenCount.all().delete()
+	await connections.close_all()
+	async with AudioCache(len(top_songs_data)) as cache:
+		to_download = []
+		# First update TTL for cached songs and collect uncached ones
+		for song in top_songs_data:
+			if await cache.exists(song["url"]):
+				await cache.update_ttl(song["url"], 60 * 60 * 24 * 3)
+			else:
+				to_download.append(song["url"])
 
-	
+	# Bulk download uncached songs
+	if to_download:
+		await download_bulk(to_download)
+	self.logger.info("Top 5 songs updated and cached.")
+
 
 class Bot(commands.Bot):
 	def __init__(self, manager: AsyncIPC, *args, **options) -> None:
@@ -94,7 +93,7 @@ class Bot(commands.Bot):
 		await Tortoise.init(
 			db_url='sqlite://database/database.db',
 			modules={'models': [models]}
-		) 
+		)
 		for guild in self.guilds:
 			# Si la guilde n'existe pas dans la db, on l'ajoute avec les paramètres par défaut
 			await Server.get_or_create(server_id=guild.id)
@@ -106,9 +105,9 @@ class Bot(commands.Bot):
 		exc_type, exc_value, exc_traceback = type(error), error, error.__traceback__
 		traceback_str = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
 		self.logger.error(f"Error in {ctx.command} from module {ctx.command.cog.__class__.__name__}"
-					f"\n Error message: {exc_value}\n Traceback: {traceback_str}")
+		                  f"\n Error message: {exc_value}\n Traceback: {traceback_str}")
 		embed = discord.Embed(title="Une erreur est survenue", description=f"Erreur provoquée par {ctx.author.mention}",
-							color=discord.Color.dark_red())
+		                      color=discord.Color.dark_red())
 		embed.add_field(name="Commande", value=f"`/{ctx.command}`")
 		embed.add_field(name="Module", value=f"`{ctx.command.cog.__class__.__name__!r}`")
 		embed.add_field(name="Message d'erreur", value=f"`{exc_value}`")
@@ -138,8 +137,8 @@ class Bot(commands.Bot):
 				f"Error in {event_method}\n Error message: {exc_value}\n Traceback: {traceback_str}\n Args: {args}"
 				f"\n Kwargs: {kwargs}")
 			embed = discord.Embed(title="Une erreur est survenue",
-								description=f"Erreur provoquée par {context.author.mention}",
-								color=discord.Color.dark_red())
+			                      description=f"Erreur provoquée par {context.author.mention}",
+			                      color=discord.Color.dark_red())
 			embed.add_field(name="Commande", value=f"`{context.command}`")
 			embed.add_field(name="Module", value=f"`{context.command.cog.__class__.__name__}`")
 			embed.add_field(name="Message d'erreur", value=f"`{exc_value}`")
@@ -156,12 +155,10 @@ class Bot(commands.Bot):
 				f"\n Kwargs: {kwargs}")
 
 
-
-
-
 async def start(instance: Bot, start_time: datetime):
 	instance.start_time = start_time
 	instance.owner_id = 708006478807695450
+
 	@instance.slash_command(name="send", description="Envoie un message dans un salon")
 	@discord.option("channel", discord.TextChannel, descritpion="Le salon où envoyer le message")
 	@discord.option("message", str, description="Le message à envoyer")
@@ -171,7 +168,6 @@ async def start(instance: Bot, start_time: datetime):
 		await ctx.response.defer()
 		await channel.send(message)
 		await ctx.respond(content="Message envoyé !", ephemeral=True)
-
 
 	@instance.slash_command(name="stop-bot", description="Arrête le bot")
 	async def stop_bot(ctx: discord.ApplicationContext):
@@ -183,7 +179,6 @@ async def start(instance: Bot, start_time: datetime):
 		if instance.memcached is not None:
 			instance.memcached.terminate()
 		await instance.post_to_panel("stop")
-
 
 	@send_message.error
 	async def send_message_error(ctx: discord.ApplicationContext, error: commands.CommandError):
@@ -200,7 +195,6 @@ async def start(instance: Bot, start_time: datetime):
 		)
 		db_logger.debug("Tortoise-ORM started, %s, %s", connections._get_storage(), Tortoise.apps)
 
-
 	@instance.after_invoke
 	async def after_invoke(ctx: commands.Context):
 		await connections.close_all()
@@ -212,30 +206,30 @@ async def start(instance: Bot, start_time: datetime):
 			guilds = [GuildData.from_guild(guild) for guild in instance.guilds]
 		else:
 			guilds = [GuildData.from_guild(guild) for guild in instance.guilds if
-						user_id in [member.id for member in guild.members]]
+			          user_id in [member.id for member in guild.members]]
 		instance.logger.info("Got a request for all guilds of a user")
 		return guilds
-	
+
 	@instance.handle("guild")
 	async def handle_guild(server_id: int):
 		guild = instance.get_guild(server_id)
 		guild = GuildData.from_guild(guild)
 		instance.logger.info(f"Got a request for a specific guild : {server_id}")
 		return guild
-	
+
 	@instance.handle("user")
 	async def handle_user(user_id: int):
 		user = instance.get_user(user_id)
 		user = UserData.from_user(user)
 		instance.logger.info(f"Got a request for a specific user : {user_id}")
 		return user
-	
+
 	@instance.handle("connected_servers")
 	async def handle_connected_servers():
 		server_count = len(instance.guilds)
 		instance.logger.info("Got a request for connected servers count")
 		return server_count
-	
+
 	@instance.handle("voice_channels")
 	async def handle_voice_channels():
 		active_voice = sum(

@@ -28,20 +28,24 @@ class CustomFormatter(logging.Formatter):
 			path = path[:-3]
 		path = path.replace(".venv.lib.site-packages.", "libs.")
 		formatter = logging.Formatter(log_fmt, "%d/%m/%Y %H:%M:%S", "{", True,
-									  defaults={"source": self.source, "path": path})
+		                              defaults={"source": self.source, "path": path})
 		return formatter.format(record)
-
 
 
 def parse_args() -> argparse.Namespace:
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--log-level", type=str, default="INFO", help="The log level of the bot (valid levels: DEBUG, INFO, WARNING, ERROR, CRITICAL)", required=False)
+	parser.add_argument("--log-level", type=str, default="INFO",
+	                    help="The log level of the bot (valid levels: DEBUG, INFO, WARNING, ERROR, CRITICAL)",
+	                    required=False)
 	parsed = parser.parse_known_args()[0]
-	if not hasattr(parsed, "log_level") or parsed.log_level.upper() not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
+	if not hasattr(parsed, "log_level") or parsed.log_level.upper() not in ["DEBUG", "INFO", "WARNING", "ERROR",
+	                                                                        "CRITICAL"]:
 		setattr(parsed, "log_level", "INFO")
 	return parsed
 
+
 configured_loggers = set()
+
 
 def get_logger(name: str, level: Optional[int] = parse_args().log_level.upper()) -> logging.Logger:
 	"""Get a logger with the specified name and level"""

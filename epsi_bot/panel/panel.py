@@ -8,33 +8,31 @@ from typing import Any, Optional
 import aiohttp
 import aiomcache
 import discord
-from  aiocache.serializers import PickleSerializer
-
-from tortoise import Tortoise, fields
+import psutil
 import tortoise.fields.relational as relational
-from tortoise.contrib.quart import register_tortoise
 from aiocache import MemcachedCache
+from aiocache.serializers import PickleSerializer
+from aiomultiprocess import Process  # type: ignore[import-untyped]
 from dotenv import load_dotenv
 from quart import Quart, session, redirect, url_for, render_template, request, websocket
 from quart_session import Session  # type: ignore[import-untyped]
+from tortoise import Tortoise, fields
+from tortoise.contrib.quart import register_tortoise
 from werkzeug.utils import cached_property
 from werkzeug.wrappers.response import Response
 
-
-from ..utils import (UserData,
-				   ConfigData,
-				   AsyncRequests,
-				   get_logger,
-				   parse_args,
-				   models,
-				   YOUTUBE_REGEX,
-				   AsyncIPC,
-				   get_youtube,
-				   )
-from ..utils.models import BaseModel
-from aiomultiprocess import Process  # type: ignore[import-untyped]
 from ..bot.bot import start, Bot
-import psutil
+from ..utils import (UserData,
+                     ConfigData,
+                     AsyncRequests,
+                     get_logger,
+                     parse_args,
+                     models,
+                     YOUTUBE_REGEX,
+                     AsyncIPC,
+                     get_youtube,
+                     )
+from ..utils.models import BaseModel
 
 load_dotenv()
 
@@ -69,11 +67,9 @@ class Panel(Quart):
 	def set_start_time(self, start_time: datetime.datetime) -> None:
 		self.start_time = start_time
 
-
 	async def start_bot(self):
 		bot = Bot(self.bot_ipc, intents=discord.Intents.all())
 		await start(bot, self.start_time)
-
 
 	async def startup(self):
 		if not os.path.exists("database/database.db"):
@@ -90,7 +86,6 @@ class Panel(Quart):
 		await self.ipc.start()
 		self.bot_process.start()
 		return await super().startup()
-		
 
 	def run(
 			self,
@@ -104,9 +99,9 @@ class Panel(Quart):
 			keyfile: str | None = None,
 			**kwargs: Any,
 	) -> None:
-		super().run(host=host, port=port, use_reloader=use_reloader, loop=loop, ca_certs=ca_certs, certfile=certfile, debug=debug,
-					keyfile=keyfile, **kwargs)
-		
+		super().run(host=host, port=port, use_reloader=use_reloader, loop=loop, ca_certs=ca_certs, certfile=certfile,
+		            debug=debug,
+		            keyfile=keyfile, **kwargs)
 
 	async def get_from_bot(channel: str, **payload) -> Any:
 		async with MemcachedCache(serializer=PickleSerializer(), namespace="ipc_cache") as cache:
@@ -125,10 +120,8 @@ app = Panel(os.environ['PANEL_SECRET_KEY'], __name__)
 async def shutdown():
 	await app.bot_process.join()
 	await Tortoise.close_connections()
-	await app.ipc.stop()
 	await app.shutdown()
 	exit(0)
-
 
 
 def to_url(url: str) -> str:
@@ -159,12 +152,12 @@ async def panel():
 	token = session['token']
 	if 'user' not in session:
 		user = await AsyncRequests.get(f"{app.API_ENDPOINT}/users/@me",
-									   headers={"Authorization": f"Bearer {token['access_token']}"})
+		                               headers={"Authorization": f"Bearer {token['access_token']}"})
 		user = UserData.from_api_response(user)
-		session['guilds'] = await app.ipc.request("guilds", session['user_id'])
+		session['guilds'] = await app.ipc.send_request("guilds", session['user_id'])
 		session['user'] = user
 	if session.get('guilds', None) is None:
-		session['guilds'] = await app.ipc.request("guilds", user_id=session['user_id'])
+		session['guilds'] = await app.ipc.send_request("guilds", user_id=session['user_id'])
 	app.logger.debug(f"Showing panel with user:\n- {session['user']}\nwho has guilds:\n- {session['guilds']}")
 	return await render_template('panel.html', servers=session['guilds'], user=session['user'])
 
@@ -172,7 +165,8 @@ async def panel():
 @app.route('/server/<int:server_id>', methods=['GET', 'POST'])
 async def server(server_id: int) -> Response | str:
 	config = await models.Server.get_or_none(server_id=server_id)
-	if server_id not in [guild["id"] for guild in session.get('guilds', [])] or 'token' not in session or config is None:
+	if server_id not in [guild["id"] for guild in
+	                     session.get('guilds', [])] or 'token' not in session or config is None:
 		return redirect(url_for('panel'))
 	if request.method == 'POST':
 		values = (await request.form).to_dict()
@@ -189,14 +183,21 @@ async def server(server_id: int) -> Response | str:
 			config.position = values['position']
 		if config.queue != values['queue']:
 			await config.queue.all().delete()
-			await models.Song.bulk_create([models.Song(name=song['title'], url=song['url']) for song in values['queue']], ignore_conflicts=True)
-			await models.Asker.bulk_create([models.Asker(discord_id=song['asker_id']) for song in values['queue']], ignore_conflicts=True)
-			await models.Queue.bulk_create([models.Queue(server=config, song=await models.Song.get(name=song['title']), asker=await models.Asker.get(discord_id=song['asker_id'])) for song in values['queue']], ignore_conflicts=True)
+			await models.Song.bulk_create(
+				[models.Song(name=song['title'], url=song['url']) for song in values['queue']], ignore_conflicts=True)
+			await models.Asker.bulk_create([models.Asker(discord_id=song['asker_id']) for song in values['queue']],
+			                               ignore_conflicts=True)
+			await models.Queue.bulk_create([models.Queue(server=config, song=await models.Song.get(name=song['title']),
+			                                             asker=await models.Asker.get(discord_id=song['asker_id'])) for
+			                                song in values['queue']], ignore_conflicts=True)
 			await config.save()
 			return redirect(url_for('server', server_id=server_id))
-		server_data = ConfigData(config.loop_song, config.loop_queue, config.random, config.position, config.queue,  # type: ignore[arg-type]
-								server_id, (await app.get_from_bot("guild", server_id=server_id)).name, config.volume)  # type: ignore[arg-type, attr-defined]
-		return await render_template('server.html', server=server_data, app=app, get_youtube=get_youtube, yt_regex=YOUTUBE_REGEX)
+		server_data = ConfigData(config.loop_song, config.loop_queue, config.random, config.position, config.queue,
+		                         # type: ignore[arg-type]
+		                         server_id, (await app.get_from_bot("guild", server_id=server_id)).name,
+		                         config.volume)  # type: ignore[arg-type, attr-defined]
+		return await render_template('server.html', server=server_data, app=app, get_youtube=get_youtube,
+		                             yt_regex=YOUTUBE_REGEX)
 
 
 @app.route('/server/<int:server_id>/clear')
@@ -227,10 +228,11 @@ async def callback():
 	code = request.args.get('code')
 	try:
 		token = await token_from_code(code)
-		timer = asyncio.get_event_loop().call_later(token['expires_in'], asyncio.get_event_loop().create_task, refresh_token(token['refresh_token']))
+		timer = asyncio.get_event_loop().call_later(token['expires_in'], asyncio.get_event_loop().create_task,
+		                                            refresh_token(token['refresh_token']))
 		session['token'] = token
 		user = await AsyncRequests.get(f"{app.API_ENDPOINT}/users/@me",
-									   headers={"Authorization": f"Bearer {token['access_token']}"})
+		                               headers={"Authorization": f"Bearer {token['access_token']}"})
 		session['user_id'] = user['id']
 		app.timers[user['id']] = timer
 		return redirect(url_for('panel'))
@@ -270,11 +272,11 @@ async def admin_ws():
 			if message == "refresh":
 				# Get cache stats
 				cache_stats = {key.decode(): value.decode() for key, value in (await get_cache_stats()).items()}
-				
+
 				# Get process information
 				current_process = psutil.Process(os.getpid())
 				bot_process = psutil.Process(app.bot_process.pid)
-				
+
 				process_info = {
 					"main": {
 						"pid": current_process.pid,
@@ -296,11 +298,11 @@ async def admin_ws():
 
 				# Get database information
 				tables: list[type[BaseModel]] = [
-					getattr(models, model_name) 
-					for model_name in models.__all__ 
+					getattr(models, model_name)
+					for model_name in models.__all__
 					if isinstance(getattr(models, model_name), type)
-					and issubclass(getattr(models, model_name), models.BaseModel)
-					and getattr(models, model_name) != models.BaseModel
+					   and issubclass(getattr(models, model_name), models.BaseModel)
+					   and getattr(models, model_name) != models.BaseModel
 				]
 				columns = {table: table._meta.fields_map for table in tables}
 				formatted_columns = format_table_info(columns)
@@ -309,12 +311,12 @@ async def admin_ws():
 					# Fetch all rows for the table in a single query
 					all_rows = await table.all()
 					table_data = {}
-					
+
 					for col_name, col_type in formatted_cols.items():
 						# Extract values for each column from the already fetched rows
 						values = [str(getattr(row, col_name)) for row in all_rows]
 						table_data[col_name] = (col_type, values)
-					
+
 					database[table.__name__] = table_data
 			await websocket.send_json({
 				"cache_stats": cache_stats,
@@ -324,7 +326,6 @@ async def admin_ws():
 	except Exception as e:
 		app.logger.exception(e)
 		await websocket.close(code=1001)
-
 
 
 def register_error_handlers():
@@ -339,7 +340,9 @@ def register_error_handlers():
 		except ValueError:
 			continue
 
+
 register_error_handlers()
+
 
 async def token_from_code(code):
 	data = {
@@ -351,7 +354,7 @@ async def token_from_code(code):
 		"Content-Type": "application/x-www-form-urlencoded"
 	}
 	r = await AsyncRequests.post(f"{app.API_ENDPOINT}/oauth2/token", data=data, headers=headers,
-								 auth=aiohttp.BasicAuth(str(app.CLIENT_ID), str(app.CLIENT_SECRET)))
+	                             auth=aiohttp.BasicAuth(str(app.CLIENT_ID), str(app.CLIENT_SECRET)))
 	return r
 
 
@@ -364,12 +367,12 @@ async def refresh_token(token):
 		"Content-Type": "application/x-www-form-urlencoded"
 	}
 	r = await AsyncRequests.post(f"{app.API_ENDPOINT}/oauth2/token", data=data, headers=headers,
-								 auth=aiohttp.BasicAuth(str(app.CLIENT_ID), str(app.CLIENT_SECRET)))
+	                             auth=aiohttp.BasicAuth(str(app.CLIENT_ID), str(app.CLIENT_SECRET)))
 	session['token'] = r
 	user_id = session['user'].id
 	session["user_id"] = user_id
 	timer = asyncio.get_event_loop().call_later(session['token']['expires_in'], asyncio.get_event_loop().create_task,
-											   refresh_token(session['token']['refresh_token']))
+	                                            refresh_token(session['token']['refresh_token']))
 	app.timers[user_id] = timer
 	return r
 
@@ -383,17 +386,18 @@ async def revoke_access_token(access_token):
 		"Content-Type": "application/x-www-form-urlencoded"
 	}
 	await AsyncRequests.post(f"{app.API_ENDPOINT}/oauth2/token/revoke", data=data, headers=headers,
-							 auth=aiohttp.BasicAuth(str(app.CLIENT_ID), str(app.CLIENT_SECRET)))
+	                         auth=aiohttp.BasicAuth(str(app.CLIENT_ID), str(app.CLIENT_SECRET)))
+
 
 def format_table_info(
-	tables_metadata: dict[type[BaseModel], dict[str, fields.Field]]
+		tables_metadata: dict[type[BaseModel], dict[str, fields.Field]]
 ) -> dict[type[BaseModel], dict[str, bool | None]]:
 	formatted = {}
 	for table, columns in tables_metadata.items():
 		formatted[table] = {
 			name: True if col.pk
-				else None if isinstance(col, relational.ForeignKeyFieldInstance)
-				else False
+			else None if isinstance(col, relational.ForeignKeyFieldInstance)
+			else False
 			for name, col in columns.items() if not isinstance(col, relational.BackwardFKRelation)
 		}
 	return formatted

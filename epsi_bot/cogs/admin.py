@@ -31,11 +31,13 @@ class Admin(commands.Cog):
 		await server.queue.all().delete()
 		async with AudioCache(1) as cache:
 			await cache.clear()
-		embed = discord.Embed(title="Cache removed", description="Removed the audio cache.", color=discord.Color.green())
+		embed = discord.Embed(title="Cache removed", description="Removed the audio cache.",
+		                      color=discord.Color.green())
 		await ctx.respond(embed=embed, delete_after=30)
 
 	@commands.slash_command(name="clean", description="Cleans the bot's messages", guild_ids=[761485410596552736])
-	@discord.option("count", int, description="The number of messages to delete", required=False, default=1, min_value=1, max_value=100)
+	@discord.option("count", int, description="The number of messages to delete", required=False, default=1,
+	                min_value=1, max_value=100)
 	async def clean(self, ctx: discord.ApplicationContext, count: int):
 		global removed_count
 		await ctx.response.defer()
@@ -53,7 +55,8 @@ class Admin(commands.Cog):
 		await ctx.respond(embed=embed, delete_after=30)
 
 	@commands.slash_command(name="reload", description="Reloads the cogs", guild_ids=[761485410596552736])
-	@discord.option("cog", str, description="The cog to reload", required=False, default="all", autocomplete=discord.utils.basic_autocomplete(cogs_autocomplete))
+	@discord.option("cog", str, description="The cog to reload", required=False, default="all",
+	                autocomplete=discord.utils.basic_autocomplete(cogs_autocomplete))
 	async def reload(self, ctx: discord.ApplicationContext, cog: str):
 		if cog == "all":
 			await ctx.response.defer()

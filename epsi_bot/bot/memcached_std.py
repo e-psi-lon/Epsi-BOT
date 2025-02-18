@@ -1,9 +1,11 @@
 import io
 import sys
 from typing import Iterable, Literal
+
 from typing_extensions import Buffer
 
 from ..utils import get_logger
+
 
 class MemcachedStd(io.TextIOBase):
 	def __init__(self, std_type: Literal["stdout", "stderr"] = "stdout", *args, **kwargs):
@@ -39,10 +41,9 @@ class MemcachedStd(io.TextIOBase):
 			return sys.stdout.isatty()
 		else:
 			return sys.stderr.isatty()
-	
-	
+
 	def readable(self) -> bool:
 		return True
-	
+
 	def writable(self) -> bool:
 		return True

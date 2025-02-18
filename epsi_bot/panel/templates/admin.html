@@ -1,348 +1,351 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-	<meta charset="UTF-8">
-	<title>Epsi BOT - Admin Dashboard</title>
-	<link href="{{ url_for('static', filename='admin.css') }}" rel="stylesheet" type="text/css">
-	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta charset="UTF-8">
+    <title>Epsi BOT - Admin Dashboard</title>
+    <link href="{{ url_for('static', filename='admin.css') }}" rel="stylesheet" type="text/css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-	<h1>Epsi BOT - Admin Dashboard</h1>
-	<div class="stats-container">
-			<!-- Cache Stats Section -->
-		<h2 class="section-header">Cache Statistics</h2>
-		<!-- Performance Widget -->
-		<div class="stats-widget">
-			<div class="stats-title">Performance</div>
-			<div class="stats-value" id="cacheHits"></div>
-			<div class="stats-subtitle">Cache Hits</div>
-			<div class="stats-value" id="cacheMisses"></div>
-			<div class="stats-subtitle">Cache Misses</div>
-		</div>
+<h1>Epsi BOT - Admin Dashboard</h1>
+<div class="stats-container">
+    <!-- Cache Stats Section -->
+    <h2 class="section-header">Cache Statistics</h2>
+    <!-- Performance Widget -->
+    <div class="stats-widget">
+        <div class="stats-title">Performance</div>
+        <div class="stats-value" id="cacheHits"></div>
+        <div class="stats-subtitle">Cache Hits</div>
+        <div class="stats-value" id="cacheMisses"></div>
+        <div class="stats-subtitle">Cache Misses</div>
+    </div>
 
-		<!-- Memory Usage Widget -->
-		<div class="stats-widget">
-			<div class="stats-title">Memory Usage</div>
-			<div class="chart-container">
-				<canvas id="memoryChart"></canvas>
-				<div class="chart-center-text">
-					<div class="percentage" id="usagePercentage">0%</div>
-					<div class="bytes-separator"></div>
-					<div class="bytes-text" id="bytesText">0/0</div>
-				</div>
-			</div>
-		</div>
+    <!-- Memory Usage Widget -->
+    <div class="stats-widget">
+        <div class="stats-title">Memory Usage</div>
+        <div class="chart-container">
+            <canvas id="memoryChart"></canvas>
+            <div class="chart-center-text">
+                <div class="percentage" id="usagePercentage">0%</div>
+                <div class="bytes-separator"></div>
+                <div class="bytes-text" id="bytesText">0/0</div>
+            </div>
+        </div>
+    </div>
 
-		<!-- Connections Widget -->
-		<div class="stats-widget">
-			<div class="stats-title">Connections</div>
-			<div class="stats-value" id="currentConnections"></div>
-			<div class="stats-subtitle">Current Connections</div>
-			<div class="stats-value" id="totalConnections"></div>
-			<div class="stats-subtitle">Total Connections</div>
-		</div>
+    <!-- Connections Widget -->
+    <div class="stats-widget">
+        <div class="stats-title">Connections</div>
+        <div class="stats-value" id="currentConnections"></div>
+        <div class="stats-subtitle">Current Connections</div>
+        <div class="stats-value" id="totalConnections"></div>
+        <div class="stats-subtitle">Total Connections</div>
+    </div>
 
-		<!-- Items Widget -->
-		<div class="stats-widget">
-			<div class="stats-title">Items</div>
-			<div class="stats-value" id="currentItems"></div>
-			<div class="stats-subtitle">Current Items</div>
-			<div class="stats-value" id="totalItems"></div>
-			<div class="stats-subtitle">Total Items</div>
-		</div>
+    <!-- Items Widget -->
+    <div class="stats-widget">
+        <div class="stats-title">Items</div>
+        <div class="stats-value" id="currentItems"></div>
+        <div class="stats-subtitle">Current Items</div>
+        <div class="stats-value" id="totalItems"></div>
+        <div class="stats-subtitle">Total Items</div>
+    </div>
 
-		<!-- Process Stats Section -->
-		<h2 class="section-header">Process Information</h2>
-		<!-- Process Info Widget -->
-		<div class="stats-widget wide-widget">
-			<div class="stats-title">Main Process</div>
-			<div class="process-info">
-				<div class="info-row">
-					<span class="info-label">Uptime:</span>
-					<span class="info-value" id="uptimeValue"></span>
-				</div>
-				<div class="info-row">
-					<span class="info-label">PID:</span>
-					<span class="info-value" id="pidValue"></span>
-				</div>
-				<div class="info-row">
-					<span class="info-label">CPU Usage:</span>
-					<span class="info-value" id="cpuValue"></span>
-				</div>
-				<div class="info-row">
-					<span class="info-label">Memory Usage:</span>
-					<span class="info-value" id="memValue"></span>
-				</div>
-				<div class="info-row">
-					<span class="info-label">Threads:</span>
-					<span class="info-value" id="threadsValue"></span>
-				</div>
-			</div>
-		</div>
+    <!-- Process Stats Section -->
+    <h2 class="section-header">Process Information</h2>
+    <!-- Process Info Widget -->
+    <div class="stats-widget wide-widget">
+        <div class="stats-title">Main Process</div>
+        <div class="process-info">
+            <div class="info-row">
+                <span class="info-label">Uptime:</span>
+                <span class="info-value" id="uptimeValue"></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">PID:</span>
+                <span class="info-value" id="pidValue"></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">CPU Usage:</span>
+                <span class="info-value" id="cpuValue"></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Memory Usage:</span>
+                <span class="info-value" id="memValue"></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Threads:</span>
+                <span class="info-value" id="threadsValue"></span>
+            </div>
+        </div>
+    </div>
 
-		<!-- Bot Process Widget -->
-		<div class="stats-widget wide-widget">
-			<div class="stats-title">Bot Process</div>
-			<div class="process-info">
-				<div class="info-row">
-					<span class="info-label">PID:</span>
-					<span class="info-value" id="botPidValue"></span>
-				</div>
-				<div class="info-row">
-					<span class="info-label">CPU Usage:</span>
-					<span class="info-value" id="botCpuValue"></span>
-				</div>
-				<div class="info-row">
-					<span class="info-label">Memory Usage:</span>
-					<span class="info-value" id="botMemValue"></span>
-				</div>
-				<div class="info-row">
-					<span class="info-label">Active Voice Channels:</span>
-					<span class="info-value" id="voiceChannels"></span>
-				</div>
-				<div class="info-row">
-					<span class="info-label">Connected Servers:</span>
-					<span class="info-value" id="connectedServers"></span>
-				</div>
-			</div>
-		</div>
+    <!-- Bot Process Widget -->
+    <div class="stats-widget wide-widget">
+        <div class="stats-title">Bot Process</div>
+        <div class="process-info">
+            <div class="info-row">
+                <span class="info-label">PID:</span>
+                <span class="info-value" id="botPidValue"></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">CPU Usage:</span>
+                <span class="info-value" id="botCpuValue"></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Memory Usage:</span>
+                <span class="info-value" id="botMemValue"></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Active Voice Channels:</span>
+                <span class="info-value" id="voiceChannels"></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Connected Servers:</span>
+                <span class="info-value" id="connectedServers"></span>
+            </div>
+        </div>
+    </div>
 
-		<!-- Database Section -->
-		<h2 class="section-header">Database Information</h2>
-		<!-- Database Widget -->
-		<div class="stats-widget database-widget">
-			<div class="stats-title">Database Tables</div>
-			<div class="sql-buttons">
-			</div>
-			<div class="sql-content">
-			</div>
-		</div>
-		<script>
-			document.addEventListener('DOMContentLoaded', () => {
-				const currentTable = localStorage.getItem('currentTable');
-				if (currentTable) {
-					showTable(currentTable);
-				}
-			});
-			function showTable(tableName) {
-				// Hide all tables
-				document.querySelectorAll('.sql-table').forEach(t => t.style.display = 'none');
-				document.querySelectorAll('.sql-button').forEach(b => b.classList.remove('active'));
-				
-				// Show selected table and highlight button
-				document.getElementById('table-' + tableName).style.display = 'block';
-				document.getElementById('btn-' + tableName).classList.add('active');
+    <!-- Database Section -->
+    <h2 class="section-header">Database Information</h2>
+    <!-- Database Widget -->
+    <div class="stats-widget database-widget">
+        <div class="stats-title">Database Tables</div>
+        <div class="sql-buttons">
+        </div>
+        <div class="sql-content">
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentTable = localStorage.getItem('currentTable');
+            if (currentTable) {
+                showTable(currentTable);
+            }
+        });
 
-				localStorage.setItem('selectedTable', tableName);
-			}
-			function formatBytes(bytes) {
-				if (bytes === 0) return '0 B';
-				const k = 1024;
-				const sizes = ['B', 'KB', 'MB', 'GB'];
-				const i = Math.floor(Math.log(bytes) / Math.log(k));
-				return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-			}
-			function formatUptime(seconds) {
-				const days = Math.floor(seconds / 86400);
-				const hours = Math.floor((seconds % 86400) / 3600);
-				const minutes = Math.floor((seconds % 3600) / 60);
+        function showTable(tableName) {
+            // Hide all tables
+            document.querySelectorAll('.sql-table').forEach(t => t.style.display = 'none');
+            document.querySelectorAll('.sql-button').forEach(b => b.classList.remove('active'));
 
-				let uptime = '';
-				if (days > 0) uptime += `${days}d `;
-				if (hours > 0) uptime += `${hours}h `;
-				if (minutes > 0) uptime += `${minutes}m`;
-				return uptime.trim() || '< 1m';
-			}
+            // Show selected table and highlight button
+            document.getElementById('table-' + tableName).style.display = 'block';
+            document.getElementById('btn-' + tableName).classList.add('active');
 
-			function isUrl(string) {
-				const pattern = new RegExp('^(https?:\\/\\/)?' + // protocol
-					'((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|' + // domain name
-					'((\\d{1,3}\\.){3}\\d{1,3}))' + // OR ip (v4) address
-					'(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // port and path
-					'(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
-					'(\\#[-a-z\\d_]*)?$', 'i'); // fragment locator
-				return !!pattern.test(string);
-			}
+            localStorage.setItem('selectedTable', tableName);
+        }
 
-			// Update Memory Chart
-			let used = 0;
-			let total = 0;
-			let unused = 0;
-			let percentage = 0;
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
 
-			const ctx = document.getElementById('memoryChart');
-			const memoryChart = new Chart(ctx, {
-				type: 'doughnut',
-				data: {
-					datasets: [{
-						data: [used, unused],
-						backgroundColor: ['#007acc', '#e9ecef'],
-						borderWidth: 0
-					}]
-				},
-				options: {
-					cutout: '75%',
-					plugins: {
-						legend: {
-							display: false
-						}
-					},
-					responsive: true,
-					maintainAspectRatio: true
-				}
-			});
+        function formatUptime(seconds) {
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
 
-			const socket = new WebSocket(`ws://${window.location.host}/admin`);
-			socket.onopen = function(_) {
-				socket.send('refresh');
-				setInterval(() => {
-					if (socket.readyState === WebSocket.OPEN) {
-						socket.send('refresh');
-					}
-				}, 30000);
-			};
-			socket.onmessage = function(event) {
-				const parsed = JSON.parse(event.data);
-				const stats = parsed.cache_stats;
-				const bot_stats = parsed.process_info.bot;
-				const main_stats = parsed.process_info.main;
-				const database = parsed.database;
-				console.log(parsed);
+            let uptime = '';
+            if (days > 0) uptime += `${days}d `;
+            if (hours > 0) uptime += `${hours}h `;
+            if (minutes > 0) uptime += `${minutes}m`;
+            return uptime.trim() || '< 1m';
+        }
 
-				try {
-					// Update Performance Widget
-					document.getElementById('cacheHits').textContent = stats.get_hits;
-					document.getElementById('cacheMisses').textContent = stats.get_misses;
-					// Update Memory Chart
-					used = parseInt(stats.bytes);
-					total = parseInt(stats.limit_maxbytes);
-					unused = total - used;
-					percentage = ((used / total) * 100).toFixed(1);
-						
-					document.getElementById('usagePercentage').textContent = percentage + '%';
-					document.getElementById('bytesText').textContent = `${formatBytes(used)}/${formatBytes(total)}`;
-					memoryChart.data.datasets[0].data = [used, unused];
-					memoryChart.update();
+        function isUrl(string) {
+            const pattern = new RegExp('^(https?:\\/\\/)?' + // protocol
+                '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|' + // domain name
+                '((\\d{1,3}\\.){3}\\d{1,3}))' + // OR ip (v4) address
+                '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // port and path
+                '(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
+                '(\\#[-a-z\\d_]*)?$', 'i'); // fragment locator
+            return !!pattern.test(string);
+        }
 
-					// Update Connections Widget
-					document.getElementById('currentConnections').textContent = stats.curr_connections;
-					document.getElementById('totalConnections').textContent = stats.total_connections;
+        // Update Memory Chart
+        let used = 0;
+        let total = 0;
+        let unused = 0;
+        let percentage = 0;
 
-					// Update Items Widget
-					document.getElementById('currentItems').textContent = stats.curr_items;
-					document.getElementById('totalItems').textContent = stats.total_items;
+        const ctx = document.getElementById('memoryChart');
+        const memoryChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                datasets: [{
+                    data: [used, unused],
+                    backgroundColor: ['#007acc', '#e9ecef'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                cutout: '75%',
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                responsive: true,
+                maintainAspectRatio: true
+            }
+        });
 
-					// Update Process Info
-					document.getElementById('uptimeValue').textContent = formatUptime(main_stats.uptime);
-					document.getElementById('pidValue').textContent = main_stats.pid;
-					document.getElementById('cpuValue').textContent = `${main_stats.cpu_percent.toFixed(2)}%`;
-					document.getElementById('memValue').textContent = `${formatBytes(main_stats.memory_usage)} (${main_stats.memory_percent.toFixed(2)}%)`;
-					document.getElementById('threadsValue').textContent = main_stats.threads;
-					document.getElementById('botPidValue').textContent = bot_stats.pid;
-					document.getElementById('botCpuValue').textContent = `${bot_stats.cpu_percent.toFixed(2)}%`;
-					document.getElementById('botMemValue').textContent = `${formatBytes(bot_stats.memory_usage)} (${bot_stats.memory_percent.toFixed(2)}%)`;
-					document.getElementById('voiceChannels').textContent = bot_stats.oice_channels;
-					document.getElementById('connectedServers').textContent = bot_stats.connected_servers;
+        const socket = new WebSocket(`ws://${window.location.host}/admin`);
+        socket.onopen = function (_) {
+            socket.send('refresh');
+            setInterval(() => {
+                if (socket.readyState === WebSocket.OPEN) {
+                    socket.send('refresh');
+                }
+            }, 30000);
+        };
+        socket.onmessage = function (event) {
+            const parsed = JSON.parse(event.data);
+            const stats = parsed.cache_stats;
+            const bot_stats = parsed.process_info.bot;
+            const main_stats = parsed.process_info.main;
+            const database = parsed.database;
+            console.log(parsed);
 
-					// Replace the database tables update section with this code
-					const sqlButtons = document.querySelector('.sql-buttons');
-					const sqlContent = document.querySelector('.sql-content');
-					sqlButtons.innerHTML = '';
-					sqlContent.innerHTML = '';
+            try {
+                // Update Performance Widget
+                document.getElementById('cacheHits').textContent = stats.get_hits;
+                document.getElementById('cacheMisses').textContent = stats.get_misses;
+                // Update Memory Chart
+                used = parseInt(stats.bytes);
+                total = parseInt(stats.limit_maxbytes);
+                unused = total - used;
+                percentage = ((used / total) * 100).toFixed(1);
 
-					// Iterate through each table in the database
-					Object.entries(database).forEach(([tableName, columnData]) => {
-						// Create button for the table
-						const button = document.createElement('button');
-						button.className = 'sql-button';
-						button.id = 'btn-' + tableName;
-						button.textContent = tableName;
-						button.onclick = () => showTable(tableName);
-						sqlButtons.appendChild(button);
+                document.getElementById('usagePercentage').textContent = percentage + '%';
+                document.getElementById('bytesText').textContent = `${formatBytes(used)}/${formatBytes(total)}`;
+                memoryChart.data.datasets[0].data = [used, unused];
+                memoryChart.update();
 
-						// Create table container
-						const tableDiv = document.createElement('div');
-						tableDiv.className = 'sql-table';
-						tableDiv.id = 'table-' + tableName;
-						tableDiv.style.display = 'none';
+                // Update Connections Widget
+                document.getElementById('currentConnections').textContent = stats.curr_connections;
+                document.getElementById('totalConnections').textContent = stats.total_connections;
 
-						const tableElement = document.createElement('table');
-						const thead = document.createElement('thead');
-						const trHead = document.createElement('tr');
+                // Update Items Widget
+                document.getElementById('currentItems').textContent = stats.curr_items;
+                document.getElementById('totalItems').textContent = stats.total_items;
 
-						// Process columns
-						const columns = Object.entries(columnData);
-						columns.sort((a, b) => {
-							const [nameA, [typeA]] = a;
-							const [nameB, [typeB]] = b;
-							
-							// If one is primary key and other isn't
-							if (typeA === true && typeB !== true) return -1;
-							if (typeB === true && typeA !== true) return 1;
-							
-							// If neither or both are primary keys, sort alphabetically
-							return nameA.localeCompare(nameB);
-						});
-						columns.forEach(([columnName, [keyType, _]]) => {
-							const th = document.createElement('th');
-							th.textContent = columnName;
-							if (keyType === true) {
-								th.classList.add('primary-key');
-							} else if (keyType === null) {
-								th.classList.add('foreign-key');
-							}
-							trHead.appendChild(th);
-						});
-						thead.appendChild(trHead);
-						tableElement.appendChild(thead);
+                // Update Process Info
+                document.getElementById('uptimeValue').textContent = formatUptime(main_stats.uptime);
+                document.getElementById('pidValue').textContent = main_stats.pid;
+                document.getElementById('cpuValue').textContent = `${main_stats.cpu_percent.toFixed(2)}%`;
+                document.getElementById('memValue').textContent = `${formatBytes(main_stats.memory_usage)} (${main_stats.memory_percent.toFixed(2)}%)`;
+                document.getElementById('threadsValue').textContent = main_stats.threads;
+                document.getElementById('botPidValue').textContent = bot_stats.pid;
+                document.getElementById('botCpuValue').textContent = `${bot_stats.cpu_percent.toFixed(2)}%`;
+                document.getElementById('botMemValue').textContent = `${formatBytes(bot_stats.memory_usage)} (${bot_stats.memory_percent.toFixed(2)}%)`;
+                document.getElementById('voiceChannels').textContent = bot_stats.oice_channels;
+                document.getElementById('connectedServers').textContent = bot_stats.connected_servers;
 
-						// Create table body with values
-						const tbody = document.createElement('tbody');
-						const columnNames = columns.map(([name, _]) => name);
-						const rowCount = columnData[columnNames[0]][1].length;
+                // Replace the database tables update section with this code
+                const sqlButtons = document.querySelector('.sql-buttons');
+                const sqlContent = document.querySelector('.sql-content');
+                sqlButtons.innerHTML = '';
+                sqlContent.innerHTML = '';
 
-						for (let i = 0; i < rowCount; i++) {
-							const tr = document.createElement('tr');
-							columnNames.forEach(columnName => {
-								const td = document.createElement('td');
-								const value = columnData[columnName][1][i];
-								if (isUrl(value)) {
-									const a = document.createElement('a');
-									a.href = value;
-									a.target = '_blank';
-									a.textContent = value;
-									td.appendChild(a);
-								} else {
-									td.textContent = value;
-								}
-								tr.appendChild(td);
-							});
-							tbody.appendChild(tr);
-						}
-						
-						tableElement.appendChild(tbody);
-						tableDiv.appendChild(tableElement);
-						sqlContent.appendChild(tableDiv);
-					});
-					
-					const currentTable = localStorage.getItem('selectedTable');
-					if (currentTable) {
-						showTable(currentTable);
-					}
-				} catch (error) {
-					console.error('Failed to update data:', error);
-				}
-			};
+                // Iterate through each table in the database
+                Object.entries(database).forEach(([tableName, columnData]) => {
+                    // Create button for the table
+                    const button = document.createElement('button');
+                    button.className = 'sql-button';
+                    button.id = 'btn-' + tableName;
+                    button.textContent = tableName;
+                    button.onclick = () => showTable(tableName);
+                    sqlButtons.appendChild(button);
 
-			socket.onclose = function(event) {
-				console.log('Socket closed:', event);
-			};
+                    // Create table container
+                    const tableDiv = document.createElement('div');
+                    tableDiv.className = 'sql-table';
+                    tableDiv.id = 'table-' + tableName;
+                    tableDiv.style.display = 'none';
 
-			socket.onerror = function(error) {
-				console.error('Socket error:', error);
-			};
-			setTimeout(() => socket.send('refresh'), 30000);
-		</script>
-	</div>
+                    const tableElement = document.createElement('table');
+                    const thead = document.createElement('thead');
+                    const trHead = document.createElement('tr');
+
+                    // Process columns
+                    const columns = Object.entries(columnData);
+                    columns.sort((a, b) => {
+                        const [nameA, [typeA]] = a;
+                        const [nameB, [typeB]] = b;
+
+                        // If one is primary key and other isn't
+                        if (typeA === true && typeB !== true) return -1;
+                        if (typeB === true && typeA !== true) return 1;
+
+                        // If neither or both are primary keys, sort alphabetically
+                        return nameA.localeCompare(nameB);
+                    });
+                    columns.forEach(([columnName, [keyType, _]]) => {
+                        const th = document.createElement('th');
+                        th.textContent = columnName;
+                        if (keyType === true) {
+                            th.classList.add('primary-key');
+                        } else if (keyType === null) {
+                            th.classList.add('foreign-key');
+                        }
+                        trHead.appendChild(th);
+                    });
+                    thead.appendChild(trHead);
+                    tableElement.appendChild(thead);
+
+                    // Create table body with values
+                    const tbody = document.createElement('tbody');
+                    const columnNames = columns.map(([name, _]) => name);
+                    const rowCount = columnData[columnNames[0]][1].length;
+
+                    for (let i = 0; i < rowCount; i++) {
+                        const tr = document.createElement('tr');
+                        columnNames.forEach(columnName => {
+                            const td = document.createElement('td');
+                            const value = columnData[columnName][1][i];
+                            if (isUrl(value)) {
+                                const a = document.createElement('a');
+                                a.href = value;
+                                a.target = '_blank';
+                                a.textContent = value;
+                                td.appendChild(a);
+                            } else {
+                                td.textContent = value;
+                            }
+                            tr.appendChild(td);
+                        });
+                        tbody.appendChild(tr);
+                    }
+
+                    tableElement.appendChild(tbody);
+                    tableDiv.appendChild(tableElement);
+                    sqlContent.appendChild(tableDiv);
+                });
+
+                const currentTable = localStorage.getItem('selectedTable');
+                if (currentTable) {
+                    showTable(currentTable);
+                }
+            } catch (error) {
+                console.error('Failed to update data:', error);
+            }
+        };
+
+        socket.onclose = function (event) {
+            console.log('Socket closed:', event);
+        };
+
+        socket.onerror = function (error) {
+            console.error('Socket error:', error);
+        };
+        setTimeout(() => socket.send('refresh'), 30000);
+    </script>
+</div>
 </body>
 </html>

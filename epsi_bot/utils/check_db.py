@@ -1,6 +1,7 @@
 import os
 import sqlite3
 
+
 def format_table(table: dict[str, list[str]]) -> str:
 	# table is a dict with the key name as the key and a list of values for that key as the value
 	# On récupère les clés
@@ -36,6 +37,7 @@ def format_table(table: dict[str, list[str]]) -> str:
 	formatted_table += bottom_line
 	return formatted_table
 
+
 def check_db() -> None:
 	"""
 	Connects to the SQLite database, retrieves all tables and their data,
@@ -67,7 +69,7 @@ def check_db() -> None:
 				for i in range(len(keys)):
 					table_dict[keys[i]].append(line[i])
 			table_data.append(table_dict)
-		
+
 		# On affiche les tableaux
 		for table_dict in table_data:
 			print(format_table(table_dict))

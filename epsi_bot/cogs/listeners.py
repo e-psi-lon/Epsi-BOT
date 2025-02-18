@@ -1,5 +1,5 @@
-import io
 import contextlib
+import io
 import sys
 import traceback
 
@@ -16,7 +16,7 @@ class Listeners(commands.Cog):
 		self.description = "Listeners, doesn't contain any commands"
 
 	@commands.Cog.listener("on_message")
-	async def on_message(self, message:discord.Message):
+	async def on_message(self, message: discord.Message):
 		if message.content.startswith("e!eval"):
 			output = io.StringIO()
 			if message.author.id == self.bot.owner_id:
@@ -35,18 +35,19 @@ class Listeners(commands.Cog):
 					output.write(f"Uncaught {exc_type.__name__}: {exc_value}\n{traceback_str}")  # type: ignore
 				finally:
 					await message.reply(f"```{output.getvalue()[:1994]}```", delete_after=10)
-				
 
 	@commands.Cog.listener("on_voice_state_update")
 	async def on_voice_state_update(self, _: discord.Member, before: discord.VoiceState,
-									after: discord.VoiceState):
+	                                after: discord.VoiceState):
 
 		if after.channel is not None:
-			if len(after.channel.members) == 1 and after.channel.members[0].id == self.bot.user.id:  # type: ignore[union-attr]
+			if len(after.channel.members) == 1 and after.channel.members[
+				0].id == self.bot.user.id:  # type: ignore[union-attr]
 				await disconnect_from_channel(after, self.bot)
 				self.bot.logger.info("Bot disconnected from channel, no more members in it")
 		if before.channel is not None:
-			if len(before.channel.members) == 1 and before.channel.members[0].id == self.bot.user.id:  # type: ignore[union-attr]
+			if len(before.channel.members) == 1 and before.channel.members[
+				0].id == self.bot.user.id:  # type: ignore[union-attr]
 				await disconnect_from_channel(before, self.bot)
 				self.bot.logger.info("Bot disconnected from channel, no more members in it")
 
@@ -54,9 +55,9 @@ class Listeners(commands.Cog):
 	async def on_guild_join(self, guild: discord.Guild):
 		channel = guild.system_channel
 		text = 'Hey, je suis un bot de musique en cours de développement fait par ' \
-			   '<@!708006478807695450>, je permet de jouer de la musique depuis YouTube dans un channel ' \
-			   'vocal. Pour l\'instant, je suis encore bugué donc en ' \
-			   'test'
+		       '<@!708006478807695450>, je permet de jouer de la musique depuis YouTube dans un channel ' \
+		       'vocal. Pour l\'instant, je suis encore bugué donc en ' \
+		       'test'
 		if channel is not None:
 			try:
 				await channel.send(text)

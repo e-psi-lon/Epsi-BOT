@@ -46,6 +46,7 @@ async def run_async(func: Callable) -> Any:
 	"""
 	return await asyncio.get_event_loop().run_in_executor(None, func)
 
+
 class AsyncRequests:
 	"""
 	Class to make asynchronous requests
@@ -60,9 +61,10 @@ class AsyncRequests:
 
 	@staticmethod
 	async def get(url: str, params: Optional[dict] = None, data: Any = None, headers: Optional[dict] = None,
-				  cookies: Optional[dict] = None, auth: Optional[aiohttp.BasicAuth] = None,
-				  allow_redirects: bool = True, timeout: aiohttp.ClientTimeout | aiohttp.helpers._SENTINEL | None = None, json: Any = None,
-				  return_type: Literal["json", "text", "content"] = "json") -> Union[dict, str, bytes]:
+	              cookies: Optional[dict] = None, auth: Optional[aiohttp.BasicAuth] = None,
+	              allow_redirects: bool = True,
+	              timeout: aiohttp.ClientTimeout | aiohttp.helpers._SENTINEL | None = None, json: Any = None,
+	              return_type: Literal["json", "text", "content"] = "json") -> Union[dict, str, bytes]:
 		"""
 		Make a GET request
 		
@@ -96,7 +98,7 @@ class AsyncRequests:
 		"""
 		async with aiohttp.ClientSession() as session:
 			async with session.get(url, params=params, data=data, headers=headers, cookies=cookies, auth=auth,
-								   allow_redirects=allow_redirects, timeout=timeout, json=json) as response:
+			                       allow_redirects=allow_redirects, timeout=timeout, json=json) as response:
 				response.raise_for_status()
 				match return_type:
 					case "json":
@@ -108,9 +110,10 @@ class AsyncRequests:
 
 	@staticmethod
 	async def post(url: str, data: Any = None, json: Any = None, params: Optional[dict] = None,
-				   headers: Optional[dict] = None, cookies: Optional[dict] = None,
-				   auth: Optional[aiohttp.BasicAuth] = None, allow_redirects: bool = True,
-				   timeout: aiohttp.ClientTimeout | aiohttp.helpers._SENTINEL | None = None, return_type: Literal["json", "text", "content"] = "json") \
+	               headers: Optional[dict] = None, cookies: Optional[dict] = None,
+	               auth: Optional[aiohttp.BasicAuth] = None, allow_redirects: bool = True,
+	               timeout: aiohttp.ClientTimeout | aiohttp.helpers._SENTINEL | None = None,
+	               return_type: Literal["json", "text", "content"] = "json") \
 			-> Union[dict, str, bytes]:
 		"""
 		Make a POST request
@@ -140,7 +143,7 @@ class AsyncRequests:
 		"""
 		async with aiohttp.ClientSession() as session:
 			async with session.post(url, data=data, json=json, params=params, headers=headers, cookies=cookies,
-									auth=auth, allow_redirects=allow_redirects, timeout=timeout) as response:
+			                        auth=auth, allow_redirects=allow_redirects, timeout=timeout) as response:
 				response.raise_for_status()
 				match return_type:
 					case "json":
@@ -149,6 +152,7 @@ class AsyncRequests:
 						return await response.content.read()
 					case _:
 						return await response.text()
+
 
 class Event:
 	def __init__(self) -> None:
@@ -163,7 +167,7 @@ class Event:
 
 	def __await__(self) -> Any:
 		return self.wait().__await__()
-	
+
 	async def set(self, is_response: bool = False) -> None:
 		self._event.set()
 		self.is_response = is_response
@@ -172,15 +176,15 @@ class Event:
 		self._event.clear()
 		self.is_response = None
 
-
 	def is_set(self) -> bool:
 		return self._event.is_set()
-	
+
 	def __repr__(self) -> str:
 		return f"<Event {'set' if self.is_set() else 'clear'} is_response={self.is_response}>"
-	
 
-async def set_callback(event: Event, callback: Callable[[], Coroutine[Any, Any, None]], event_loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
+
+async def set_callback(event: Event, callback: Callable[[], Coroutine[Any, Any, None]],
+                       event_loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
 	"""
 	Set a callback to be called when the event is set.
 
@@ -197,6 +201,7 @@ async def set_callback(event: Event, callback: Callable[[], Coroutine[Any, Any, 
 	-------
 	None
 	"""
+
 	async def _callback() -> None:
 		while True:
 			await event.wait()
@@ -204,4 +209,5 @@ async def set_callback(event: Event, callback: Callable[[], Coroutine[Any, Any, 
 				await callback()
 				get_logger("Callback").debug(f"The callback for {event} is being called")
 				await event.clear()
+
 	asyncio.run_coroutine_threadsafe(_callback(), event_loop or asyncio.get_event_loop())

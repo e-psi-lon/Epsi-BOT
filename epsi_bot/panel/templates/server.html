@@ -1,67 +1,75 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-	<link href="{{ url_for('static', filename='server.css') }}" rel="stylesheet" type="text/css">
-	<title>{{ server['name'] }}</title>
+    <link href="{{ url_for('static', filename='server.css') }}" rel="stylesheet" type="text/css">
+    <title>{{ server['name'] }}</title>
 </head>
 <body>
 <h1>Configuration du Serveur - {{ server['name'] }}</h1>
 <div class="dialog" hidden id="add-song">
-	<form action="/server/{{ server.id }}/add" method="POST">
-		<label for="url">URL : </label>
-		<input id="url" name="url" placeholder="URL de la chanson" type="text">
-		<br>
+    <form action="/server/{{ server.id }}/add" method="POST">
+        <label for="url">URL : </label>
+        <input id="url" name="url" placeholder="URL de la chanson" type="text">
+        <br>
 
-		<input type="submit" value="Ajouter">
-		<button onclick="document.getElementById('add-song').hidden = true" type="button">Annuler</button>
-	</form>
+        <input type="submit" value="Ajouter">
+        <button onclick="document.getElementById('add-song').hidden = true" type="button">Annuler</button>
+    </form>
 </div>
 <form method="POST">
-	<label for="loop_song">Loop Song : </label>
+    <label for="loop_song">Loop Song : </label>
 
-	<input id="loop_song" {% if server.loop_song %} checked {% endif %} name="loop_song" type="checkbox">
-	<br>
-	<label for="loop_queue">Loop Queue : </label>
-	<input id="loop_queue" {% if server.loop_queue %} checked {% endif %} name="loop_queue" type="checkbox">
-	<br>
-	<label for="random">Random : </label>
-	<input id="random"  {% if server.random %} checked {% endif %} name="random" type="checkbox">
-	<br>
-	<label for="position">Position : </label>
-	<input id="position" name="position" type="number" value="{{ server.position }}">
-	<br>
-	<div class="queue">
-		{% for queue in server.queue %}
-		<div class="song{% if queue == server.queue[server.position] %} current {% endif %}" draggable="true" id="{{ queue.song.id }}">
-		<div class="preview_div">
-			{% if yt_regex.match(queue.song.url) %}
-			<iframe class="preview"
-					src="{{ get_youtube(queue.song.url).embed_url}}" title="{{ get_youtube(queue.song.url).title }}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope;
+    <input id="loop_song" {% if server.loop_song %} checked {% endif %} name="loop_song" type="checkbox">
+    <br>
+    <label for="loop_queue">Loop Queue : </label>
+    <input id="loop_queue" {% if server.loop_queue %} checked {% endif %} name="loop_queue" type="checkbox">
+    <br>
+    <label for="random">Random : </label>
+    <input id="random"  {% if server.random %} checked {% endif %} name="random" type="checkbox">
+    <br>
+    <label for="position">Position : </label>
+    <input id="position" name="position" type="number" value="{{ server.position }}">
+    <br>
+    <div class="queue">
+        {% for queue in server.queue %}
+            <div class="song{% if queue == server.queue[server.position] %} current {% endif %}" draggable="true"
+                 id="{{ queue.song.id }}">
+                <div class="preview_div">
+                    {% if yt_regex.match(queue.song.url) %}
+                        <iframe class="preview"
+                                src="{{ get_youtube(queue.song.url).embed_url }}"
+                                title="{{ get_youtube(queue.song.url).title }}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope;
 			picture-in-picture; web-share" allowfullscreen></iframe>
-			{% else %}
-			<img alt="Video Thumbnail" class="preview" src="{{ url_for('static', filename='default_thumbnail.png') }}">
-			{% endif %}
-		</div>
-		<div class="song_info">
-			<div class="title">{{ get_youtube(queue.song.url).title }}</div>
-			<div class="url" draggable="false"><a draggable="false"  target="_blank" href={{ queue.song.url }}>{{ queue.song.url }}</a></div>
-			<div class="asker">Asked by {{ app.get_from_bot("user", user_id=queue.asker.discord_id).global_name }}
-			</div>
-			<button class="remove" onclick="window.location.href='/server/{{ server.id }}/remove/{{ queue.song.id }}'" type="button">Supprimer</button>
-		</div>
-	</div>
-	{% endfor %}
-	</div>
-	<br>
-	<div class="queue_buttons">
-		<button class="add" onclick="document.getElementById('add-song').hidden = false" type="button">Ajouter une
-			chanson
-		</button>
-		<button class="clear" onclick="window.location.href='/server/{{ server.id }}/clear'" type="button">Vider la
-			file d'attente
-		</button>
-	</div>
-	<input type="submit" value="Enregistrer">
+                    {% else %}
+                        <img alt="Video Thumbnail" class="preview"
+                             src="{{ url_for('static', filename='default_thumbnail.png') }}">
+                    {% endif %}
+                </div>
+                <div class="song_info">
+                    <div class="title">{{ get_youtube(queue.song.url).title }}</div>
+                    <div class="url" draggable="false"><a draggable="false" target="_blank"
+                                                          href={{ queue.song.url }}>{{ queue.song.url }}</a></div>
+                    <div class="asker">Asked
+                        by {{ app.get_from_bot("user", user_id=queue.asker.discord_id).global_name }}
+                    </div>
+                    <button class="remove"
+                            onclick="window.location.href='/server/{{ server.id }}/remove/{{ queue.song.id }}'"
+                            type="button">Supprimer
+                    </button>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    <br>
+    <div class="queue_buttons">
+        <button class="add" onclick="document.getElementById('add-song').hidden = false" type="button">Ajouter une
+            chanson
+        </button>
+        <button class="clear" onclick="window.location.href='/server/{{ server.id }}/clear'" type="button">Vider la
+            file d'attente
+        </button>
+    </div>
+    <input type="submit" value="Enregistrer">
 </form>
 <script>
 </script>

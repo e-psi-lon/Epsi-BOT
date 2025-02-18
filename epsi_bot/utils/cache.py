@@ -1,17 +1,17 @@
-from typing import Any
-import zlib
+import asyncio
 import base64
 import binascii
-import logging
-import asyncio
 import io
+import logging
+import zlib
+from typing import Any, Coroutine
 
+import pytubefix  # type: ignore[import-untyped]
 from aiocache import MemcachedCache  # type: ignore[import-untyped]
 from aiocache.serializers import JsonSerializer
-import pytubefix  # type: ignore[import-untyped]
 
-from .constants import YOUTUBE_REGEX
 from .async_utils import AsyncRequests
+from .constants import YOUTUBE_REGEX
 from .loggers import get_logger
 
 __all__ = ["AudioCache", "download", "download_bulk"]
@@ -19,7 +19,8 @@ __all__ = ["AudioCache", "download", "download_bulk"]
 
 class AudioCache(MemcachedCache):
 	"""Class to manage the audio cache"""
-	def __init__(self, pool_size: int=5):
+
+	def __init__(self, pool_size: int = 5):
 		super().__init__(
 			serializer=AudioCache.Base64Serializer(),
 			namespace="audio",
@@ -33,31 +34,31 @@ class AudioCache(MemcachedCache):
 	async def get(self, key: str, **_: Any) -> io.BytesIO | None:
 		"""Get a value from the cache"""
 		return (await super().get(key)) or None
-	
+
 	async def set(self, key: str, value: io.BytesIO, ttl: int = 3600, **_: Any) -> None:
 		"""Set a value in the cache"""
-		await super().set(key, value, ttl=ttl)	
+		await super().set(key, value, ttl=ttl)
 		self.logger.debug(f"Set {key} in cache")
 
 	async def exists(self, key: str, **_: Any) -> bool:
 		"""Check if a key exists in the cache"""
 		return await super().exists(key)
-	
+
 	def update_ttl(self, key: str, new_ttl: int) -> None:
 		"""Update the ttl of a key in the cache"""
 		key = self.build_key(key, namespace=self.namespace)
 		self.client.touch(key.encode(), new_ttl)
-	
+
 	async def clear(self, **_: Any) -> None:
 		"""Clear the cache"""
 		await super().clear()
 
-	def __aenter__(self) -> "AudioCache":
+	def __aenter__(self) -> Coroutine[Any, Any, "AudioCache"]:
 		return super().__aenter__()
 
 	def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> Any:
 		return super().__aexit__(exc_type, exc_val, exc_tb)
-	
+
 	class Base64Serializer(JsonSerializer):
 		def dumps(self, value):
 			if isinstance(value, io.BytesIO):
@@ -76,6 +77,7 @@ class AudioCache(MemcachedCache):
 			except (TypeError, binascii.Error, zlib.error, AttributeError):
 				return super().loads(value)
 
+
 async def to_cache(url: str, cache: AudioCache) -> io.BytesIO:
 	data = await cache.get(url)
 	if data is not None:
@@ -92,6 +94,7 @@ async def to_cache(url: str, cache: AudioCache) -> io.BytesIO:
 	buffer.seek(0)
 	await cache.set(url, buffer, ttl=3600)
 	return buffer
+
 
 async def download(url: str, download_logger: logging.Logger = get_logger("Audio-Downloader")) -> io.BytesIO:
 	"""
@@ -113,9 +116,10 @@ async def download(url: str, download_logger: logging.Logger = get_logger("Audio
 		value = await to_cache(url, cache)
 	download_logger.info(f"Succesfully downloaded {url}")
 	return value
-	
-	
-async def download_bulk(urls: list[str], download_logger: logging.Logger = get_logger("Audio-Downloader")) -> list[io.BytesIO]:
+
+
+async def download_bulk(urls: list[str], download_logger: logging.Logger = get_logger("Audio-Downloader")) -> list[
+	io.BytesIO]:
 	"""
 	Download a list of videos from YouTube (or other) URLs in bulk.
 	
@@ -136,7 +140,7 @@ async def download_bulk(urls: list[str], download_logger: logging.Logger = get_l
 		result = await to_cache(url, cache_)
 		download_logger.info(f"Downloaded {url}")
 		return result
-	
+
 	async with AudioCache(len(urls)) as cache:
 		tasks = [download_worker(url, cache) for url in urls]
 		results = await asyncio.gather(*tasks)

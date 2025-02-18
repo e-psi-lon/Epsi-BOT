@@ -143,7 +143,8 @@ class UserData:
 			name=response["username"],
 			global_name=response["global_name"],
 			id=int(response["id"]),
-			avatar=f"https://cdn.discordapp.com/avatars/{response['id']}/{response['avatar']}.png" if response.get("avatar") else ""
+			avatar=f"https://cdn.discordapp.com/avatars/{response['id']}/{response['avatar']}.png" if response.get(
+				"avatar") else ""
 		)
 
 	@classmethod
@@ -267,7 +268,7 @@ class ConfigData:
 	"""
 
 	def __init__(self, loop_song: bool, loop_queue: bool, random: bool, position: int, queue: list[Queue],
-				 server_id: int, name: str, volume: int):
+	             server_id: int, name: str, volume: int):
 		self.loop_song = loop_song
 		self.loop_queue = loop_queue
 		self.random = random
@@ -297,4 +298,3 @@ class ConfigData:
 			The dictionary representation of the ConfigData instance.
 		"""
 		return dict(self.__getstate__().__dict__)
-	

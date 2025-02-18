@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-	<link href="{{ url_for('static', filename='panel.css') }}" rel="stylesheet" type="text/css">
-	<title>Liste des Serveurs</title>
+    <link href="{{ url_for('static', filename='panel.css') }}" rel="stylesheet" type="text/css">
+    <title>Liste des Serveurs</title>
 </head>
 <body>
 <h1>Liste des Serveurs </h1>
@@ -10,14 +10,14 @@
 	filename='default_avatar.png') }}"><span class="name">{{ user.global_name }}</span></div>
 <button class="center logout" onclick="window.location.href='/logout'">Se déconnecter</button>
 <div class="center server-list">
-	{% for server in servers %}
-	<div class="server-widget" onclick="window.location.href='/server/{{ server.id }}'">
-		<div class="center" >
-			<img alt="Server Icon" class="icon" src='{{ server.icon }}'>
-			<div class="name">{{ server.name }}</div>
-		</div>
-	</div>
-	{% endfor %}
+    {% for server in servers %}
+        <div class="server-widget" onclick="window.location.href='/server/{{ server.id }}'">
+            <div class="center">
+                <img alt="Server Icon" class="icon" src='{{ server.icon }}'>
+                <div class="name">{{ server.name }}</div>
+            </div>
+        </div>
+    {% endfor %}
 </div>
 </body>
 </html>

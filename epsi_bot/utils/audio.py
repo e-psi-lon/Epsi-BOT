@@ -5,15 +5,15 @@ import random
 
 import discord
 import discord.ext.pages
-from ffmpeg.asyncio import FFmpeg  # type: ignore[import-untyped]
 import pydub  # type: ignore[import-untyped]
 import pytubefix  # type: ignore[import-untyped]
 from discord.ext import commands
-from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError # type: ignore[import-error]
+from ffmpeg.asyncio import FFmpeg  # type: ignore[import-untyped]
+from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError  # type: ignore[import-error]
 
-from .models import Server, Song, SongListenCount, database_context
-from .loggers import get_logger
 from .cache import download
+from .loggers import get_logger
+from .models import Server, Song, SongListenCount, database_context
 from .type_utils import FfmpegFormats
 
 pydub.AudioSegment.converter = "ffmpeg"
@@ -67,9 +67,9 @@ async def finished_record_callback(sink: discord.sinks.Sink, channel: discord.Te
 		await message.edit(content=f"## Recorded {', '.join(mention_strs)}" if len(
 			mention_strs) > 1 else f"Recorded {mention_strs[0]}" if len(
 			mention_strs) == 1 else "Recorded no one",
-						   files=files + [
-							   discord.File(f, filename=f"record.{sink.encoding}")] if sink.encoding != "wav" else files
-						   )
+		                   files=files + [
+			                   discord.File(f, filename=f"record.{sink.encoding}")] if sink.encoding != "wav" else files
+		                   )
 
 
 async def disconnect_from_channel(state: discord.VoiceState, bot: commands.Bot) -> None:
@@ -93,10 +93,8 @@ async def disconnect_from_channel(state: discord.VoiceState, bot: commands.Bot) 
 			break
 
 
-
-
 def get_index_from_title(title: str, list_to_check: list[Song]) -> int:
-	"""Get the index of a song in a list of songs from its title.""" 
+	"""Get the index of a song in a list of songs from its title."""
 	for index, song in enumerate(list_to_check):
 		if song.name == title:
 			return index
@@ -147,11 +145,11 @@ async def play_song(ctx: discord.ApplicationContext, url: str) -> None:
 		if video.age_restricted:
 			return await ctx.respond(
 				embed=discord.Embed(title="Error", description=f"The [video]({url}) is age restricted",
-									color=discord.Color.dark_red()))
+				                    color=discord.Color.dark_red()))
 		if video.length > 12000:
 			return await ctx.respond(
 				embed=discord.Embed(title="Error", description=f"The video [{video.title}]({url}) is too long",
-									color=discord.Color.dark_red()))
+				                    color=discord.Color.dark_red()))
 		file = await download(url)
 		buffer = io.BytesIO()
 		stream = video.streams.get_audio_only()
@@ -162,15 +160,19 @@ async def play_song(ctx: discord.ApplicationContext, url: str) -> None:
 			server.volume / 100)
 		try:
 			get_logger("Bot").info(f"Playing song {video.title}")
-			ctx.guild.voice_client.play(player, after=lambda e: asyncio.run_coroutine_threadsafe(on_play_song_finished(ctx, e), loop),
-										wait_finish=True)
+			ctx.guild.voice_client.play(player,
+			                            after=lambda e: asyncio.run_coroutine_threadsafe(on_play_song_finished(ctx, e),
+			                                                                             loop),
+			                            wait_finish=True)
 
 		except discord.errors.ClientException:
 			while ctx.guild.voice_client.is_playing():
 				await asyncio.sleep(0.1)
 			get_logger("Bot").info(f"Playing song {video.title}")
-			ctx.guild.voice_client.play(player, after=lambda e: asyncio.run_coroutine_threadsafe(on_play_song_finished(ctx, e), loop),
-										wait_finish=True)
+			ctx.guild.voice_client.play(player,
+			                            after=lambda e: asyncio.run_coroutine_threadsafe(on_play_song_finished(ctx, e),
+			                                                                             loop),
+			                            wait_finish=True)
 	except PytubeRegexMatchError:
 		file = await download(url)
 		player = discord.PCMVolumeTransformer(
@@ -178,8 +180,10 @@ async def play_song(ctx: discord.ApplicationContext, url: str) -> None:
 			server.volume / 100)
 		try:
 			get_logger("Bot").info(f"Playing song {url}")
-			ctx.guild.voice_client.play(player, after=lambda e: asyncio.run_coroutine_threadsafe(on_play_song_finished(ctx, e), loop),
-										wait_finish=True)
+			ctx.guild.voice_client.play(player,
+			                            after=lambda e: asyncio.run_coroutine_threadsafe(on_play_song_finished(ctx, e),
+			                                                                             loop),
+			                            wait_finish=True)
 		except discord.errors.ClientException:
 			try:
 				await ctx.guild.voice_client.disconnect(force=True)
@@ -187,21 +191,25 @@ async def play_song(ctx: discord.ApplicationContext, url: str) -> None:
 				pass
 			await ctx.author.voice.channel.connect()
 			get_logger("Bot").info(f"Playing song {url}")
-			ctx.guild.voice_client.play(player, after=lambda e: asyncio.run_coroutine_threadsafe(on_play_song_finished(ctx, e), loop),
-										wait_finish=True)
+			ctx.guild.voice_client.play(player,
+			                            after=lambda e: asyncio.run_coroutine_threadsafe(on_play_song_finished(ctx, e),
+			                                                                             loop),
+			                            wait_finish=True)
 
 
-async def on_play_song_finished(ctx: discord.ApplicationContext, error: Exception | None=None) -> None:
+async def on_play_song_finished(ctx: discord.ApplicationContext, error: Exception | None = None) -> None:
 	"""Callback function to execute when a song is finished"""
 	if error:
 		get_logger("Bot").error("Error:", error)
 		await ctx.respond(
-			embed=discord.Embed(title="Error", description="An error occurred while playing the song.", color=discord.Color.dark_red()))
+			embed=discord.Embed(title="Error", description="An error occurred while playing the song.",
+			                    color=discord.Color.dark_red()))
 	get_logger("Bot").info("Song finished")
 	await change_song(ctx)
 
 
-async def convert(audio: io.BytesIO, file_format: FfmpegFormats, log: logging.Logger = get_logger("Audio-Converter"), executable: str = "ffmpeg") -> io.BytesIO:
+async def convert(audio: io.BytesIO, file_format: FfmpegFormats, log: logging.Logger = get_logger("Audio-Converter"),
+                  executable: str = "ffmpeg") -> io.BytesIO:
 	"""Convert an audio file to another format"""
 	ffmpeg = (
 		FFmpeg(executable)
@@ -211,6 +219,7 @@ async def convert(audio: io.BytesIO, file_format: FfmpegFormats, log: logging.Lo
 	byte = await ffmpeg.execute(audio.getvalue())
 	log.info(f"Converted audio to {file_format}")
 	return io.BytesIO(byte)
+
 
 def get_youtube(url: str) -> pytubefix.YouTube:
 	"""Get a YouTube video from a URL"""
