@@ -14,7 +14,7 @@ from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError # type
 from .models import Server, Song, SongListenCount, database_context
 from .loggers import get_logger
 from .cache import download
-from .types import FfmpegFormats
+from .type_utils import FfmpegFormats
 
 pydub.AudioSegment.converter = "ffmpeg"
 

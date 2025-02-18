@@ -98,7 +98,7 @@ from .async_utils import (AsyncRequests,
 					 set_callback
 					)
 
-from .types import (FfmpegFormats,
+from .type_utils import (FfmpegFormats,
 					Sinks,
                     type_checking
                     )
