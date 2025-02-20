@@ -11,6 +11,8 @@ from tortoise import (
 	models,
 	exceptions,
 )
+from tortoise.exceptions import NoValuesFetched
+from tortoise.fields.relational import ReverseRelation
 
 import epsi_bot.utils
 from .loggers import get_logger
@@ -48,13 +50,32 @@ class BaseModel(Model):
 			return item, True
 
 	def __repr__(self) -> str:
-		return str(self)
+		class_name = self.__class__.__name__
+		elements = []
+		for elem in self._meta.fields:
+			try:
+				element = getattr(self, elem)
+				if isinstance(element, ReverseRelation):
+					try:
+						element = [repr(elem) for elem in element]
+						elements.append(f"{elem}={element}")
+					except NoValuesFetched:
+						elements.append(f"{elem}=None")
+				elements.append(f"{elem}={getattr(self, elem)}")
+			except OperationalError:
+				elements.append(f"{elem}=None")
+			except TypeError:
+				elements.append(f"{elem}=<not serializable>")
+		return f"{class_name}({', '.join(elements)})"
 
 	def __str__(self) -> str:
 		class_name = self.__class__.__name__
 		elements = []
 		for elem in self._meta.fields:
 			try:
+				element = getattr(self, elem)
+				if isinstance(element, ReverseRelation):
+					pass
 				elements.append(f"{elem}={getattr(self, elem)}")
 			except OperationalError:
 				elements.append(f"{elem}=None")

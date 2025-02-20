@@ -318,8 +318,20 @@ async def admin_ws():
 
 					for col_name, col_type in formatted_cols.items():
 						# Extract values for each column from the already fetched rows
-						values = [str(getattr(row, col_name)) for row in all_rows]
+						values = []
+						for row in all_rows:
+							value = getattr(row, col_name)
+							if col_type is True:  # Primary key
+								values.append(str(value))
+							elif col_type is None:  # Foreign key
+								values.append(str((await value).pk))
+							else:  # Regular field
+								values.append(str(value))
 						table_data[col_name] = (col_type, values)
+
+					# We filter the table data
+					# If there's fk_name and fk_name_id, we remove fk_name_id
+					table_data = {k: v for k, v in table_data.items() if not (k.endswith("_id") and k[:-3] in table_data.keys())}
 
 					database[table.__name__] = table_data
 				await websocket.send_json({
