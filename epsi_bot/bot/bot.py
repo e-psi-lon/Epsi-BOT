@@ -208,27 +208,27 @@ async def start(instance: Bot, start_time: datetime):
 		else:
 			guilds = [GuildData.from_guild(guild) for guild in instance.guilds if
 			          user_id in [member.id for member in guild.members]]
-		instance.logger.info("Got a request for all guilds of a user")
+		instance.logger.debug("Got a request for all guilds of a user")
 		await instance.ipc.respond(request_id, guilds)
 
 	@instance.handle("guild")
 	async def handle_guild(request_id: str, server_id: int):
 		guild = instance.get_guild(server_id)
 		guild = GuildData.from_guild(guild)
-		instance.logger.info(f"Got a request for a specific guild : {server_id}")
+		instance.logger.debug(f"Got a request for a specific guild : {server_id}")
 		await instance.ipc.respond(request_id, guild)
 
 	@instance.handle("user")
 	async def handle_user(request_id: str, user_id: int):
 		user = instance.get_user(user_id)
 		user = UserData.from_user(user)
-		instance.logger.info(f"Got a request for a specific user : {user_id}")
+		instance.logger.debug(f"Got a request for a specific user : {user_id}")
 		await instance.ipc.respond(request_id, user)
 
 	@instance.handle("connected_servers")
 	async def handle_connected_servers(request_id: str):
 		server_count = len(instance.guilds)
-		instance.logger.info("Got a request for connected servers count")
+		instance.logger.debug("Got a request for connected servers count")
 		await instance.ipc.respond(request_id, server_count)
 
 	@instance.handle("voice_channels")
@@ -236,7 +236,7 @@ async def start(instance: Bot, start_time: datetime):
 		active_voice = sum(
 			1 for guild in instance.guilds for vc in guild.voice_channels if len(vc.members) > 0
 		)
-		instance.logger.info("Got a request for active voice channels count")
+		instance.logger.debug("Got a request for active voice channels count")
 		await instance.ipc.respond(request_id, active_voice)
 
 	# Charger les cogs
