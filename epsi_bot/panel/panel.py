@@ -29,7 +29,7 @@ from ..utils import (UserData,
                      parse_args,
                      models,
                      YOUTUBE_REGEX,
-                     AsyncIPC,
+                     IPCManager,
                      get_youtube,
                      )
 from ..utils.models import BaseModel
@@ -40,6 +40,8 @@ load_dotenv()
 class Panel(Quart):
 	def __init__(self, secret_key: str, *args, **kwargs):
 		super().__init__(*args, **kwargs)
+		self.bot_process = None
+		self.start_time = None
 		self.bot_process: Process
 		self.secret_key = secret_key
 		self.API_ENDPOINT = "https://discord.com/api/v10"
@@ -47,12 +49,12 @@ class Panel(Quart):
 		self.CLIENT_SECRET = os.environ['CLIENT_SECRET']
 		self.REDIRECT_URI = "http://86.196.98.254/auth/discord/callback"
 		self.timers: dict[int, TimerHandle] = {}
-		self.ipc, self.bot_ipc = AsyncIPC.create_ipc_pair()
+		self.ipc, self.bot_ipc = IPCManager.create_pair()
 		self.config['SESSION_TYPE'] = 'memcached'
 		self.start_time: datetime.datetime
-		self.handle = self.ipc.handler
-		self.get_from_bot = self.ipc.send_request
-		self.post_to_bot = self.ipc.send_event
+		self.handle = self.ipc.handle
+		self.get_from_bot = self.ipc.request
+		self.post_to_bot = self.ipc.send
 		Session(self)
 		register_tortoise(
 			self,
@@ -103,12 +105,13 @@ class Panel(Quart):
 		            debug=debug,
 		            keyfile=keyfile, **kwargs)
 
+	@staticmethod
 	async def get_from_bot(channel: str, **payload) -> Any:
 		async with MemcachedCache(serializer=PickleSerializer(), namespace="ipc_cache") as cache:
 			if await cache.exists(f"{channel}_{payload}"):
 				return await cache.get(f"{channel}_{payload}")
 			else:
-				response = await app.bot_ipc.request(channel, payload)
+				response = await app.bot_ipc.request(channel, **payload)
 				await cache.set(f"{channel}_{payload}", response, ttl=60)
 				return response
 
@@ -116,7 +119,7 @@ class Panel(Quart):
 app = Panel(os.environ['PANEL_SECRET_KEY'], __name__)
 
 
-@app.ipc.handler("stop")
+@app.ipc.handle("stop")
 async def shutdown():
 	await app.bot_process.join()
 	await Tortoise.close_connections()
@@ -154,16 +157,16 @@ async def panel():
 		user = await AsyncRequests.get(f"{app.API_ENDPOINT}/users/@me",
 		                               headers={"Authorization": f"Bearer {token['access_token']}"})
 		user = UserData.from_api_response(user)
-		session['guilds'] = await app.ipc.send_request("guilds", session['user_id'])
+		session['guilds'] = await app.ipc.request("guilds", user_id=session['user_id'])
 		session['user'] = user
 	if session.get('guilds', None) is None:
-		session['guilds'] = await app.ipc.send_request("guilds", user_id=session['user_id'])
+		session['guilds'] = await app.ipc.request("guilds", user_id=session['user_id'])
 	app.logger.debug(f"Showing panel with user:\n- {session['user']}\nwho has guilds:\n- {session['guilds']}")
 	return await render_template('panel.html', servers=session['guilds'], user=session['user'])
 
 
 @app.route('/server/<int:server_id>', methods=['GET', 'POST'])
-async def server(server_id: int) -> Response | str:
+async def server(server_id: int) -> None | str | Response:
 	config = await models.Server.get_or_none(server_id=server_id)
 	if server_id not in [guild["id"] for guild in
 	                     session.get('guilds', [])] or 'token' not in session or config is None:
@@ -192,7 +195,7 @@ async def server(server_id: int) -> Response | str:
 			                                song in values['queue']], ignore_conflicts=True)
 			await config.save()
 			return redirect(url_for('server', server_id=server_id))
-		server_data = ConfigData(config.loop_song, config.loop_queue, config.random, config.position, config.queue,
+		server_data = ConfigData(config.loop_song, config.loop_queue, config.random, config.position, await config.queue,
 		                         # type: ignore[arg-type]
 		                         server_id, (await app.get_from_bot("guild", server_id=server_id)).name,
 		                         config.volume)  # type: ignore[arg-type, attr-defined]
@@ -212,7 +215,7 @@ async def add(server_id: int) -> Response:
 	config = await models.Server.get(server_id=server_id)
 	song, _ = await models.Song.get_or_create(name=(await request.form)['name'], url=(await request.form)['url'])
 	asker, _ = await models.Asker.get_or_create(discord_id=session['user'].id)
-	await models.Queue.create(server=config, song=song, asker=asker).save()
+	await (await models.Queue.create(server=config, song=song, asker=asker)).save()
 	return redirect(url_for('server', server_id=server_id))
 
 
@@ -304,6 +307,7 @@ async def admin_ws():
 					   and issubclass(getattr(models, model_name), models.BaseModel)
 					   and getattr(models, model_name) != models.BaseModel
 				]
+				# noinspection PyProtectedMember
 				columns = {table: table._meta.fields_map for table in tables}
 				formatted_columns = format_table_info(columns)
 				database: dict[str, dict[str, tuple[bool | None, list[str]]]] = {}
@@ -318,11 +322,11 @@ async def admin_ws():
 						table_data[col_name] = (col_type, values)
 
 					database[table.__name__] = table_data
-			await websocket.send_json({
-				"cache_stats": cache_stats,
-				"process_info": process_info,
-				"database": database
-			})
+				await websocket.send_json({
+					"cache_stats": cache_stats,
+					"process_info": process_info,
+					"database": database
+				})
 	except Exception as e:
 		app.logger.exception(e)
 		await websocket.close(code=1001)

@@ -10,7 +10,7 @@ from discord.ext import commands
 from discord.ext import tasks
 from tortoise import Tortoise, connections
 
-from epsi_bot.utils.ipc import AsyncIPC
+from epsi_bot.utils.ipc import IPCManager
 from .memcached_std import MemcachedStd
 from ..utils import GuildData, UserData, get_logger, \
 	Server, download_bulk, AudioCache, SongListenCount, models
@@ -50,7 +50,7 @@ async def update_top_songs(self: 'Bot') -> None:
 		# First update TTL for cached songs and collect uncached ones
 		for song in top_songs_data:
 			if await cache.exists(song["url"]):
-				await cache.update_ttl(song["url"], 60 * 60 * 24 * 3)
+				cache.update_ttl(song["url"], 60 * 60 * 24 * 3)
 			else:
 				to_download.append(song["url"])
 
@@ -61,15 +61,16 @@ async def update_top_songs(self: 'Bot') -> None:
 
 
 class Bot(commands.Bot):
-	def __init__(self, manager: AsyncIPC, *args, **options) -> None:
+	def __init__(self, manager: IPCManager, *args, **options) -> None:
 		super().__init__(*args, **options)
-		self.ipc: AsyncIPC = manager
+		self.start_time = None
+		self.ipc: IPCManager = manager
 		self.memcached: Optional[subprocess.Popen] = None
 		self.logger = get_logger("Bot")
 		self.start_time: datetime
-		self.handle = self.ipc.handler
-		self.post_to_panel = self.ipc.send_event
-		self.get_from_panel = self.ipc.send_request
+		self.handle = self.ipc.handle
+		self.post_to_panel = self.ipc.send
+		self.get_from_panel = self.ipc.request
 
 	async def on_ready(self) -> None:
 		await self.change_presence(
@@ -188,7 +189,7 @@ async def start(instance: Bot, start_time: datetime):
 	db_logger = get_logger("Database")
 
 	@instance.before_invoke
-	async def before_invoke(ctx: commands.Context):
+	async def before_invoke(_: commands.Context):
 		await Tortoise.init(
 			db_url='sqlite://database/database.db',
 			modules={'models': [models]}
@@ -196,47 +197,47 @@ async def start(instance: Bot, start_time: datetime):
 		db_logger.debug("Tortoise-ORM started, %s, %s", connections._get_storage(), Tortoise.apps)
 
 	@instance.after_invoke
-	async def after_invoke(ctx: commands.Context):
+	async def after_invoke(_: commands.Context):
 		await connections.close_all()
 		db_logger.info("Tortoise-ORM shutdown")
 
 	@instance.handle("guilds")
-	async def handle_guilds(user_id: int):
+	async def handle_guilds(request_id: str, user_id: Optional[int] = None):
 		if user_id is None or user_id == 708006478807695450:
 			guilds = [GuildData.from_guild(guild) for guild in instance.guilds]
 		else:
 			guilds = [GuildData.from_guild(guild) for guild in instance.guilds if
 			          user_id in [member.id for member in guild.members]]
 		instance.logger.info("Got a request for all guilds of a user")
-		return guilds
+		await instance.ipc.respond(request_id, guilds)
 
 	@instance.handle("guild")
-	async def handle_guild(server_id: int):
+	async def handle_guild(request_id: str, server_id: int):
 		guild = instance.get_guild(server_id)
 		guild = GuildData.from_guild(guild)
 		instance.logger.info(f"Got a request for a specific guild : {server_id}")
-		return guild
+		await instance.ipc.respond(request_id, guild)
 
 	@instance.handle("user")
-	async def handle_user(user_id: int):
+	async def handle_user(request_id: str, user_id: int):
 		user = instance.get_user(user_id)
 		user = UserData.from_user(user)
 		instance.logger.info(f"Got a request for a specific user : {user_id}")
-		return user
+		await instance.ipc.respond(request_id, user)
 
 	@instance.handle("connected_servers")
-	async def handle_connected_servers():
+	async def handle_connected_servers(request_id: str):
 		server_count = len(instance.guilds)
 		instance.logger.info("Got a request for connected servers count")
-		return server_count
+		await instance.ipc.respond(request_id, server_count)
 
 	@instance.handle("voice_channels")
-	async def handle_voice_channels():
+	async def handle_voice_channels(request_id: str):
 		active_voice = sum(
 			1 for guild in instance.guilds for vc in guild.voice_channels if len(vc.members) > 0
 		)
 		instance.logger.info("Got a request for active voice channels count")
-		return active_voice
+		await instance.ipc.respond(request_id, active_voice)
 
 	# Charger les cogs
 	instance.logger.info(

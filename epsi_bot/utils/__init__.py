@@ -16,7 +16,7 @@ __all__ = [
 	'UserData',
 	'GuildData',
 	'IPCMessage',
-	'AsyncIPC',
+	'IPCManager',
 	'MessageType',
 	'ConfigData',
 	'download',
@@ -97,7 +97,7 @@ from .constants import (OWNER_ID,
                         )
 from .ipc import (MessageType,
                   IPCMessage,
-                  AsyncIPC
+                  IPCManager
                   )
 from .loggers import (CustomFormatter,
                       parse_args,
