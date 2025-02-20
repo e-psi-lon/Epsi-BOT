@@ -11,7 +11,7 @@ from discord.ext import commands
 from ffmpeg.asyncio import FFmpeg  # type: ignore[import-untyped]
 from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError  # type: ignore[import-error]
 
-from epsi_bot.utils import YOUTUBE_CLIENT
+from .constants import YOUTUBE_CLIENT
 from .cache import download
 from .loggers import get_logger
 from .models import Server, Song, SongListenCount, database_context
