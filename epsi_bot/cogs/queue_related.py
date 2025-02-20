@@ -3,6 +3,7 @@ import random
 import discord
 from discord.commands import SlashCommandGroup
 from discord.ext import commands
+from tortoise.exceptions import NoValuesFetched
 
 from ..bot.bot import Bot
 from ..utils import Server, EMBED_ERROR_QUEUE_EMPTY, EMBED_ERROR_BOT_NOT_CONNECTED, get_queue_songs, \
@@ -21,8 +22,13 @@ class Queue(commands.Cog):
 		server = await Server.get(server_id=ctx.guild.id)
 		if not await server.queue.all():
 			return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
+		queue_len = 0
+		try:
+			queue_len = len(server.queue)
+		except NoValuesFetched:
+			pass
 		embed = discord.Embed(title="Queue",
-		                      description=f"- Current position: {server.position + 1} out of {len(server.queue)}\n"
+		                      description=f"- Current position: {server.position + 1} out of {queue_len}\n"
 		                                  f"- Loop song: `{'on' if server.loop_song else 'off'}`\n"
 		                                  f"- Loop queue: `{'on' if server.loop_queue else 'off'}`\n"
 		                                  f"- Random: `{'on' if server.random else 'off'}`\n"
