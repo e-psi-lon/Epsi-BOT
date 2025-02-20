@@ -220,9 +220,9 @@ class Playlists(commands.Cog):
 		asker = await Asker.get(discord_id=ctx.user.id).prefetch_related("playlists", "playlists__playlist")
 		user_playlist = await asker.playlists.all()
 		playlist: Playlist
-		if name.endswith(" - SERVER") and name[:-9] in [playlists.playlist.name for playlists in server.playlists]:
+		if name.endswith(" - SERVER") and name[:-9] in [(await playlists.playlist).name for playlists in server.playlists]:
 			playlist = await Playlist.get(name=name[:-9])
-		elif name.endswith(" - USER") and name[:-7] in [playlists.playlist.name for playlists in user_playlist]:
+		elif name.endswith(" - USER") and name[:-7] in [(await playlists.playlist).name for playlists in user_playlist]:
 			playlist = await Playlist.get(name=name[:-7])
 		else:
 			return await ctx.respond(embed=EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST
@@ -242,10 +242,14 @@ class Playlists(commands.Cog):
 				                                    [playlists.playlist.name for playlists in user_playlist])))
 
 		await server.queue.all().delete()
-		await Queue.bulk_create(await playlist.songs.all())
+		songs = await playlist.songs.all().prefetch_related("song", "asker")
+		songs_creation = list(map(lambda x: Queue(asker=x.asker, server=server, song=x.song, position=x.position), songs))
+		await Queue.bulk_create(songs_creation)
+
 
 		server.position = 0
 		await server.save()
+		server = await Server.get(server_id=ctx.guild.id).prefetch_related("queue", "queue__song")
 		await play_song(ctx, server.queue[0].song.url)
 		await ctx.respond(
 			embed=discord.Embed(title="Play", description=f"Playing {server.queue[server.position].song.name}",
