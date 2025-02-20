@@ -56,7 +56,8 @@ __all__ = [
 	'AudioCache',
 	'get_logger',
 	'CustomFormatter',
-	"get_youtube"
+	"get_youtube",
+	"YOUTUBE_CLIENT"
 ]
 
 from .async_utils import (AsyncRequests,
@@ -93,7 +94,8 @@ from .constants import (OWNER_ID,
                         EMBED_ERROR_VIDEO_TOO_LONG,
                         EMBED_ERROR_NOT_BOT_OWNER,
                         YOUTUBE_REGEX,
-                        GET_FILE_HTTP_URL
+                        GET_FILE_HTTP_URL,
+						YOUTUBE_CLIENT
                         )
 from .ipc import (MessageType,
                   IPCMessage,

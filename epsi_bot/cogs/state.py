@@ -9,6 +9,7 @@ from discord.commands import SlashCommandGroup
 from discord.ext import commands
 from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError
 
+from epsi_bot.utils import YOUTUBE_CLIENT
 from ..bot.bot import Bot
 from ..utils import (Sinks,
                      EMBED_ERROR_BOT_NOT_CONNECTED,
@@ -142,7 +143,7 @@ class State(commands.Cog):
 					                                               f"(Error: {e})", color=discord.Color.dark_red())
 				)
 		except PytubeRegexMatchError:
-			videos = pytubefix.Search(query, client="ANDROID_VR").videos
+			videos = pytubefix.Search(query, client=YOUTUBE_CLIENT).videos
 			if not videos:
 				return await ctx.respond(
 					embed=discord.Embed(title="Error", description="No results found.", color=discord.Color.dark_red()))

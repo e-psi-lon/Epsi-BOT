@@ -11,6 +11,7 @@ from discord.ext import commands
 from ffmpeg.asyncio import FFmpeg  # type: ignore[import-untyped]
 from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError  # type: ignore[import-error]
 
+from epsi_bot.utils import YOUTUBE_CLIENT
 from .cache import download
 from .loggers import get_logger
 from .models import Server, Song, SongListenCount, database_context
@@ -223,7 +224,7 @@ async def convert(audio: io.BytesIO, file_format: FfmpegFormats, log: logging.Lo
 
 def get_youtube(url: str) -> pytubefix.YouTube:
 	"""Get a YouTube video from a URL"""
-	return pytubefix.YouTube(url, client="ANDROID_VR")
+	return pytubefix.YouTube(url, client=YOUTUBE_CLIENT)
 
 
 def get_lyrics(title: str) -> str:

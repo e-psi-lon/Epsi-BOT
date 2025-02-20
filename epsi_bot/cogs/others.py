@@ -4,6 +4,7 @@ import discord
 import pytubefix.exceptions
 from discord.ext import commands
 
+from epsi_bot.utils import YOUTUBE_CLIENT
 from ..bot.bot import Bot
 from ..utils import Server, EMBED_ERROR_BOT_NOT_CONNECTED, convert, Research, get_lyrics, FfmpegFormats, get_youtube
 
@@ -45,7 +46,7 @@ class Others(commands.Cog):
 					embed=discord.Embed(title="Error", description="Error while downloading song.",
 					                    color=discord.Color.dark_red()))
 		except pytubefix.exceptions.RegexMatchError:
-			videos = pytubefix.Search(query, client="ANDROID_VR").results
+			videos = pytubefix.Search(query, client=YOUTUBE_CLIENT).results
 			if not videos:
 				return await ctx.respond(
 					embed=discord.Embed(title="Error", description="No results found.", color=discord.Color.dark_red()))

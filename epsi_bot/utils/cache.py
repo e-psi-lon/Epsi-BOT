@@ -11,7 +11,7 @@ from aiocache import MemcachedCache  # type: ignore[import-untyped]
 from aiocache.serializers import JsonSerializer
 
 from .async_utils import AsyncRequests
-from .constants import YOUTUBE_REGEX
+from .constants import YOUTUBE_REGEX, YOUTUBE_CLIENT
 from .loggers import get_logger
 
 __all__ = ["AudioCache", "download", "download_bulk"]
@@ -88,7 +88,7 @@ async def to_cache(url: str, cache: AudioCache) -> io.BytesIO:
 		r: bytes = await AsyncRequests.get(url, return_type="content")
 		buffer.write(r)
 	else:
-		yt_video = pytubefix.YouTube(url, client="ANDROID_VR")
+		yt_video = pytubefix.YouTube(url, client=YOUTUBE_CLIENT)
 		stream = yt_video.streams.get_audio_only()
 		stream.stream_to_buffer(buffer)
 	buffer.seek(0)

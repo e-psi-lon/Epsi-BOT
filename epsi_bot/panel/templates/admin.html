@@ -244,7 +244,7 @@
                 document.getElementById('botPidValue').textContent = bot_stats.pid;
                 document.getElementById('botCpuValue').textContent = `${bot_stats.cpu_percent.toFixed(2)}%`;
                 document.getElementById('botMemValue').textContent = `${formatBytes(bot_stats.memory_usage)} (${bot_stats.memory_percent.toFixed(2)}%)`;
-                document.getElementById('voiceChannels').textContent = bot_stats.oice_channels;
+                document.getElementById('voiceChannels').textContent = bot_stats.voice_channels;
                 document.getElementById('connectedServers').textContent = bot_stats.connected_servers;
 
                 // Replace the database tables update section with this code

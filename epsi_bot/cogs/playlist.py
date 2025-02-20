@@ -4,6 +4,7 @@ from discord.commands import SlashCommandGroup
 from discord.ext import commands
 from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError
 
+from epsi_bot.utils import YOUTUBE_CLIENT
 from ..bot.bot import Bot
 from ..utils import (Playlist,
                      Song,
@@ -74,7 +75,7 @@ class Playlists(commands.Cog):
 			                                                                               "playlists__playlist")
 			asker, _ = await Asker.get_or_create(discord_id=ctx.user.id)
 			user_playlists = await asker.playlists.all().prefetch_related("playlist")
-			playlist = pytubefix.Playlist(url, client="ANDROID_VR")
+			playlist = pytubefix.Playlist(url, client=YOUTUBE_CLIENT)
 			if name is None:
 				name = playlist.title
 			if len(name) > 20:
@@ -108,7 +109,7 @@ class Playlists(commands.Cog):
 	async def delete(self, ctx: discord.ApplicationContext, name: str):
 		asker, _ = await Asker.get_or_create(discord_id=ctx.user.id)
 		user_playlists = await asker.playlists.all().prefetch_related("playlist")
-		server: Server = Server.get(server_id=ctx.guild.id).prefetch_related("playlists", "playlists__playlist")
+		server: Server = await Server.get(server_id=ctx.guild.id).prefetch_related("playlists", "playlists__playlist")
 		await ctx.response.defer()
 		if name.endswith(" - SERVER"):
 			name = name[:-9]

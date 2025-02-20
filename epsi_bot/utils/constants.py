@@ -14,7 +14,8 @@ __all__ = [
 	"EMBED_ERROR_NOT_BOT_OWNER",
 	"OWNER_ID",
 	"YOUTUBE_REGEX",
-	"GET_FILE_HTTP_URL"
+	"GET_FILE_HTTP_URL",
+	"YOUTUBE_CLIENT"
 ]
 
 OWNER_ID = 708006478807695450
@@ -45,3 +46,4 @@ EMBED_ERROR_NOT_BOT_OWNER = discord.Embed(title="Error", description="You are no
 YOUTUBE_REGEX = re.compile(
 	r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/((watch\?v=)|(embed/)|(v/)|(.+\?v=))?([^&=%?]{11})')
 GET_FILE_HTTP_URL = re.compile(r'^https?://[^\s/$.?#]+\.[^\s/]+/.*?([^/]+\.[^/\s?#]+)(?:\?.*)?(?:#.*)?$')
+YOUTUBE_CLIENT = "WEB"
