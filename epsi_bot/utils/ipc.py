@@ -7,7 +7,7 @@ from multiprocessing import Queue, Event as Event
 from multiprocessing.synchronize import Event as EventClass
 import uuid
 
-from .loggers import get_logger
+from epsi_bot.utils.loggers import get_logger
 
 
 __all__ = ["IPCMessage", "IPCManager", "MessageType"]

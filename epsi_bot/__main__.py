@@ -6,8 +6,8 @@ import sys
 import aiomultiprocess  # type: ignore[import-untyped]
 from dotenv import load_dotenv
 
-from .panel.panel import app
-from .utils.loggers import CustomFormatter, parse_args
+from epsi_bot.panel.panel import app
+from epsi_bot.utils.loggers import CustomFormatter, parse_args
 
 aiomultiprocess.set_start_method("fork")
 load_dotenv()

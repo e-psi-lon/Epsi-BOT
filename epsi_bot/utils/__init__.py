@@ -60,13 +60,13 @@ __all__ = [
 	"YOUTUBE_CLIENT"
 ]
 
-from .async_utils import (AsyncRequests,
+from epsi_bot.utils.async_utils import (AsyncRequests,
                           run_async,
                           run_sync,
                           Event,
                           set_callback
                           )
-from .audio import (
+from epsi_bot.utils.audio import (
 	finished_record_callback,
 	disconnect_from_channel,
 	get_index_from_title,
@@ -75,15 +75,15 @@ from .audio import (
 	get_lyrics,
 	get_youtube
 )
-from .autocomplete import (get_playlists,
+from epsi_bot.utils.autocomplete import (get_playlists,
                            get_playlists_songs,
                            get_queue_songs
                            )
-from .cache import (download,
+from epsi_bot.utils.cache import (download,
                     download_bulk,
                     AudioCache
                     )
-from .constants import (OWNER_ID,
+from epsi_bot.utils.constants import (OWNER_ID,
                         EMBED_ERROR_QUEUE_EMPTY,
                         EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST,
                         EMBED_ERROR_BOT_NOT_CONNECTED,
@@ -97,15 +97,15 @@ from .constants import (OWNER_ID,
                         GET_FILE_HTTP_URL,
 						YOUTUBE_CLIENT
                         )
-from .ipc import (MessageType,
+from epsi_bot.utils.ipc import (MessageType,
                   IPCMessage,
                   IPCManager
                   )
-from .loggers import (CustomFormatter,
+from epsi_bot.utils.loggers import (CustomFormatter,
                       parse_args,
                       get_logger
                       )
-from .models import (Asker,
+from epsi_bot.utils.models import (Asker,
                      Playlist,
                      Song,
                      PlaylistSong,
@@ -115,13 +115,13 @@ from .models import (Asker,
                      UserPlaylist,
                      SongListenCount
                      )
-from .panel_data import (ChannelData,
+from epsi_bot.utils.panel_data import (ChannelData,
                          UserData,
                          GuildData,
                          ConfigData
                          )
-from .type_utils import (FfmpegFormats,
+from epsi_bot.utils.type_utils import (FfmpegFormats,
                          Sinks,
                          type_checking
                          )
-from .views import Research
+from epsi_bot.utils.views import Research

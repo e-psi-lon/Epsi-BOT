@@ -5,7 +5,7 @@ from typing import Literal, Optional, Union, Callable, Coroutine, Any
 
 import aiohttp
 
-from .loggers import get_logger
+from epsi_bot.utils.loggers import get_logger
 
 __all__ = ["run_sync", "run_async", "AsyncRequests", "Event", "set_callback"]
 

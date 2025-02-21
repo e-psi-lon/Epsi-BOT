@@ -10,8 +10,8 @@ from discord.ext import commands
 from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError
 
 from epsi_bot.utils import YOUTUBE_CLIENT
-from ..bot.bot import Bot
-from ..utils import (Sinks,
+from epsi_bot.bot.bot import Bot
+from epsi_bot.utils import (Sinks,
                      EMBED_ERROR_BOT_NOT_CONNECTED,
                      Song,
                      Asker,

@@ -11,11 +11,11 @@ from discord.ext import commands
 from ffmpeg.asyncio import FFmpeg  # type: ignore[import-untyped]
 from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError  # type: ignore[import-error]
 
-from .constants import YOUTUBE_CLIENT
-from .cache import download
-from .loggers import get_logger
-from .models import Server, Song, SongListenCount, database_context
-from .type_utils import FfmpegFormats
+from epsi_bot.utils.constants import YOUTUBE_CLIENT
+from epsi_bot.utils.cache import download
+from epsi_bot.utils.loggers import get_logger
+from epsi_bot.utils.models import Server, Song, SongListenCount, database_context
+from epsi_bot.utils.type_utils import FfmpegFormats
 
 pydub.AudioSegment.converter = "ffmpeg"
 
@@ -144,13 +144,15 @@ async def play_song(ctx: discord.ApplicationContext, url: str) -> None:
 	try:
 		video = get_youtube(url)
 		if video.age_restricted:
-			return await ctx.respond(
+			await ctx.respond(
 				embed=discord.Embed(title="Error", description=f"The [video]({url}) is age restricted",
 				                    color=discord.Color.dark_red()))
+			return
 		if video.length > 12000:
-			return await ctx.respond(
+			await ctx.respond(
 				embed=discord.Embed(title="Error", description=f"The video [{video.title}]({url}) is too long",
 				                    color=discord.Color.dark_red()))
+			return
 		file = await download(url)
 		buffer = io.BytesIO()
 		stream = video.streams.get_audio_only()

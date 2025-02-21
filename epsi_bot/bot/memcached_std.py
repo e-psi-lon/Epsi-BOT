@@ -4,7 +4,7 @@ from typing import Iterable, Literal
 
 from typing_extensions import Buffer
 
-from ..utils import get_logger
+from epsi_bot.utils import get_logger
 
 
 class MemcachedStd(io.TextIOBase):

@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands, pages
 
-from ..bot.bot import Bot
+from epsi_bot.bot.bot import Bot
 
 
 def format_params(cmd: discord.SlashCommand) -> str:

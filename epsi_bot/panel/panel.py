@@ -21,8 +21,8 @@ from tortoise.contrib.quart import register_tortoise
 from werkzeug.utils import cached_property
 from werkzeug.wrappers.response import Response
 
-from ..bot.bot import start, Bot
-from ..utils import (UserData,
+from epsi_bot.bot.bot import start, Bot
+from epsi_bot.utils import (UserData,
                      ConfigData,
                      AsyncRequests,
                      get_logger,
@@ -32,7 +32,7 @@ from ..utils import (UserData,
                      IPCManager,
                      get_youtube,
                      )
-from ..utils.models import BaseModel
+from epsi_bot.utils.models import BaseModel
 
 load_dotenv()
 

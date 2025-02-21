@@ -10,9 +10,9 @@ import pytubefix  # type: ignore[import-untyped]
 from aiocache import MemcachedCache  # type: ignore[import-untyped]
 from aiocache.serializers import JsonSerializer
 
-from .async_utils import AsyncRequests
-from .constants import YOUTUBE_REGEX, YOUTUBE_CLIENT
-from .loggers import get_logger
+from epsi_bot.utils.async_utils import AsyncRequests
+from epsi_bot.utils.constants import YOUTUBE_REGEX, YOUTUBE_CLIENT
+from epsi_bot.utils.loggers import get_logger
 
 __all__ = ["AudioCache", "download", "download_bulk"]
 

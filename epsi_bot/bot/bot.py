@@ -11,8 +11,8 @@ from discord.ext import tasks
 from tortoise import Tortoise, connections
 
 from epsi_bot.utils.ipc import IPCManager
-from .memcached_std import MemcachedStd
-from ..utils import GuildData, UserData, get_logger, \
+from epsi_bot.bot.memcached_std import MemcachedStd
+from epsi_bot.utils import GuildData, UserData, get_logger, \
 	Server, download_bulk, AudioCache, SongListenCount, models
 
 

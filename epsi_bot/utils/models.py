@@ -15,7 +15,7 @@ from tortoise.exceptions import NoValuesFetched
 from tortoise.fields.relational import ReverseRelation
 
 import epsi_bot.utils
-from .loggers import get_logger
+from epsi_bot.utils.loggers import get_logger
 
 # database = SqliteDatabase('./database/database.db')
 

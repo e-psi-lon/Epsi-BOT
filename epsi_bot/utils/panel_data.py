@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from discord import Guild, User
 from discord.abc import GuildChannel
 
-from .models import Queue
+from epsi_bot.utils.models import Queue
 
 
 @dataclass

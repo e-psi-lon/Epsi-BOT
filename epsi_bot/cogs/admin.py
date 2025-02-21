@@ -1,8 +1,8 @@
 import discord
 from discord.ext import commands
 
-from ..bot.bot import Bot
-from ..utils import OWNER_ID, EMBED_ERROR_NOT_BOT_OWNER, Server, AudioCache
+from epsi_bot.bot.bot import Bot
+from epsi_bot.utils import OWNER_ID, EMBED_ERROR_NOT_BOT_OWNER, Server, AudioCache
 
 removed_count = 0
 
