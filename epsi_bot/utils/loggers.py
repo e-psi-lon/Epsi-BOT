@@ -11,7 +11,7 @@ class CustomFormatter(logging.Formatter):
 		super().__init__(*args, **kwargs)
 		self.source = source
 
-	FORMAT = "[{asctime}] {source} {levelname} : {message} ({path}:{lineno})\033[0m"
+	FORMAT = "[{asctime}] {source} — {levelname} : {message} ({path}:{lineno})\033[0m"
 
 	FORMATS = {
 		logging.DEBUG: "\033[34m" + FORMAT,  # Blue
