@@ -46,4 +46,5 @@ EMBED_ERROR_NOT_BOT_OWNER = discord.Embed(title="Error", description="You are no
 YOUTUBE_REGEX = re.compile(
 	r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/((watch\?v=)|(embed/)|(v/)|(.+\?v=))?([^&=%?]{11})')
 GET_FILE_HTTP_URL = re.compile(r'^https?://[^\s/$.?#]+\.[^\s/]+/.*?([^/]+\.[^/\s?#]+)(?:\?.*)?(?:#.*)?$')
+
 YOUTUBE_CLIENT = "WEB"

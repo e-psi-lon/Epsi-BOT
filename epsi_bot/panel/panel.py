@@ -188,10 +188,10 @@ async def server(server_id: int) -> None | str | Response:
 			await config.queue.all().delete()
 			await models.Song.bulk_create(
 				[models.Song(name=song['title'], url=song['url']) for song in values['queue']], ignore_conflicts=True)
-			await models.Asker.bulk_create([models.Asker(discord_id=song['asker_id']) for song in values['queue']],
+			await models.User.bulk_create([models.User(discord_id=song['user_id']) for song in values['queue']],
 			                               ignore_conflicts=True)
 			await models.Queue.bulk_create([models.Queue(server=config, song=await models.Song.get(name=song['title']),
-			                                             asker=await models.Asker.get(discord_id=song['asker_id'])) for
+			                                             asker=await models.User.get(discord_id=song['user_id'])) for
 			                                song in values['queue']], ignore_conflicts=True)
 			await config.save()
 			return redirect(url_for('server', server_id=server_id))
@@ -215,8 +215,8 @@ async def clear(server_id: int) -> Response:
 async def add(server_id: int) -> Response:
 	config = await models.Server.get(server_id=server_id)
 	song, _ = await models.Song.get_or_create(name=(await request.form)['name'], url=(await request.form)['url'])
-	asker, _ = await models.Asker.get_or_create(discord_id=session['user'].id)
-	await (await models.Queue.create(server=config, song=song, asker=asker)).save()
+	user, _ = await models.User.get_or_create(discord_id=session['user'].id)
+	await (await models.Queue.create(server=config, song=song, asker=user)).save()
 	return redirect(url_for('server', server_id=server_id))
 
 

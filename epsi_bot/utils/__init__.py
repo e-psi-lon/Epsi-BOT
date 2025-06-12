@@ -3,7 +3,7 @@ This module is the main module of the package utils. It contains all the classes
 functions and constants that are used by the other modules. 
 """
 __all__ = [
-	'Asker',
+	'User',
 	'Playlist',
 	'Song',
 	'PlaylistSong',
@@ -105,7 +105,7 @@ from epsi_bot.utils.loggers import (CustomFormatter,
                                     parse_args,
                                     get_logger
                                     )
-from epsi_bot.utils.models import (Asker,
+from epsi_bot.utils.models import (User,
                                    Playlist,
                                    Song,
                                    PlaylistSong,

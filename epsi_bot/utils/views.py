@@ -5,7 +5,7 @@ import pytubefix
 
 from epsi_bot.utils.audio import play_song, get_youtube
 from epsi_bot.utils.constants import EMBED_ERROR_BOT_NOT_CONNECTED
-from epsi_bot.utils.models import Asker, Queue, Server, Song, database_context
+from epsi_bot.utils.models import User, Queue, Server, Song, database_context
 
 
 class SelectVideo(discord.ui.Select):
@@ -76,13 +76,13 @@ class SelectVideo(discord.ui.Select):
 				await server.save()
 				yt_video = get_youtube(self.values[0])
 				song, _ = await Song.get_or_create_important(["url"], url=self.values[0], name=yt_video.title)
-				asker, _ = await Asker.get_or_create(discord_id=interaction.user.id)
-				await Queue.create(song=song, asker=asker, position=0, server=server)
+				user, _ = await User.get_or_create(discord_id=interaction.user.id)
+				await Queue.create(song=song, asker=user, position=0, server=server)
 			else:
 				yt_video = get_youtube(self.values[0])
 				song, _ = await Song.get_or_create_important(["url"], url=self.values[0], name=yt_video.title)
-				asker, _ = await Asker.get_or_create(discord_id=interaction.user.id)
-				await Queue.create(song=song, asker=asker, position=len(server.queue), server=server)
+				user, _ = await User.get_or_create(discord_id=interaction.user.id)
+				await Queue.create(song=song, asker=user, position=len(server.queue), server=server)
 			if interaction.guild.voice_client is None:
 				return await interaction.message.edit(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
 			if not interaction.guild.voice_client.is_playing():

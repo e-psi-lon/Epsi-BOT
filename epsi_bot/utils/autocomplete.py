@@ -1,6 +1,6 @@
 import discord
 
-from epsi_bot.utils.models import Asker, Server, database_context
+from epsi_bot.utils.models import User, Server, database_context
 
 __all__ = ["get_playlists", "get_playlists_songs", "get_queue_songs"]
 
@@ -23,7 +23,7 @@ async def get_playlists(ctx: discord.AutocompleteContext) -> list[str]:
 	async with database_context():
 		config = await Server.get(server_id=ctx.interaction.guild.id).prefetch_related("playlists",
 		                                                                               "playlists__playlist")
-		user = await Asker.get(discord_id=ctx.interaction.user.id).prefetch_related("playlists", "playlists__playlist")
+		user = await User.get(discord_id=ctx.interaction.user.id).prefetch_related("playlists", "playlists__playlist")
 		return ([playlist.playlist.name + " - SERVER" for playlist in config.playlists] +
 		        [playlist.playlist.name + " - USER" for playlist in user.playlists])
 
@@ -53,7 +53,7 @@ async def get_playlists_songs(ctx: discord.AutocompleteContext) -> list[str]:
 				if playlist.name == ctx.options['playlist'][:-9]:
 					return [song.song.name for song in playlist.songs]
 		elif ctx.options['playlist'].endswith(" - USER"):
-			user = await Asker.get(discord_id=ctx.interaction.user.id).prefetch_related("playlists",
+			user = await User.get(discord_id=ctx.interaction.user.id).prefetch_related("playlists",
 			                                                                            "playlists__playlist",
 			                                                                            "playlists__playlist__songs")
 			for user_playlist in user.playlists:

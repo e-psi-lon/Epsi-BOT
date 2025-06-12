@@ -13,7 +13,7 @@ from epsi_bot.bot.bot import Bot
 from epsi_bot.utils import (Sinks,
                             EMBED_ERROR_BOT_NOT_CONNECTED,
                             Song,
-                            Asker,
+                            User,
                             Server,
                             Queue,
                             Research,
@@ -56,16 +56,16 @@ class State(commands.Cog):
 		server = await Server.get(server_id=ctx.guild.id)
 		song, _ = await Song.get_or_create_important(["url"], name=GET_FILE_HTTP_URL.match(url).group(1).split('.')[0],
 		                                             url=url)
-		asker, _ = await Asker.get_or_create(discord_id=ctx.author.id)
+		user, _ = await User.get_or_create(discord_id=ctx.author.id)
 		if not await server.queue.all():
-			await Queue.create(server=server, song=song, position=0, asker=asker)
+			await Queue.create(server=server, song=song, position=0, asker=user)
 			await ctx.respond(embed=discord.Embed(title="Play",
 			                                      description=f"Playing song "
 			                                                  f"[{GET_FILE_HTTP_URL.match(url).group(1).split('.')[0]}]({url})",
 			                                      color=discord.Color.green()))
 			await play_song(ctx, url)
 			return await asyncio.sleep(1)
-		await Queue.create(server=server, song=song, position=len(server.queue), asker=asker)
+		await Queue.create(server=server, song=song, position=len(server.queue), asker=user)
 		await ctx.respond(embed=discord.Embed(title="Queue",
 		                                      description=f"Song [{GET_FILE_HTTP_URL.match(url).group(1).split('.')[0]}]({url})"
 		                                                  f" added to queue.",
@@ -86,15 +86,15 @@ class State(commands.Cog):
 		url = file.url
 		server = await Server.get(server_id=ctx.guild.id)
 		song, _ = await Song.get_or_create_important(["url"], name=file.filename, url=url)
-		asker, _ = await Asker.get_or_create(discord_id=ctx.author.id)
+		user, _ = await User.get_or_create(discord_id=ctx.author.id)
 		if not await server.queue.all():
-			await Queue.create(server=server, song=song, position=0, asker=asker)
+			await Queue.create(server=server, song=song, position=0, asker=user)
 			await ctx.respond(embed=discord.Embed(title="Play",
 			                                      description=f"Playing song [{file.filename}]({url})",
 			                                      color=discord.Color.green()))
 			await play_song(ctx, url)
 			return await asyncio.sleep(1)
-		await Queue.create(server=server, song=song, position=len(server.queue), asker=asker)
+		await Queue.create(server=server, song=song, position=len(server.queue), asker=user)
 		await ctx.respond(embed=discord.Embed(title="Queue",
 		                                      description=f"Song [{file.filename}]({url}) added to queue.",
 		                                      color=discord.Color.green()))
@@ -116,12 +116,12 @@ class State(commands.Cog):
 						              color=discord.Color.dark_red())
 					)
 				song, _ = await Song.get_or_create_important(["url"], name=get_youtube(url).title, url=url)
-				asker, _ = await Asker.get_or_create(discord_id=ctx.author.id)
+				user, _ = await User.get_or_create(discord_id=ctx.author.id)
 				if not await server.queue.all():
 					server.position = 0
-					await Queue.create(server=server, song=song, position=0, asker=asker)
+					await Queue.create(server=server, song=song, position=0, asker=user)
 				else:
-					await Queue.create(server=server, song=song, position=len(server.queue), asker=asker)
+					await Queue.create(server=server, song=song, position=len(server.queue), asker=user)
 				if not ctx.guild.voice_client.is_playing():
 					await ctx.respond(embed=discord.Embed(title="Play",
 					                                      description=f"Playing song "

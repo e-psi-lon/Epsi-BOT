@@ -12,19 +12,25 @@ automatically if not present.
 
 ### Core Tables
 
-**Server** - Discord guild settings
+**Common Elements** — Common fields used across multiple tables
+
+| CREATED_AT | UPDATED_AT |
+|------------|------------|
+| DATETIME   | DATETIME   |
+
+**Server** — Discord guild settings
 
 | SERVER_ID (PK) | LOOP_SONG | LOOP_QUEUE | RANDOM  | VOLUME  | POSITION |
 |----------------|-----------|------------|---------|---------|----------|
 | INTEGER        | BOOLEAN   | BOOLEAN    | BOOLEAN | INTEGER | INTEGER  |
 
-**Song** - Audio track information
+**Song** — Audio track information
 
 | SONG_ID (PK) | NAME    | URL (UQ) |
 |--------------|---------|----------|
 | INTEGER      | VARCHAR | TEXT     |
 
-**Asker** - Discord user mapping
+**User** — Discord user mapping
 
 | ASKER_ID (PK) | DISCORD_ID (UQ) |
 |---------------|-----------------|
@@ -32,13 +38,13 @@ automatically if not present.
 
 ### Playlists
 
-**Playlist** - Named collections of songs
+**Playlist** — Named collections of songs
 
 | PLAYLIST_ID (PK) | NAME    |
 |------------------|---------|
 | INTEGER          | VARCHAR |
 
-**PlaylistSong** - Playlist song assignments
+**PlaylistSong** — Playlist song assignments
 
 | PLAYLIST_ID (FK) | SONG_ID (FK) | POSITION | ASKER (FK) |
 |------------------|--------------|----------|------------|
@@ -46,25 +52,25 @@ automatically if not present.
 
 ### Relationships
 
-**ServerPlaylist** - Server playlist assignments
+**ServerPlaylist** — Server playlist assignments
 
 | SERVER_ID (FK) | PLAYLIST_ID (FK) |
 |----------------|------------------|
 | INTEGER        | INTEGER          |
 
-**UserPlaylist** - User playlist ownership
+**UserPlaylist** — User playlist ownership
 
 | USER_ID (FK) | PLAYLIST_ID (FK) |
 |--------------|------------------|
 | INTEGER      | INTEGER          |
 
-**Queue** - Server song queue
+**Queue** — Server song queue
 
 | SERVER_ID (FK) | SONG_ID (FK) | ASKER (FK) | POSITION |
 |----------------|--------------|------------|----------|
 | INTEGER        | INTEGER      | INTEGER    | INTEGER  |
 
-**SongListenCount** - Play count tracking
+**SongListenCount** — Play count tracking
 
 | SONG_ID (FK) | COUNT   |
 |--------------|---------|

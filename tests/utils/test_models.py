@@ -1,7 +1,7 @@
 import pytest
 from tortoise.exceptions import DoesNotExist
 
-from epsi_bot.utils.models import Server, Asker, Song, Queue, Playlist, PlaylistSong, UserPlaylist
+from epsi_bot.utils.models import Server, User, Song, Queue, Playlist, PlaylistSong, UserPlaylist
 
 
 async def test_server_crud(db_fixture):
@@ -76,36 +76,36 @@ async def test_playlist_crud(db_fixture):
 
 async def test_user_crud(db_fixture):
 	# Create
-	asker = await Asker.create(discord_id=123456789)
-	assert asker.discord_id == 123456789
-	assert asker.asker_id is not None
+	user = await User.create(discord_id=123456789)
+	assert user.discord_id == 123456789
+	assert user.user_id is not None
 
 	# Read
-	fetched_asker = await Asker.get(discord_id=123456789)
-	assert fetched_asker.discord_id == asker.discord_id
+	fetched_user = await User.get(discord_id=123456789)
+	assert fetched_user.discord_id == user.discord_id
 
 	# Update
-	await asker.update_from_dict({"discord_id": 987654321}).save()
-	updated_asker = await Asker.get(discord_id=987654321)
-	assert updated_asker.discord_id == 987654321
+	await user.update_from_dict({"discord_id": 987654321}).save()
+	updated_user = await User.get(discord_id=987654321)
+	assert updated_user.discord_id == 987654321
 
 	# Delete
-	await asker.delete()
+	await user.delete()
 	with pytest.raises(DoesNotExist):
-		await Asker.get(discord_id=asker.discord_id)
+		await User.get(discord_id=user.discord_id)
 
 
 async def test_playlist_relationships(db_fixture):
 	# Create test data
 	playlist = await Playlist.create(name="Test Playlist")
 	song = await Song.create(name="Test Song", url="https://test.com")
-	asker = await Asker.create(discord_id=123456789)
+	user = await User.create(discord_id=123456789)
 
 	# Create playlist song relationship
 	playlist_song = await PlaylistSong.create(
 		playlist=playlist,
 		song=song,
-		asker=asker
+		asker=user
 	)
 
 	# Test automatic position assignment
@@ -121,10 +121,10 @@ async def test_queue_position_auto_increment(db_fixture):
 	server = await Server.create(server_id=123456789)
 	song1 = await Song.create(name="Song 1", url="https://test1.com")
 	song2 = await Song.create(name="Song 2", url="https://test2.com")
-	asker = await Asker.create(discord_id=987654321)
+	user = await User.create(discord_id=987654321)
 
-	queue1 = await Queue.create(server=server, song=song1, asker=asker)
-	queue2 = await Queue.create(server=server, song=song2, asker=asker)
+	queue1 = await Queue.create(server=server, song=song1, asker=user)
+	queue2 = await Queue.create(server=server, song=song2, asker=user)
 
 	assert queue1.position == 1
 	assert queue2.position == 2
@@ -135,16 +135,16 @@ async def test_queue_position_auto_increment(db_fixture):
 
 async def test_user_playlist_relationships(db_fixture):
 	# Create test data
-	asker = await Asker.get(discord_id=123456789)
+	user = await User.get(discord_id=123456789)
 	playlist = await Playlist.create(name="Test Playlist")
 
 	# Create user playlist relationship
 	user_playlist = await UserPlaylist.create(
-		asker=asker,
+		asker=user,
 		playlist=playlist
 	)
 
 	# Test relationships
-	await asker.fetch_related("playlists")
-	assert len(asker.playlists) == 1
-	assert user_playlist in asker.playlists
+	await user.fetch_related("playlists")
+	assert len(user.playlists) == 1
+	assert user_playlist in user.playlists
