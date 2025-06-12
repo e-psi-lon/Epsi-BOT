@@ -75,6 +75,7 @@ class Others(commands.Cog):
 			return await ctx.respond(
 				embed=discord.Embed(title="Error", description="No lyrics found.", color=discord.Color.dark_red()))
 		await ctx.respond(embed=discord.Embed(title="Lyrics", description=lyrics, color=discord.Color.green()))
+		return None
 
 
 def setup(bot: commands.Bot):

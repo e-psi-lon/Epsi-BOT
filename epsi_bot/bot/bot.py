@@ -194,6 +194,7 @@ async def start(instance: Bot, start_time: datetime):
 			db_url='sqlite://database/database.db',
 			modules={'models': [models]}
 		)
+		# noinspection PyProtectedMember
 		db_logger.debug("Tortoise-ORM started, %s, %s", connections._get_storage(), Tortoise.apps)
 
 	@instance.after_invoke

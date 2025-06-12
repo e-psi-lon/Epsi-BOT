@@ -36,7 +36,7 @@ def type_checking(var: Any, type_: Union[type, tuple[type]], *indexed_types: Uni
 	type_ : Union[type, tuple[type]]
 		The type of the variable to check
 	indexed_types : Union[type, tuple[type]]
-		The types of the indexed values of the variable
+		The types of the indexed values for the variable
 	use_attr : bool
 		Whether to check the attributes or the values of the variable. Default is False
 	raise_error : bool

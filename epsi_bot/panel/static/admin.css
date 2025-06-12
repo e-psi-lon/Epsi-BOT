@@ -130,7 +130,7 @@ h1 {
     text-decoration-thickness: 2px; /* Adjust the thickness as needed */
 }
 
-/* Une foreign key est en italique precedee de # */
+/* A foreign key is in italic preceded by a # */
 .foreign-key {
     font-style: italic;
 }

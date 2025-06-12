@@ -45,6 +45,7 @@ class Queue(commands.Cog):
 				                value=f"{song.url} asked by <@{queue_elem.asker.discord_id}>",
 				                inline=False)
 		await ctx.respond(embed=embed)
+		return None
 
 	@commands.slash_command(name="skip", description="Skips the current song")
 	@discord.option("by", int, description="How many songs to skip", required=False)
@@ -86,6 +87,7 @@ class Queue(commands.Cog):
 		await server.save()
 		await ctx.respond(
 			embed=discord.Embed(title="Skip", description=f"Skipped {by} songs.", color=discord.Color.green()))
+		return None
 
 	loop = SlashCommandGroup(name="loop", description="Commands related to looping songs")
 
@@ -130,6 +132,7 @@ class Queue(commands.Cog):
 		                      description=f"[{song.name}]({song.url}) asked by <@{queue_elem.asker.discord_id}>",
 		                      color=discord.Color.green())
 		await ctx.respond(embed=embed)
+		return None
 
 	remove = SlashCommandGroup(name="remove", description="Commands related to removing songs from the queue")
 
@@ -147,6 +150,7 @@ class Queue(commands.Cog):
 		await ctx.respond(
 			embed=discord.Embed(title="Remove", description=f"Removed {song} from the queue.",
 			                    color=discord.Color.green()))
+		return None
 
 	@remove.command(name="from-index", description="Removes a song from the queue ")
 	@discord.option("index", int, description="The index of the song to remove", required=True)
@@ -162,6 +166,7 @@ class Queue(commands.Cog):
 		await ctx.respond(
 			embed=discord.Embed(title="Remove", description=f"Removed {song.name} from the queue.",
 			                    color=discord.Color.green()))
+		return None
 
 	@commands.slash_command(name="clear", description="Clears the queue")
 	async def clear(self, ctx: discord.ApplicationContext):
@@ -178,6 +183,7 @@ class Queue(commands.Cog):
 			except discord.errors.ClientException:
 				pass
 		await ctx.respond(embed=discord.Embed(title="Clear", description="Queue cleared.", color=discord.Color.green()))
+		return None
 
 	@commands.slash_command(name="back", description="Goes back to the previous song")
 	async def back(self, ctx: discord.ApplicationContext):
@@ -211,6 +217,7 @@ class Queue(commands.Cog):
 		await server.save()
 		await ctx.respond(
 			embed=discord.Embed(title="Back", description="Playing previous song.", color=discord.Color.green()))
+		return None
 
 	@commands.slash_command(name="shuffle", description="Shuffles the queue")
 	async def shuffle(self, ctx: discord.ApplicationContext):
@@ -225,6 +232,7 @@ class Queue(commands.Cog):
 			await queue_elem.save()
 		await ctx.respond(
 			embed=discord.Embed(title="Shuffle", description="Queue shuffled.", color=discord.Color.green()))
+		return None
 
 	random_command = SlashCommandGroup(name="random", description="Commands related to random mode")
 
@@ -259,6 +267,8 @@ class Queue(commands.Cog):
 		server = await Server.get(server_id=ctx.guild.id).prefetch_related("queue", "queue__song")
 		if not await server.queue.all():
 			return await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
+		# The inferred type is incorrect, but it's indeed a `Song` and not a `str` as the type checker suggests.
+		# noinspection PyTypeChecker
 		index = get_index_from_title(song, [queue_elem.song for queue_elem in server.queue])
 		if index == -1:
 			return await ctx.respond(
@@ -270,6 +280,7 @@ class Queue(commands.Cog):
 		await ctx.respond(
 			embed=discord.Embed(title="Play", description=f"Playing [{song}]({server.queue[index].song.url}).",
 			                    color=discord.Color.green()))
+		return None
 
 	@play.command(name="number", description="Plays a song from the queue")
 	@discord.option("index", int, description="The index of the song to play", required=True)
@@ -290,6 +301,7 @@ class Queue(commands.Cog):
 			                    description=f"Playing [{server.queue[index - 1].song.name}]"
 			                                f"({server.queue[index - 1].song.url}).",
 			                    color=discord.Color.green()))
+		return None
 
 
 def setup(bot: commands.Bot):

@@ -24,11 +24,6 @@ class SelectVideo(discord.ui.Select):
 		discord.ui.Select arguments
 	**kwargs
 		discord.ui.Select keyword arguments
-
-	Methods
-	-------
-	callback(interaction: discord.Interaction)
-		The callback function to execute when a video is selected
 	"""
 
 	def __init__(self, videos: list[pytubefix.YouTube], ctx: discord.ApplicationContext, download_file: bool, *args,
@@ -47,7 +42,14 @@ class SelectVideo(discord.ui.Select):
 		self.options = options
 
 	async def callback(self, interaction: discord.Interaction):
-		# Si l'utilisateur à l'origine du select n'est pas l'utilisateur à l'origine de l'interaction, on ignore.
+		"""
+		Callback function to execute when a video is selected
+
+		Parameters
+		----------
+		interaction : discord.Interaction
+			The interaction that triggered the callback
+		"""
 		if interaction.user.id != self.ctx.author.id:
 			return await interaction.response.send_message("You are not the author of the command.", ephemeral=True)
 		await interaction.message.edit(
@@ -92,12 +94,14 @@ class SelectVideo(discord.ui.Select):
 				                                                               f"({self.values[0]})",
 				                                                   color=discord.Color.green()))
 				await play_song(self.ctx, server.queue[server.position].song.url)
+				return None
 			else:
 				await interaction.message.edit(embed=discord.Embed(title="Queue",
 				                                                   description=f"Song "
 				                                                               f"[{get_youtube(self.values[0]).title}]"
 				                                                               f"({self.values[0]}) added to queue.",
 				                                                   color=discord.Color.green()))
+				return None
 
 
 class Research(discord.ui.View):

@@ -53,14 +53,15 @@ class Playlists(commands.Cog):
 				                    color=discord.Color.dark_red()))
 		playlist = await Playlist.create(name=name)
 		for queue_elem in server.queue:
-			await PlaylistSong.create(asker=queue_elem.asker, playlist=playlist, position=queue_elem.position,
-			                          song=queue_elem.song).save()
+			await (await PlaylistSong.create(asker=queue_elem.asker, playlist=playlist, position=queue_elem.position,
+			                          song=queue_elem.song)).save()
 		if playlist_type == "server":
-			await ServerPlaylist.create(playlist=playlist, server=server).save()
+			await (await ServerPlaylist.create(playlist=playlist, server=server)).save()
 		else:
-			await UserPlaylist.create(playlist=playlist, user=user).save()
+			await (await UserPlaylist.create(playlist=playlist, user=user)).save()
 		await ctx.respond(
 			embed=discord.Embed(title="Playlist", description=f"Playlist {name} created.", color=discord.Color.green()))
+		return None
 
 	@create.command(name="from-youtube", description="Creates a playlist from a youtube playlist")
 	@discord.option("url", str, description="The url of the playlist", required=True)
@@ -131,6 +132,7 @@ class Playlists(commands.Cog):
 		await Playlist.filter(name=name).delete()
 		await ctx.respond(
 			embed=discord.Embed(title="Playlist", description=f"Playlist {name} deleted.", color=discord.Color.green()))
+		return None
 
 	@playlist.command(name="add", description="Adds a song to a playlist")
 	@discord.option("name", str, description="The name of the playlist", required=True,
@@ -207,6 +209,7 @@ class Playlists(commands.Cog):
 			embed=discord.Embed(title="Playlist",
 			                    description=f"Song {song_to_remove.name} removed from playlist {name}.",
 			                    color=discord.Color.green()))
+		return None
 
 	@playlist.command(name="play", description="Plays a playlist")
 	@discord.option("name", str, description="The name of the playlist", required=True,
@@ -258,6 +261,7 @@ class Playlists(commands.Cog):
 		if len(server.queue) > 1:
 			queue = [queue.song.url for queue in server.queue][1:]
 			await download_bulk(queue)
+		return None
 
 	@playlist.command(name="list", description="Lists all the playlists")
 	@discord.option("playlist-type", str, description="The type of the playlist", required=False,
@@ -280,6 +284,7 @@ class Playlists(commands.Cog):
 				embed.add_field(name="And more...", value="")
 				break
 		await ctx.respond(embed=embed)
+		return None
 
 	@playlist.command(name="show", description="Shows a playlist")
 	@discord.option("name", str, description="The name of the playlist", required=True,
@@ -307,6 +312,7 @@ class Playlists(commands.Cog):
 				embed.add_field(name="...", value="")
 				break
 		await ctx.respond(embed=embed)
+		return None
 
 	@playlist.command(name="rename", description="Renames a playlist")
 	@discord.option("name", str, description="The name of the playlist", required=True,
@@ -350,6 +356,7 @@ class Playlists(commands.Cog):
 		await playlist.save()
 		await ctx.respond(embed=discord.Embed(title="Playlist", description=f"Playlist {name} renamed to {new_name}.",
 		                                      color=discord.Color.green()))
+		return None
 
 	@playlist.command(name="copy", description="Copies a playlist to another playlist type")
 	@discord.option("name", str, description="The name of the playlist", required=True,
@@ -392,6 +399,7 @@ class Playlists(commands.Cog):
 			                                   server=await Server.get(server_id=ctx.guild.id))).save()
 		await ctx.respond(embed=discord.Embed(title="Playlist", description=f"Playlist {name} copied.",
 		                                      color=discord.Color.green()))
+		return None
 
 
 def setup(bot):

@@ -20,6 +20,7 @@ class Listeners(commands.Cog):
 		if message.content.startswith("e!eval"):
 			output = io.StringIO()
 			if message.author.id == self.bot.owner_id:
+				# noinspection PyBroadException
 				try:
 					code = message.content.split("\n", 1)[1]
 					code = code[3:-3]

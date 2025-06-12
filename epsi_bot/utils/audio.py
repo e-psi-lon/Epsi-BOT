@@ -34,7 +34,7 @@ async def finished_record_callback(sink: discord.sinks.Sink, channel: discord.Te
 	"""Callback function to execute when the recording is finished that processes the audio and sends it to the
 	channel"""
 	mention_strs = []
-	audio_segs: list[pydub.AudioSegment] = []
+	audio_segments: list[pydub.AudioSegment] = []
 	files: list[discord.File] = []
 
 	longest = pydub.AudioSegment.empty()
@@ -51,17 +51,17 @@ async def finished_record_callback(sink: discord.sinks.Sink, channel: discord.Te
 
 		# Determine the longest audio segment
 		if len(seg) > len(longest):
-			audio_segs.append(longest)
+			audio_segments.append(longest)
 			longest = seg
 		else:
-			audio_segs.append(seg)
+			audio_segments.append(seg)
 
 		audio.file.seek(0)
 		member = channel.guild.get_member(user_id)
 		if member is not None:
 			files.append(discord.File(audio.file, filename=f"{member.name}.{getattr(sink, 'encoding', 'wav')}"))
 
-	for seg in audio_segs:
+	for seg in audio_segments:
 		longest = longest.overlay(seg)
 	with io.BytesIO() as f:
 		longest.export(f, format=getattr(sink, "encoding", "wav"))
@@ -92,6 +92,7 @@ async def disconnect_from_channel(state: discord.VoiceState, bot: commands.Bot) 
 				break
 		if ok:
 			break
+	return None
 
 
 def get_index_from_title(title: str, list_to_check: list[Song]) -> int:
@@ -135,10 +136,10 @@ async def play_song(ctx: discord.ApplicationContext, url: str) -> None:
 	async with database_context():
 		server = await Server.get(server_id=ctx.guild.id)
 		song = await Song.get(url=url)
-		song_listen_lount = await SongListenCount.get_or_none(song=song)
-		if song_listen_lount is not None:
-			song_listen_lount.count += 1
-			await song_listen_lount.save()
+		song_listen_count = await SongListenCount.get_or_none(song=song)
+		if song_listen_count is not None:
+			song_listen_count.count += 1
+			await song_listen_count.save()
 		else:
 			await SongListenCount.create(song=song, count=1)
 	try:

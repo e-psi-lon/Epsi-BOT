@@ -59,6 +59,7 @@ class AsyncRequests:
 		Make a POST request
 	"""
 
+	# noinspection PyProtectedMember
 	@staticmethod
 	async def get(url: str, params: Optional[dict] = None, data: Any = None, headers: Optional[dict] = None,
 	              cookies: Optional[dict] = None, auth: Optional[aiohttp.BasicAuth] = None,
@@ -73,23 +74,23 @@ class AsyncRequests:
 		url : str
 			The URL to make the request to.
 		params : Optional[dict]
-			The parameters for the request. Default is None.
+			The parameters for the request. The default is None.
 		data : Any
-			The data for the request. Default is None.
+			The data for the request. The default is None.
 		headers : Optional[dict]
-			The headers for the request. Default is None.
+			The headers for the request. The default is None.
 		cookies : Optional[dict]
-			The cookies for the request. Default is None.
+			The cookies for the request. The default is None.
 		auth : Optional[aiohttp.BasicAuth]
-			The authentication data for the request. Default is None.
+			The authentication data for the request. The default is None.
 		allow_redirects : bool
-			Whether to allow redirects or not. Default is True.
+			Whether to allow redirects or not. The default is True.
 		timeout : Optional[float]
-			The timeout for the request. Default is None.
+			The timeout for the request. The default is None.
 		json : Any
-			The json data for the request. Default is None.
+			The JSON data for the request. The default is None.
 		return_type : Literal["json", "text", "content"]
-			The type of the return value. Default is "json".
+			The type of the return value. The default is "json".
 		
 		Returns
 		-------
@@ -108,6 +109,7 @@ class AsyncRequests:
 					case _:
 						return await response.text()
 
+	# noinspection PyProtectedMember
 	@staticmethod
 	async def post(url: str, data: Any = None, json: Any = None, params: Optional[dict] = None,
 	               headers: Optional[dict] = None, cookies: Optional[dict] = None,
@@ -125,7 +127,7 @@ class AsyncRequests:
 		data : Any
 			The data for the request. Default is None.
 		json : Any
-			The json data for the request. Default is None.
+			The JSON data for the request. Default is None.
 		params : Optional[dict]
 			The parameters for the request. Default is None.
 		headers : Optional[dict]
@@ -139,7 +141,7 @@ class AsyncRequests:
 		timeout : Optional[float]
 			The timeout for the request. Default is None.
 		return_type : Literal["json", "text", "content"]
-			The type of the return value. Default is "json".
+			The type of the return value. The default is "json".
 		"""
 		async with aiohttp.ClientSession() as session:
 			async with session.post(url, data=data, json=json, params=params, headers=headers, cookies=cookies,

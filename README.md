@@ -96,7 +96,7 @@ Legend:
 
 ### Setup
 
-Once the repository cloned:
+Once the repository is cloned:
 
 1. Fill in the required fields in the `.env` file (see [`.env.example`](.env.example))
 
@@ -124,4 +124,4 @@ Once the repository cloned:
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.

@@ -39,6 +39,7 @@ class Todo(commands.Cog):
 		embed = discord.Embed(title="Ajout d'une ligne", description=f"La ligne {line.name} a été ajoutée au message "
 		                                                             f"{message.jump_url}")
 		await ctx.respond(embed=embed, delete_after=30)
+		return None
 
 	@todo.command(name="remove_line", description="Removes a line from the message")
 	@discord.option("index", int, description="The index of the line to remove", required=True)
@@ -66,6 +67,7 @@ class Todo(commands.Cog):
 		embed = discord.Embed(title="Suppression d'une ligne", description=f"La ligne {old_line.name} a été "
 		                                                                   f"supprimée du message {message.jump_url}")
 		await ctx.respond(embed=embed, delete_after=30)
+		return None
 
 	@todo.command(name="edit_line", description="Edits a line from the message")
 	@discord.option("index", int, description="The index of the line to edit", required=True)
@@ -76,6 +78,7 @@ class Todo(commands.Cog):
 			embed = discord.Embed(title="Modification d'une ligne", description="Cette commande ne peut être utilisée "
 			                                                                    "que dans le channel "
 			                                                                    "<#1128286383161745479>")
+			return await ctx.respond(embed=embed, delete_after=30)
 		message = await ctx.channel.fetch_message(1128641774789861488)
 		lines = message.embeds[0].fields
 		if index <= 0 or index > len(lines):
@@ -94,6 +97,7 @@ class Todo(commands.Cog):
 		                                                                    f" été modifiée dans le message"
 		                                                                    f" {message.jump_url}")
 		await ctx.respond(embed=embed, delete_after=30)
+		return None
 
 	@todo.command(name="assign", description="Assigns a task to a user")
 	@discord.option("index", int, description="The index of the line to assign", required=True)
@@ -144,6 +148,7 @@ class Todo(commands.Cog):
 		                                       description="Les points suivant sont les différentes tâches à "
 		                                                   "effectuer pour améliorer le bot",
 		                                       fields=lines))
+		return None
 
 	@todo.command(name="tuto", description="Sends a tutorial on how to use the to-do list")
 	async def tuto(self, ctx: discord.ApplicationContext):

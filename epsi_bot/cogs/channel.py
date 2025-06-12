@@ -22,6 +22,7 @@ class Channel(commands.Cog):
 		await server.queue.all().delete()
 		server.position = 0
 		await server.save()
+		return None
 
 	@commands.slash_command(name='join', description='Join the voice channel you are in.')
 	async def join(self, ctx: discord.ApplicationContext):
@@ -47,6 +48,7 @@ class Channel(commands.Cog):
 			if len(server.queue) > 1:
 				queue = [queue.song.url for queue in server.queue][1:]
 				await download_bulk(queue[1:])
+		return None
 
 
 def setup(bot: commands.Bot):

@@ -114,7 +114,7 @@ async def download(url: str, download_logger: logging.Logger = get_logger("Audio
 	"""
 	async with AudioCache() as cache:
 		value = await to_cache(url, cache)
-	download_logger.info(f"Succesfully downloaded {url}")
+	download_logger.info(f"Successfully downloaded {url}")
 	return value
 
 

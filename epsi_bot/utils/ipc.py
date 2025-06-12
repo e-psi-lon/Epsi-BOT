@@ -80,7 +80,7 @@ class IPCManager:
 		self._event.set()
 
 	async def request(self, channel: str, timeout: float = 5.0, **payload: Optional[Any]) -> Any:
-		"""Make a request on a channel and wait for response
+		"""Make a request on a channel and wait for the response
 
 		Parameters
 		----------
@@ -99,7 +99,7 @@ class IPCManager:
 		Raises
 		------
 		asyncio.TimeoutError
-			If no response received within timeout period
+			If no response is received within the timeout period
 		"""
 		if not payload:
 			payload = None
@@ -134,7 +134,7 @@ class IPCManager:
 
 	def handle(self, channel: str):
 		"""Register a handler for a specific channel.
-		The handler function have to be a coroutine that takes two
+		The handler function has to be a coroutine that takes two
 		parameters: the id of the message and the payload.
 
 		Parameters

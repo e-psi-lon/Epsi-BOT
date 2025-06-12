@@ -101,7 +101,7 @@ async def test_playlist_relationships(db_fixture):
 	song = await Song.create(name="Test Song", url="https://test.com")
 	user = await User.create(discord_id=123456789)
 
-	# Create playlist song relationship
+	# Create a playlist song relationship
 	playlist_song = await PlaylistSong.create(
 		playlist=playlist,
 		song=song,
@@ -138,7 +138,7 @@ async def test_user_playlist_relationships(db_fixture):
 	user = await User.get(discord_id=123456789)
 	playlist = await Playlist.create(name="Test Playlist")
 
-	# Create user playlist relationship
+	# Create a user playlist relationship
 	user_playlist = await UserPlaylist.create(
 		asker=user,
 		playlist=playlist

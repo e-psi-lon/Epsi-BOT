@@ -202,6 +202,7 @@ async def server(server_id: int) -> None | str | Response:
 		                         config.volume)  # type: ignore[arg-type, attr-defined]
 		return await render_template('server.html', server=server_data, app=app, get_youtube=get_youtube,
 		                             yt_regex=YOUTUBE_REGEX)
+	return None
 
 
 @app.route('/server/<int:server_id>/clear')
@@ -322,7 +323,7 @@ async def admin_ws():
 						values = []
 						for row in all_rows:
 							value = getattr(row, col_name)
-							if col_type is True:  # Primary key
+							if col_type:  # Primary key
 								values.append(str(value))
 							elif col_type is None:  # Foreign key
 								values.append(str((await value).pk))

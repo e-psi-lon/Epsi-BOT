@@ -45,6 +45,8 @@ class ChannelData:
 		ChannelData
 			The ChannelData instance
 		"""
+		# `name` in fact exists since type is an enum and enum members have a `name` attribute.
+		# noinspection PyUnresolvedReferences
 		return cls(
 			name=channel.name,
 			id=channel.id,

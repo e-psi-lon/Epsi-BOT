@@ -255,7 +255,7 @@
 
                 // Iterate through each table in the database
                 Object.entries(database).forEach(([tableName, columnData]) => {
-                    // Create button for the table
+                    // Create a button for the table
                     const button = document.createElement('button');
                     button.className = 'sql-button';
                     button.id = 'btn-' + tableName;
@@ -263,7 +263,7 @@
                     button.onclick = () => showTable(tableName);
                     sqlButtons.appendChild(button);
 
-                    // Create table container
+                    // Create a table container
                     const tableDiv = document.createElement('div');
                     tableDiv.className = 'sql-table';
                     tableDiv.id = 'table-' + tableName;
@@ -283,7 +283,7 @@
                         if (typeA === true && typeB !== true) return -1;
                         if (typeB === true && typeA !== true) return 1;
 
-                        // If neither or both are primary keys, sort alphabetically
+                        // If neither nor both are primary keys, sort alphabetically
                         return nameA.localeCompare(nameB);
                     });
                     columns.forEach(([columnName, [keyType, _]]) => {
@@ -299,7 +299,7 @@
                     thead.appendChild(trHead);
                     tableElement.appendChild(thead);
 
-                    // Create table body with values
+                    // Create a table body with values
                     const tbody = document.createElement('tbody');
                     const columnNames = columns.map(([name, _]) => name);
                     const rowCount = columnData[columnNames[0]][1].length;

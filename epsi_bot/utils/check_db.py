@@ -70,7 +70,7 @@ def check_db() -> None:
 					table_dict[keys[i]].append(line[i])
 			table_data.append(table_dict)
 
-		# On affiche les tableaux
+		# Show tables
 		for table_dict in table_data:
 			print(format_table(table_dict))
 	finally:

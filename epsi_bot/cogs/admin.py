@@ -34,6 +34,7 @@ class Admin(commands.Cog):
 		embed = discord.Embed(title="Cache removed", description="Removed the audio cache.",
 		                      color=discord.Color.green())
 		await ctx.respond(embed=embed, delete_after=30)
+		return None
 
 	@commands.slash_command(name="clean", description="Cleans the bot's messages", guild_ids=[761485410596552736])
 	@discord.option("count", int, description="The number of messages to delete", required=False, default=1,
@@ -53,6 +54,7 @@ class Admin(commands.Cog):
 		await ctx.channel.purge(check=check)
 		embed = discord.Embed(title="Clean", description=f"Cleaned {count} messages.", color=discord.Color.green())
 		await ctx.respond(embed=embed, delete_after=30)
+		return None
 
 	@commands.slash_command(name="reload", description="Reloads the cogs", guild_ids=[761485410596552736])
 	@discord.option("cog", str, description="The cog to reload", required=False, default="all",
@@ -75,6 +77,7 @@ class Admin(commands.Cog):
 			self.bot.reload_extension(f"epsi_bot.cogs.{cog}")
 			embed = discord.Embed(title="Reload", description=f"Reloaded the {cog} cog.", color=discord.Color.green())
 			await ctx.respond(embed=embed, delete_after=30)
+		return None
 
 
 def setup(bot):

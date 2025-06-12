@@ -69,6 +69,7 @@ class State(commands.Cog):
 		                                      description=f"Song [{GET_FILE_HTTP_URL.match(url).group(1).split('.')[0]}]({url})"
 		                                                  f" added to queue.",
 		                                      color=discord.Color.green()))
+		return None
 
 	@play.command(name="file", description="Plays the audio of a file")
 	@discord.option("file", discord.Attachment, description="The file to play", required=True)
@@ -130,7 +131,7 @@ class State(commands.Cog):
 					await play_song(ctx, url)
 				else:
 					video = get_youtube(url)
-					asyncio.create_task(download(url))
+					asyncio.create_task(download(url), name=f"Download-{video.video_id}")
 					await ctx.respond(embed=discord.Embed(title="Queue",
 					                                      description=f"Song [{video.title}]({url})"
 					                                                  f" added to queue.",
@@ -170,6 +171,7 @@ class State(commands.Cog):
 				                    color=discord.Color.dark_red()))
 		ctx.guild.voice_client.pause()
 		await ctx.respond(embed=discord.Embed(title="Pause", description="Song paused.", color=discord.Color.green()))
+		return None
 
 	@commands.slash_command(name="resume", description="Resumes the current song")
 	async def resume(self, ctx: discord.ApplicationContext):
@@ -182,6 +184,7 @@ class State(commands.Cog):
 				                    color=discord.Color.dark_red()))
 		ctx.guild.voice_client.resume()
 		await ctx.respond(embed=discord.Embed(title="Resume", description="Song resumed.", color=discord.Color.green()))
+		return None
 
 	@commands.slash_command(name="stop", description="Stops the current song")
 	async def stop(self, ctx: discord.ApplicationContext):
@@ -198,6 +201,7 @@ class State(commands.Cog):
 		await server.save()
 		ctx.guild.voice_client.stop()
 		await ctx.respond(embed=discord.Embed(title="Stop", description="Song stopped.", color=discord.Color.green()))
+		return None
 
 	@commands.slash_command(name="volume", description="Gets or sets the volume of the bot")
 	@discord.option("volume", int, description="The volume to set (from 0 to 100)", required=False, min_value=0,
@@ -293,6 +297,7 @@ class State(commands.Cog):
 			                                f"<t:{int(time + datetime.now().timestamp())}:R>.",
 			                    color=discord.Color.green()))
 		self.bot.loop.call_later(time, finished_record)
+		return None
 
 	@commands.slash_command(name="stop_record", description="Arrête l'enregistrement")
 	async def stop_record(self, ctx: discord.ApplicationContext):

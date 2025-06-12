@@ -33,7 +33,7 @@ def get_subcommands(cmd: discord.ApplicationCommand, parent: str = "") -> list[t
 	command_list = []
 
 	if isinstance(cmd, discord.commands.SlashCommandGroup):
-		# For each subcommand in group
+		# For each subcommand in the group
 		for subcmd in cmd.subcommands:
 			# Recursively get nested subcommands
 			sub_cmds = get_subcommands(subcmd, f"{parent} {cmd.name}" if parent else cmd.name)
@@ -56,7 +56,7 @@ class Help(commands.Cog):
 		await ctx.response.defer()
 		help_pages: list[discord.Embed | list[discord.Embed]] = []
 
-		# Create main page
+		# Create the main page
 		main_page = discord.Embed(
 			title="Bot Help",
 			description="Use the buttons below to navigate through the help pages",
@@ -106,7 +106,7 @@ class Help(commands.Cog):
 						)
 					page.set_footer(text="[name] = optional")
 					cog_pages.append(page)
-					help_pages.append(cog_pages)  # Add list of Embeds
+					help_pages.append(cog_pages)  # Add a list of Embeds
 
 		# Create and send paginator
 		paginator = pages.Paginator(
