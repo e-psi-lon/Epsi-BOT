@@ -1,6 +1,8 @@
 import pytest
 from tortoise.exceptions import DoesNotExist
-from epsi_bot.utils.models import Server, Asker, Song, Queue, Playlist, PlaylistSong, UserPlaylist, ServerPlaylist
+
+from epsi_bot.utils.models import Server, Asker, Song, Queue, Playlist, PlaylistSong, UserPlaylist
+
 
 async def test_server_crud(db_fixture):
 	# Create
@@ -27,6 +29,7 @@ async def test_server_crud(db_fixture):
 	with pytest.raises(DoesNotExist):
 		await Server.get(server_id=123456789)
 
+
 async def test_song_crud(db_fixture):
 	# Create
 	song = await Song.create(
@@ -50,6 +53,7 @@ async def test_song_crud(db_fixture):
 	with pytest.raises(DoesNotExist):
 		await Song.get(song_id=song.song_id)
 
+
 async def test_playlist_crud(db_fixture):
 	# Create
 	playlist = await Playlist.create(name="Test Playlist")
@@ -68,6 +72,7 @@ async def test_playlist_crud(db_fixture):
 	await playlist.delete()
 	with pytest.raises(DoesNotExist):
 		await Playlist.get(playlist_id=playlist.playlist_id)
+
 
 async def test_user_crud(db_fixture):
 	# Create
@@ -111,6 +116,7 @@ async def test_playlist_relationships(db_fixture):
 	assert len(playlist.songs) == 1
 	assert playlist_song in playlist.songs
 
+
 async def test_queue_position_auto_increment(db_fixture):
 	server = await Server.create(server_id=123456789)
 	song1 = await Song.create(name="Song 1", url="https://test1.com")
@@ -125,6 +131,7 @@ async def test_queue_position_auto_increment(db_fixture):
 
 	await server.fetch_related("queue")
 	assert len(server.queue) == 2
+
 
 async def test_user_playlist_relationships(db_fixture):
 	# Create test data

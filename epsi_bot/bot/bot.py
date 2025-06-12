@@ -10,10 +10,10 @@ from discord.ext import commands
 from discord.ext import tasks
 from tortoise import Tortoise, connections
 
-from epsi_bot.utils.ipc import IPCManager
 from epsi_bot.bot.memcached_std import MemcachedStd
 from epsi_bot.utils import GuildData, UserData, get_logger, \
 	Server, download_bulk, AudioCache, SongListenCount, models
+from epsi_bot.utils.ipc import IPCManager
 
 
 @tasks.loop(hours=5)

@@ -4,22 +4,22 @@ from discord.commands import SlashCommandGroup
 from discord.ext import commands
 from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError
 
-from epsi_bot.utils import YOUTUBE_CLIENT
 from epsi_bot.bot.bot import Bot
 from epsi_bot.utils import (Playlist,
-                     Song,
-                     Asker,
-                     play_song,
-                     get_playlists,
-                     get_playlists_songs,
-                     EMBED_ERROR_NAME_TOO_LONG,
-                     EMBED_ERROR_QUEUE_EMPTY,
-                     EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST,
-                     EMBED_ERROR_BOT_NOT_CONNECTED,
-                     Server, PlaylistSong, ServerPlaylist, UserPlaylist, Queue,
-                     download_bulk,
-                     get_youtube
-                     )
+                            Song,
+                            Asker,
+                            play_song,
+                            get_playlists,
+                            get_playlists_songs,
+                            EMBED_ERROR_NAME_TOO_LONG,
+                            EMBED_ERROR_QUEUE_EMPTY,
+                            EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST,
+                            EMBED_ERROR_BOT_NOT_CONNECTED,
+                            Server, PlaylistSong, ServerPlaylist, UserPlaylist, Queue,
+                            download_bulk,
+                            get_youtube
+                            )
+from epsi_bot.utils import YOUTUBE_CLIENT
 
 
 class Playlists(commands.Cog):
@@ -220,7 +220,8 @@ class Playlists(commands.Cog):
 		asker = await Asker.get(discord_id=ctx.user.id).prefetch_related("playlists", "playlists__playlist")
 		user_playlist = await asker.playlists.all()
 		playlist: Playlist
-		if name.endswith(" - SERVER") and name[:-9] in [(await playlists.playlist).name for playlists in server.playlists]:
+		if name.endswith(" - SERVER") and name[:-9] in [(await playlists.playlist).name for playlists in
+		                                                server.playlists]:
 			playlist = await Playlist.get(name=name[:-9])
 		elif name.endswith(" - USER") and name[:-7] in [(await playlists.playlist).name for playlists in user_playlist]:
 			playlist = await Playlist.get(name=name[:-7])
@@ -243,9 +244,9 @@ class Playlists(commands.Cog):
 
 		await server.queue.all().delete()
 		songs = await playlist.songs.all().prefetch_related("song", "asker")
-		songs_creation = list(map(lambda x: Queue(asker=x.asker, server=server, song=x.song, position=x.position), songs))
+		songs_creation = list(
+			map(lambda x: Queue(asker=x.asker, server=server, song=x.song, position=x.position), songs))
 		await Queue.bulk_create(songs_creation)
-
 
 		server.position = 0
 		await server.save()
@@ -387,7 +388,8 @@ class Playlists(commands.Cog):
 			new_playlist = await Playlist.create(name=name)
 			await new_playlist.save()
 			await PlaylistSong.bulk_create((await Playlist.get(name=name)).songs)
-			await (await ServerPlaylist.create(playlist=new_playlist, server=await Server.get(server_id=ctx.guild.id))).save()
+			await (await ServerPlaylist.create(playlist=new_playlist,
+			                                   server=await Server.get(server_id=ctx.guild.id))).save()
 		await ctx.respond(embed=discord.Embed(title="Playlist", description=f"Playlist {name} copied.",
 		                                      color=discord.Color.green()))
 

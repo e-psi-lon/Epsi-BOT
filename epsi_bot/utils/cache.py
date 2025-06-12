@@ -1,12 +1,12 @@
 import asyncio
 import base64
-import binascii
 import io
 import logging
-import zlib
 from typing import Any, Coroutine
 
+import binascii
 import pytubefix  # type: ignore[import-untyped]
+import zlib
 from aiocache import MemcachedCache  # type: ignore[import-untyped]
 from aiocache.serializers import JsonSerializer
 

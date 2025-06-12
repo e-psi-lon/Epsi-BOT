@@ -1,14 +1,13 @@
 import asyncio
+import threading
+import uuid
 from dataclasses import dataclass, field
 from enum import Enum
-import threading
-from typing import Any, Callable, Coroutine, Optional
 from multiprocessing import Queue, Event as Event
 from multiprocessing.synchronize import Event as EventClass
-import uuid
+from typing import Any, Callable, Coroutine, Optional
 
 from epsi_bot.utils.loggers import get_logger
-
 
 __all__ = ["IPCMessage", "IPCManager", "MessageType"]
 
@@ -18,6 +17,7 @@ class MessageType(Enum):
 	DATA = "data"
 	REQUEST = "request"
 	RESPONSE = "response"
+
 
 @dataclass
 class IPCMessage:
@@ -41,17 +41,16 @@ class IPCManager:
 		self._thread = None
 		self._pending_lock = asyncio.Lock()
 
-
 	async def start(self):
 		self._logger.info(f"Starting IPCManager for {self._side}")
 		asyncio.create_task(self._process_queue())
-		threading.Thread(target=self._sync_reader, name=f"IPCManager-{self._side}", args=(asyncio.get_event_loop(),)).start()
+		threading.Thread(target=self._sync_reader, name=f"IPCManager-{self._side}",
+		                 args=(asyncio.get_event_loop(),)).start()
 
 	def _sync_reader(self, loop):
 		while self._running:
 			msg = self._in_queue.get()
 			loop.call_soon_threadsafe(self._async_in_queue.put_nowait, msg)
-
 
 	async def _process_queue(self):
 		while self._running:
@@ -73,8 +72,6 @@ class IPCManager:
 					await self._handlers[msg.channel](msg.id)
 				else:
 					await self._handlers[msg.channel](msg.id, msg.payload)
-
-
 
 	async def send(self, channel: str, payload: Any = None):
 		msg = IPCMessage(MessageType.EVENT, channel, payload)
@@ -128,7 +125,6 @@ class IPCManager:
 			async with self._pending_lock:
 				await self._pending_requests.pop(request_id, None)
 			raise
-
 
 	async def respond(self, request_id: str, payload: Any):
 		self._logger.debug(f"Sending response for {request_id}")

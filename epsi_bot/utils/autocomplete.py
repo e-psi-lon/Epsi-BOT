@@ -59,8 +59,7 @@ async def get_playlists_songs(ctx: discord.AutocompleteContext) -> list[str]:
 			for user_playlist in user.playlists:
 				if user_playlist.playlist.name == ctx.options['playlist'][:-7]:
 					return [song.song.name for song in user_playlist.playlist.songs]
-		else:
-			return []
+		return []
 
 
 async def get_queue_songs(ctx: discord.AutocompleteContext) -> list[str]:

@@ -23,15 +23,15 @@ from werkzeug.wrappers.response import Response
 
 from epsi_bot.bot.bot import start, Bot
 from epsi_bot.utils import (UserData,
-                     ConfigData,
-                     AsyncRequests,
-                     get_logger,
-                     parse_args,
-                     models,
-                     YOUTUBE_REGEX,
-                     IPCManager,
-                     get_youtube,
-                     )
+                            ConfigData,
+                            AsyncRequests,
+                            get_logger,
+                            parse_args,
+                            models,
+                            YOUTUBE_REGEX,
+                            IPCManager,
+                            get_youtube,
+                            )
 from epsi_bot.utils.models import BaseModel
 
 load_dotenv()
@@ -195,7 +195,8 @@ async def server(server_id: int) -> None | str | Response:
 			                                song in values['queue']], ignore_conflicts=True)
 			await config.save()
 			return redirect(url_for('server', server_id=server_id))
-		server_data = ConfigData(config.loop_song, config.loop_queue, config.random, config.position, await config.queue,
+		server_data = ConfigData(config.loop_song, config.loop_queue, config.random, config.position,
+		                         await config.queue,
 		                         # type: ignore[arg-type]
 		                         server_id, (await app.get_from_bot("guild", server_id=server_id)).name,
 		                         config.volume)  # type: ignore[arg-type, attr-defined]
@@ -331,7 +332,8 @@ async def admin_ws():
 
 					# We filter the table data
 					# If there's fk_name and fk_name_id, we remove fk_name_id
-					table_data = {k: v for k, v in table_data.items() if not (k.endswith("_id") and k[:-3] in table_data.keys())}
+					table_data = {k: v for k, v in table_data.items() if
+					              not (k.endswith("_id") and k[:-3] in table_data.keys())}
 
 					database[table.__name__] = table_data
 				await websocket.send_json({
