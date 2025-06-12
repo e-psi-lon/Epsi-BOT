@@ -1,5 +1,4 @@
 import asyncio
-import threading
 from datetime import datetime
 from typing import Optional
 
@@ -98,6 +97,7 @@ class State(commands.Cog):
 		await ctx.respond(embed=discord.Embed(title="Queue",
 		                                      description=f"Song [{file.filename}]({url}) added to queue.",
 		                                      color=discord.Color.green()))
+		return None
 
 	@play.command(name="youtube", description="Plays the audio of a YouTube video")
 	@discord.option("query", str, description="The YouTube audio to play", required=True)
@@ -130,7 +130,7 @@ class State(commands.Cog):
 					await play_song(ctx, url)
 				else:
 					video = get_youtube(url)
-					threading.Thread(target=self._download, args=(url,), name=f"Download-{video.video_id}").start()
+					asyncio.create_task(download(url))
 					await ctx.respond(embed=discord.Embed(title="Queue",
 					                                      description=f"Song [{video.title}]({url})"
 					                                                  f" added to queue.",
@@ -154,9 +154,6 @@ class State(commands.Cog):
 				                    description=f"Select an audio to play for query `{query}` from the list below",
 				                    color=discord.Color.green()), view=view)
 
-	@staticmethod
-	def _download(url: str):
-		asyncio.run(download(url))
 
 	@commands.slash_command(name="pause", description="Pauses the current song")
 	async def pause(self, ctx: discord.ApplicationContext):

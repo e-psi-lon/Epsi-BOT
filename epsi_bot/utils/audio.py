@@ -47,7 +47,7 @@ async def finished_record_callback(sink: discord.sinks.Sink, channel: discord.Te
 	)
 	for user_id, audio in sink.audio_data.items():
 		user_id: int
-		seg = pydub.AudioSegment.from_file(audio.file, format=sink.encoding)
+		seg = pydub.AudioSegment.from_file(audio.file, format=getattr(sink, "encoding", "wav"))
 
 		# Determine the longest audio segment
 		if len(seg) > len(longest):
@@ -59,17 +59,17 @@ async def finished_record_callback(sink: discord.sinks.Sink, channel: discord.Te
 		audio.file.seek(0)
 		member = channel.guild.get_member(user_id)
 		if member is not None:
-			files.append(discord.File(audio.file, filename=f"{member.name}.{sink.encoding}"))
+			files.append(discord.File(audio.file, filename=f"{member.name}.{getattr(sink, 'encoding', 'wav')}"))
 
 	for seg in audio_segs:
 		longest = longest.overlay(seg)
 	with io.BytesIO() as f:
-		longest.export(f, format=sink.encoding)
+		longest.export(f, format=getattr(sink, "encoding", "wav"))
 		await message.edit(content=f"## Recorded {', '.join(mention_strs)}" if len(
 			mention_strs) > 1 else f"Recorded {mention_strs[0]}" if len(
 			mention_strs) == 1 else "Recorded no one",
 		                   files=files + [
-			                   discord.File(f, filename=f"record.{sink.encoding}")] if sink.encoding != "wav" else files
+			                   discord.File(f, filename=f"record.{getattr(sink, 'encoding', 'wav')}")] if getattr(sink, "encoding", "wav") != "wav" else files
 		                   )
 
 
@@ -117,7 +117,7 @@ async def change_song(ctx: discord.ApplicationContext) -> None:
 		else:
 			return
 		if server.random and len(server.queue) > 1:
-			server.position = random.sample(set(range(0, len(server.queue))) - {server.position}, 1)[0]
+			server.position = random.sample(list(set(range(0, len(server.queue))) - {server.position}), 1)[0]
 			await server.save()
 		try:
 			await play_song(ctx, server.queue[server.position].song.url)
@@ -163,7 +163,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str) -> None:
 			server.volume / 100)
 		try:
 			get_logger("Bot").info(f"Playing song {video.title}")
-			ctx.guild.voice_client.play(player,
+			_ = ctx.guild.voice_client.play(player,
 			                            after=lambda e: asyncio.run_coroutine_threadsafe(on_play_song_finished(ctx, e),
 			                                                                             loop),
 			                            wait_finish=True)
@@ -172,7 +172,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str) -> None:
 			while ctx.guild.voice_client.is_playing():
 				await asyncio.sleep(0.1)
 			get_logger("Bot").info(f"Playing song {video.title}")
-			ctx.guild.voice_client.play(player,
+			_ = ctx.guild.voice_client.play(player,
 			                            after=lambda e: asyncio.run_coroutine_threadsafe(on_play_song_finished(ctx, e),
 			                                                                             loop),
 			                            wait_finish=True)
@@ -183,7 +183,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str) -> None:
 			server.volume / 100)
 		try:
 			get_logger("Bot").info(f"Playing song {url}")
-			ctx.guild.voice_client.play(player,
+			_ = ctx.guild.voice_client.play(player,
 			                            after=lambda e: asyncio.run_coroutine_threadsafe(on_play_song_finished(ctx, e),
 			                                                                             loop),
 			                            wait_finish=True)
@@ -194,7 +194,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str) -> None:
 				pass
 			await ctx.author.voice.channel.connect()
 			get_logger("Bot").info(f"Playing song {url}")
-			ctx.guild.voice_client.play(player,
+			_ = ctx.guild.voice_client.play(player,
 			                            after=lambda e: asyncio.run_coroutine_threadsafe(on_play_song_finished(ctx, e),
 			                                                                             loop),
 			                            wait_finish=True)

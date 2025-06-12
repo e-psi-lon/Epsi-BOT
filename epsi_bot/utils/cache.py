@@ -89,8 +89,8 @@ async def to_cache(url: str, cache: AudioCache) -> io.BytesIO:
 		buffer.write(r)
 	else:
 		yt_video = pytubefix.YouTube(url, client=YOUTUBE_CLIENT)
-		stream = yt_video.streams.get_audio_only()
-		stream.stream_to_buffer(buffer)
+		stream = await asyncio.to_thread(yt_video.streams.get_audio_only)
+		await asyncio.to_thread(stream.stream_to_buffer, buffer)
 	buffer.seek(0)
 	await cache.set(url, buffer, ttl=3600)
 	return buffer
