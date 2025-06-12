@@ -82,7 +82,7 @@ Legend:
 - FK: Foreign Key
 - UQ: Unique Constraint
 
-## Installation and Setup
+## Development Setup
 
 ### Prerequisites
 
@@ -94,29 +94,44 @@ Legend:
 - Memcached
 - (Optional) Uses [`uv`](https://docs.astral.sh/uv) for easy dependency management and build
 
-### Setup
+### Environment Setup
 
-Once the repository is cloned:
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/e-psi-lon/Epsi-BOT.git
+   cd Epsi-Bot
+   ```
 
-1. Fill in the required fields in the `.env` file (see [`.env.example`](.env.example))
+2. Create and fill in the `.env` file based on the example:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your credentials and settings
+   ```
 
-2. Install the bot using uv:
+3. Install the bot using one of these methods:
 
-    ```bash
-    uv pip install .
-    # or
-    python -m pip install .
-    # or
-    pip install .
-    ```
+   ```bash
+   # Using uv (recommended)
+   uv pip install .
+   
+   # Using standard pip
+   python -m pip install .
+   # or
+   pip install .
+   ```
 
-3. Run the bot:
+4. For development, install in editable mode:
+   ```bash
+   uv pip install -e ".[dev]"
+   ```
 
-    ```bash
-    uv run -m epsi_bot
-    # or
-    python -m epsi_bot
-    ```
+### Running the Bot
+
+```bash
+uv run -m epsi_bot
+# or
+python -m epsi_bot
+```
 
 ## Contributors
 
