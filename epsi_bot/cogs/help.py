@@ -12,7 +12,7 @@ def format_params(cmd: discord.SlashCommand) -> str:
 
 	for option in cmd.options:
 		# Format as [param] if required, (param) if optional
-		param_format = f"[{option.name}]" if option.required else f"({option.name})"
+		param_format = f"<{option.name}>" if option.required else f"[{option.name}]"
 		params.append(param_format)
 
 	return " `" + " ".join(params) + "`" if params else ""
@@ -53,6 +53,7 @@ class Help(commands.Cog):
 
 	@commands.slash_command(name="help", description="Shows the help menu")
 	async def help(self, ctx: discord.ApplicationContext):
+		await ctx.response.defer()
 		help_pages: list[discord.Embed | list[discord.Embed]] = []
 
 		# Create main page
@@ -87,10 +88,10 @@ class Help(commands.Cog):
 						value=description,
 						inline=False
 					)
-				page.set_footer(text="[name] = required, (name) = optional")
+				page.set_footer(text="[name] = optional")
 				help_pages.append(page)  # Add single Embed
 			else:
-				# Multiple pages case
+				# Multiples pages case
 				cog_pages = []
 				for i in range(0, len(cog_commands), 25):
 					page = discord.Embed(
@@ -103,7 +104,7 @@ class Help(commands.Cog):
 							value=description,
 							inline=False
 						)
-					page.set_footer(text="[name] = required, (name) = optional")
+					page.set_footer(text="[name] = optional")
 					cog_pages.append(page)
 					help_pages.append(cog_pages)  # Add list of Embeds
 
