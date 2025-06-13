@@ -10,7 +10,7 @@ import zlib
 from aiocache import MemcachedCache  # type: ignore[import-untyped]
 from aiocache.serializers import JsonSerializer
 
-from epsi_bot.utils.async_utils import AsyncRequests
+import epsi_bot.utils.requests as requests
 from epsi_bot.utils.constants import YOUTUBE_REGEX, YOUTUBE_CLIENT
 from epsi_bot.utils.loggers import get_logger
 
@@ -85,7 +85,7 @@ async def to_cache(url: str, cache: AudioCache) -> io.BytesIO:
 	buffer = io.BytesIO()
 	buffer.seek(0)
 	if not YOUTUBE_REGEX.match(url):
-		r: bytes = await AsyncRequests.get(url, return_type="content")
+		r: bytes = await requests.get(url, return_type="content")
 		buffer.write(r)
 	else:
 		yt_video = pytubefix.YouTube(url, client=YOUTUBE_CLIENT)

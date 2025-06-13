@@ -35,7 +35,6 @@ __all__ = [
 	'convert',
 	'CustomFormatter',
 	'get_lyrics',
-	'AsyncRequests',
 	'run_async',
 	'run_sync',
 	'Event',
@@ -60,10 +59,10 @@ __all__ = [
 	"get_db_url",
 	"YOUTUBE_CLIENT",
 	"MAX_TRACK_LENGTH",
+	"requests"
 ]
 
-from epsi_bot.utils.async_utils import (AsyncRequests,
-                                        run_async,
+from epsi_bot.utils.async_utils import (run_async,
                                         run_sync,
                                         Event,
                                         set_callback
@@ -129,3 +128,6 @@ from epsi_bot.utils.type_utils import (FfmpegFormats,
                                        type_checking
                                        )
 from epsi_bot.utils.views import Research
+
+
+import requests
