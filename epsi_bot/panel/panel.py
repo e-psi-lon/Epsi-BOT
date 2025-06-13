@@ -33,6 +33,7 @@ from epsi_bot.utils import (UserData,
                             get_youtube,
                             )
 from epsi_bot.utils.models import BaseModel
+from epsi_bot.utils.models import get_db_url
 
 load_dotenv()
 
@@ -58,7 +59,7 @@ class Panel(Quart):
 		Session(self)
 		register_tortoise(
 			self,
-			db_url='sqlite://database/database.db',
+			db_url=get_db_url(),
 			modules={'models': ['epsi_bot.utils.models']}
 		)
 
@@ -80,7 +81,7 @@ class Panel(Quart):
 			with open("database/database.db", "w") as f:
 				f.write("")
 			await Tortoise.init(
-				db_url='sqlite://database/database.db',
+				db_url=get_db_url(),
 				modules={'models': ['epsi_bot.utils.models']}
 			)
 			await Tortoise.generate_schemas(safe=True)

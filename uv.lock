@@ -97,6 +97,18 @@ wheels = [
 ]
 
 [[package]]
+name = "aiomysql"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pymysql" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/67/76/2c5b55e4406a1957ffdfd933a94c2517455291c97d2b81cec6813754791a/aiomysql-0.2.0.tar.gz", hash = "sha256:558b9c26d580d08b8c5fd1be23c5231ce3aeff2dadad989540fee740253deb67", size = 114706, upload-time = "2023-06-11T19:57:53.608Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/42/87/c982ee8b333c85b8ae16306387d703a1fcdfc81a2f3f15a24820ab1a512d/aiomysql-0.2.0-py3-none-any.whl", hash = "sha256:b7c26da0daf23a5ec5e0b133c03d20657276e4eae9b73e040b72787f6f6ade0a", size = 44215, upload-time = "2023-06-11T19:57:51.09Z" },
+]
+
+[[package]]
 name = "aiosignal"
 version = "1.3.2"
 source = { registry = "https://pypi.org/simple" }
@@ -110,14 +122,14 @@ wheels = [
 
 [[package]]
 name = "aiosqlite"
-version = "0.20.0"
+version = "0.21.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0d/3a/22ff5415bf4d296c1e92b07fd746ad42c96781f13295a074d58e77747848/aiosqlite-0.20.0.tar.gz", hash = "sha256:6d35c8c256637f4672f843c31021464090805bf925385ac39473fb16eaaca3d7", size = 21691, upload-time = "2024-02-20T06:12:53.915Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/13/7d/8bca2bf9a247c2c5dfeec1d7a5f40db6518f88d314b8bca9da29670d2671/aiosqlite-0.21.0.tar.gz", hash = "sha256:131bb8056daa3bc875608c631c678cda73922a2d4ba8aec373b19f18c17e7aa3", size = 13454, upload-time = "2025-02-03T07:30:16.235Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/00/c4/c93eb22025a2de6b83263dfe3d7df2e19138e345bca6f18dba7394120930/aiosqlite-0.20.0-py3-none-any.whl", hash = "sha256:36a1deaca0cac40ebe32aac9977a6e2bbc7f5189f23f4a54d5908986729e5bd6", size = 15564, upload-time = "2024-02-20T06:12:50.657Z" },
+    { url = "https://files.pythonhosted.org/packages/f5/10/6c25ed6de94c49f88a91fa5018cb4c0f3625f31d5be9f771ebe5cc7cd506/aiosqlite-0.21.0-py3-none-any.whl", hash = "sha256:2549cf4057f95f53dcba16f2b64e8e2791d7e1adedb13197dd8ed77bb226d7d0", size = 15792, upload-time = "2025-02-03T07:30:13.6Z" },
 ]
 
 [[package]]
@@ -299,6 +311,7 @@ dependencies = [
     { name = "aiocache", extra = ["memcached"] },
     { name = "aiodns" },
     { name = "aiomultiprocess" },
+    { name = "aiomysql" },
     { name = "audioop-lts" },
     { name = "brotlipy" },
     { name = "charset-normalizer" },
@@ -317,6 +330,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "aiosqlite" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-aio" },
@@ -329,6 +343,7 @@ requires-dist = [
     { name = "aiocache", extras = ["memcached"], specifier = ">=0.12.3" },
     { name = "aiodns", specifier = ">=3.4.0" },
     { name = "aiomultiprocess", specifier = ">=0.9.1" },
+    { name = "aiomysql", specifier = ">=0.2.0" },
     { name = "audioop-lts", specifier = ">=0.2.1" },
     { name = "brotlipy", specifier = ">=0.7.0" },
     { name = "charset-normalizer", specifier = ">=3.4.2" },
@@ -339,7 +354,7 @@ requires-dist = [
     { name = "pynacl", specifier = ">=1.5.0" },
     { name = "python-dotenv", specifier = ">=1.1.0" },
     { name = "python-ffmpeg", specifier = ">=2.0.12" },
-    { name = "pytubefix", specifier = ">=9.1.1" },
+    { name = "pytubefix", specifier = ">=9.1.2" },
     { name = "quart", specifier = ">=0.20.0" },
     { name = "quart-session", specifier = ">=3.0.0" },
     { name = "tortoise-orm", specifier = ">=0.25.1" },
@@ -347,6 +362,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "aiosqlite", specifier = ">=0.21.0" },
     { name = "mypy", specifier = ">=1.16.0" },
     { name = "pytest", specifier = ">=8.4.0" },
     { name = "pytest-aio", specifier = ">=1.9.0" },
@@ -746,6 +762,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pymysql"
+version = "1.1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b3/8f/ce59b5e5ed4ce8512f879ff1fa5ab699d211ae2495f1adaa5fbba2a1eada/pymysql-1.1.1.tar.gz", hash = "sha256:e127611aaf2b417403c60bf4dc570124aeb4a57f5f37b8e95ae399a42f904cd0", size = 47678, upload-time = "2024-05-21T11:03:43.722Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0c/94/e4181a1f6286f545507528c78016e00065ea913276888db2262507693ce5/PyMySQL-1.1.1-py3-none-any.whl", hash = "sha256:4de15da4c61dc132f4fb9ab763063e693d521a80fd0e87943b9a453dd4c19d6c", size = 44972, upload-time = "2024-05-21T11:03:41.216Z" },
+]
+
+[[package]]
 name = "pynacl"
 version = "1.5.0"
 source = { registry = "https://pypi.org/simple" }
@@ -852,11 +877,11 @@ wheels = [
 
 [[package]]
 name = "pytubefix"
-version = "9.1.1"
+version = "9.1.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/3c/06/8570fb8fc1296dae7f156e4de57c2b351856e7813873178e1cbb8045eef3/pytubefix-9.1.1.tar.gz", hash = "sha256:68946ab2192d7bb9d8fcc0fe73f634bb0ab0cd33f2c3c718e65c0c4fbdbccbb1", size = 734325, upload-time = "2025-05-27T16:47:13.032Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2e/08/614d523bb494eb3fbcfa323963a4743101ebb4ee01d276a5b4632d69b17a/pytubefix-9.1.2.tar.gz", hash = "sha256:a39eeecdbb3f34a73f13547afa116e67f42f79630da0ab836d067b5a15a64709", size = 734275, upload-time = "2025-06-13T01:49:04.544Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5d/fd/80ba35c78cbd007bfdb71d83b64087cca10e671cae4eb77875c952a21734/pytubefix-9.1.1-py3-none-any.whl", hash = "sha256:cc1c9cca936b82fcbf136e4630639417072aa5fdacf54ec0426604ca81c33b77", size = 732005, upload-time = "2025-05-27T16:47:08.765Z" },
+    { url = "https://files.pythonhosted.org/packages/37/1e/fc8b178746e6fd79d310d908b2e2dba9325a34453d952c00d2b3d6ed9f7e/pytubefix-9.1.2-py3-none-any.whl", hash = "sha256:219fb81ecb3c69501670cac6af16fb31b49915d702531d6d35313a5ee5be53a2", size = 731998, upload-time = "2025-06-13T01:49:00.593Z" },
 ]
 
 [[package]]

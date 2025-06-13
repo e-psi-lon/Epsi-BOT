@@ -155,10 +155,6 @@ async def play_song(ctx: discord.ApplicationContext, url: str) -> None:
 				                    color=discord.Color.dark_red()))
 			return
 		file = await download(url)
-		buffer = io.BytesIO()
-		stream = video.streams.get_audio_only()
-		stream.stream_to_buffer(buffer)
-		buffer.seek(0)
 		player = discord.PCMVolumeTransformer(
 			discord.FFmpegPCMAudio(file, executable="ffmpeg", pipe=True),
 			server.volume / 100)

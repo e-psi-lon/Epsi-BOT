@@ -1,3 +1,4 @@
+from os import getenv
 from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator, Iterable, Type
 
@@ -22,7 +23,7 @@ from epsi_bot.utils.loggers import get_logger
 # database = SqliteDatabase('./database/database.db')
 
 __all__ = ['User', 'Playlist', 'Song', 'PlaylistSong', 'Server', 'Queue', 'ServerPlaylist', 'UserPlaylist',
-           "BaseModel", "SongListenCount", "database_context"]
+           "BaseModel", "SongListenCount", "database_context", "get_db_url"]
 
 
 class BaseModel(Model):
@@ -240,7 +241,7 @@ class Server(BaseModel):
 	playlists : fields.ReverseRelation
 		Associated playlists for the server
 	"""
-	server_id = fields.IntField(primary_key=True)
+	server_id = fields.BigIntField(primary_key=True)
 	loop_queue = fields.BooleanField(default=False)
 	loop_song = fields.BooleanField(default=False)
 	position = fields.IntField(default=0)
@@ -353,7 +354,7 @@ async def database_context() -> AsyncGenerator[None, None]:
 	logger = get_logger("Database")
 	try:
 		await Tortoise.init(
-			db_url='sqlite://database/database.db',
+			db_url=get_db_url(),
 			modules={'models': [epsi_bot.utils.models]}
 		)
 		await Tortoise.generate_schemas(safe=True)
@@ -363,3 +364,15 @@ async def database_context() -> AsyncGenerator[None, None]:
 	finally:
 		await connections.close_all()
 		logger.debug("Tortoise-ORM shutdown")
+
+def get_db_url() -> str:
+	"""
+	Returns the database URL for the Tortoise-ORM configuration.
+
+	Returns
+	-------
+	str
+		The database URL for the Tortoise-ORM configuration
+	"""
+	# Load everything from the environment variables
+	return f'mysql://{getenv("DB_USER")}:{getenv("DB_PASSWORD")}@{getenv("DB_HOST")}:{getenv("DB_PORT")}/epsi_bot'

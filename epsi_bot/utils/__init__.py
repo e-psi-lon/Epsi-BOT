@@ -57,6 +57,7 @@ __all__ = [
 	'get_logger',
 	'CustomFormatter',
 	"get_youtube",
+	"get_db_url",
 	"YOUTUBE_CLIENT"
 ]
 
@@ -113,7 +114,8 @@ from epsi_bot.utils.models import (User,
                                    Queue,
                                    ServerPlaylist,
                                    UserPlaylist,
-                                   SongListenCount
+                                   SongListenCount,
+								   get_db_url
                                    )
 from epsi_bot.utils.panel_data import (ChannelData,
                                        UserData,

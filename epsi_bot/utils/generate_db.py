@@ -50,7 +50,7 @@ cursor.execute('''
                    asker     INTEGER,
                    FOREIGN KEY (server_id) REFERENCES SERVER (server_id),
                    FOREIGN KEY (song_id) REFERENCES SONG (song_id),
-                   FOREIGN KEY (asker) REFERENCES ASKER (user_id)
+                   FOREIGN KEY (asker) REFERENCES USER (user_id)
                );
                ''')
 
@@ -61,7 +61,7 @@ cursor.execute('''
                    song_id     INTEGER,
                    position    INTEGER,
                    asker       INTEGER,
-                   FOREIGN KEY (asker) REFERENCES ASKER (user_id),
+                   FOREIGN KEY (asker) REFERENCES USER (user_id),
                    FOREIGN KEY (playlist_id) REFERENCES PLAYLIST (playlist_id),
                    FOREIGN KEY (song_id) REFERENCES SONG (song_id)
 
@@ -83,7 +83,7 @@ cursor.execute('''
                (
                    user_id     INTEGER,
                    playlist_id INTEGER,
-                   FOREIGN KEY (user_id) REFERENCES ASKER (user_id),
+                   FOREIGN KEY (user_id) REFERENCES USER (user_id),
                    FOREIGN KEY (playlist_id) REFERENCES PLAYLIST (playlist_id)
                );
                ''')

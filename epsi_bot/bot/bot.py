@@ -14,6 +14,7 @@ from epsi_bot.bot.memcached_std import MemcachedStd
 from epsi_bot.utils import GuildData, UserData, get_logger, \
 	Server, download_bulk, AudioCache, SongListenCount, models
 from epsi_bot.utils.ipc import IPCManager
+from epsi_bot.utils.models import get_db_url
 
 
 @tasks.loop(hours=5)
@@ -32,7 +33,7 @@ async def check_update() -> None:
 async def update_top_songs(self: 'Bot') -> None:
 	# Calculate top 5 songs
 	await Tortoise.init(
-		db_url='sqlite://database/database.db',
+		db_url=get_db_url(),
 		modules={'models': [models]}
 	)
 	top_songs = await SongListenCount.all() \
@@ -92,9 +93,10 @@ class Bot(commands.Bot):
 				exit(1)
 		self.logger.info(f"Bot ready in {datetime.now() - self.start_time}")
 		await Tortoise.init(
-			db_url='sqlite://database/database.db',
+			db_url=get_db_url(),
 			modules={'models': [models]}
 		)
+		await Tortoise.generate_schemas(safe=True)
 		for guild in self.guilds:
 			# Si la guilde n'existe pas dans la db, on l'ajoute avec les paramètres par défaut
 			await Server.get_or_create(server_id=guild.id)
@@ -191,7 +193,7 @@ async def start(instance: Bot, start_time: datetime):
 	@instance.before_invoke
 	async def before_invoke(_: commands.Context):
 		await Tortoise.init(
-			db_url='sqlite://database/database.db',
+			db_url=get_db_url(),
 			modules={'models': [models]}
 		)
 		# noinspection PyProtectedMember
