@@ -1,8 +1,9 @@
 import discord
+import pytubefix.exceptions
 from discord.ext import commands
 
 from epsi_bot.bot.bot import Bot
-from epsi_bot.utils import EMBED_ERROR_BOT_NOT_CONNECTED, play_song, Server, download_bulk
+from epsi_bot.utils import EMBED_ERROR_BOT_NOT_CONNECTED, play_song, Server, download_bulk, get_youtube
 
 
 class Channel(commands.Cog):
@@ -44,10 +45,14 @@ class Channel(commands.Cog):
 			if server.position > len(server.queue) - 1:
 				server.position = 0
 				await server.save()
-			await play_song(ctx, server.queue[server.position].song.url)
-			if len(server.queue) > 1:
-				queue = [queue.song.url for queue in server.queue][1:]
-				await download_bulk(queue[1:])
+			url = server.queue[server.position].song.url
+			try:
+				url = get_youtube(url).streams.get_audio_only().url
+			except pytubefix.exceptions.RegexMatchError:
+				pass
+			await play_song(ctx, url, direct_play=True)
+			queue = [queue.song.url for queue in server.queue]
+			await download_bulk(queue)
 		return None
 
 

@@ -254,13 +254,17 @@ class Playlists(commands.Cog):
 		server.position = 0
 		await server.save()
 		server = await Server.get(server_id=ctx.guild.id).prefetch_related("queue", "queue__song")
-		await play_song(ctx, server.queue[0].song.url)
+		url = server.queue[0].song.url
+		try:
+			url = get_youtube(url).streams.get_audio_only().url
+		except PytubeRegexMatchError:
+			pass
+		await play_song(ctx, url, direct_play=True)
 		await ctx.respond(
 			embed=discord.Embed(title="Play", description=f"Playing {server.queue[server.position].song.name}",
 			                    color=discord.Color.green()))
-		if len(server.queue) > 1:
-			queue = [queue.song.url for queue in server.queue][1:]
-			await download_bulk(queue)
+		queue = [queue.song.url for queue in server.queue]
+		await download_bulk(queue)
 		return None
 
 	@playlist.command(name="list", description="Lists all the playlists")
