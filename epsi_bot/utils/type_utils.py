@@ -107,6 +107,8 @@ def _type_checking(
 		# Handle Literal types
 		origin = get_origin(expected)
 		args = get_args(expected)
+		if origin is Union and type(None) in args:
+			return True  # Union with None is treated as Optional
 
 		if origin is Literal:
 			if val not in args:
