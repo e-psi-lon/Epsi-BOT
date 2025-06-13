@@ -295,7 +295,7 @@ async def admin_ws():
 					"bot": {
 						"pid": bot_process.pid,
 						"cpu_percent": bot_process.cpu_percent(interval=0.1),
-						"memory_percent": current_process.memory_percent(),
+						"memory_percent": bot_process.memory_percent(),
 						"memory_usage": bot_process.memory_info().rss,
 						"voice_channels": await app.get_from_bot("voice_channels"),
 						"connected_servers": await app.get_from_bot("connected_servers")
@@ -329,7 +329,10 @@ async def admin_ws():
 							elif col_type is None:  # Foreign key
 								values.append(str((await value).pk))
 							else:  # Regular field
-								values.append(str(value))
+								if isinstance(value, datetime.datetime):
+									values.append(value.strftime("%d/%m/%Y %H:%M:%S"))
+								else:
+									values.append(str(value))
 						table_data[col_name] = (col_type, values)
 
 					# We filter the table data
