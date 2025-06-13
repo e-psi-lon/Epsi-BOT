@@ -64,7 +64,7 @@ class AudioCache(MemcachedCache):
 			if isinstance(value, io.BytesIO):
 				logger = get_logger("Memcached")
 				logger.debug(f"Audio size: {len(value.getvalue())} bytes")
-				compressed = zlib.compress(base64.b64encode(value.getvalue()))
+				compressed = zlib.compress(value.getvalue())
 				logger.debug(f"Compressed audio size: {len(compressed)} bytes")
 				return binascii.hexlify(compressed).decode()
 			return super().dumps(value)
