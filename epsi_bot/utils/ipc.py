@@ -24,7 +24,7 @@ class MessageType(Enum):
 class IPCMessage:
 	type: MessageType
 	channel: str
-	payload: Any
+	payload: Optional[Any]
 	id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
 
@@ -36,7 +36,7 @@ def validate_ipc_message(message: IPCMessage) -> bool:
 		use_attrs=True,
 		type=MessageType,
 		channel=str,
-		payload=Any,
+		payload=Optional[Any],
 		id=str
 	)
 
