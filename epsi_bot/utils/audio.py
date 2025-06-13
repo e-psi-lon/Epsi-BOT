@@ -12,7 +12,7 @@ from ffmpeg.asyncio import FFmpeg  # type: ignore[import-untyped]
 from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError  # type: ignore[import-error]
 
 from epsi_bot.utils.cache import download
-from epsi_bot.utils.constants import YOUTUBE_CLIENT, MAX_TRACK_LENGTH
+from epsi_bot.utils.constants import YOUTUBE_CLIENT, MAX_TRACK_LENGTH, EMBED_ERROR_VIDEO_TOO_LONG
 from epsi_bot.utils.loggers import get_logger
 from epsi_bot.utils.models import Server, Song, SongListenCount, database_context
 from epsi_bot.utils.type_utils import FfmpegFormats
@@ -126,8 +126,19 @@ async def change_song(ctx: discord.ApplicationContext) -> None:
 			get_logger("Bot").error(f"Error while playing song: {e}")
 
 
-async def play_song(ctx: discord.ApplicationContext, url: str) -> None:
-	"""Play a song from a URL"""
+async def play_song(ctx: discord.ApplicationContext, url: str, direct_play: bool = False) -> None:
+	"""
+	Play a song from a URL
+	Parameters
+	----------
+	ctx : discord.ApplicationContext
+		The context of the command
+	url : str
+		The URL of the song to play
+	direct_play : bool
+		If True, the song will be played as a direct stream without downloading it.
+		A download will still occur for processing through ffmpeg
+	"""
 	if ctx.guild.voice_client is None:
 		return
 	if ctx.guild.voice_client.is_playing():
@@ -142,59 +153,49 @@ async def play_song(ctx: discord.ApplicationContext, url: str) -> None:
 			await song_listen_count.save()
 		else:
 			await SongListenCount.create(song=song, count=1)
+	to_play: str | io.BytesIO
+	pipe = direct_play
+	before_options = None
+	if direct_play:
+		to_play = url
+		before_options = "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"
+	else:
+		try:
+			video = get_youtube(url)
+			if video.age_restricted:
+				await ctx.respond(
+					embed=discord.Embed(title="Error", description=f"The [video]({url}) is age restricted",
+					                    color=discord.Color.dark_red()))
+				return
+			if video.length > MAX_TRACK_LENGTH:
+				await ctx.respond(embed=EMBED_ERROR_VIDEO_TOO_LONG)
+				return
+			to_play = await download(url)
+		except PytubeRegexMatchError:
+			to_play = await download(url)
+	player = discord.PCMVolumeTransformer(
+		discord.FFmpegPCMAudio(
+			to_play,
+			executable="ffmpeg",
+			pipe=pipe,
+			before_options=before_options
+		),
+		server.volume / 100
+	)
 	try:
-		video = get_youtube(url)
-		if video.age_restricted:
-			await ctx.respond(
-				embed=discord.Embed(title="Error", description=f"The [video]({url}) is age restricted",
-				                    color=discord.Color.dark_red()))
-			return
-		if video.length > MAX_TRACK_LENGTH:
-			await ctx.respond(
-				embed=discord.Embed(title="Error", description=f"The video [{video.title}]({url}) is too long",
-				                    color=discord.Color.dark_red()))
-			return
-		file = await download(url)
-		player = discord.PCMVolumeTransformer(
-			discord.FFmpegPCMAudio(file, executable="ffmpeg", pipe=True),
-			server.volume / 100)
-		try:
-			get_logger("Bot").info(f"Playing song {video.title}")
-			_ = ctx.guild.voice_client.play(player,
-			                            after=lambda e: asyncio.run_coroutine_threadsafe(on_play_song_finished(ctx, e),
-			                                                                             loop),
-			                            wait_finish=True)
-
-		except discord.errors.ClientException:
-			while ctx.guild.voice_client.is_playing():
-				await asyncio.sleep(0.1)
-			get_logger("Bot").info(f"Playing song {video.title}")
-			_ = ctx.guild.voice_client.play(player,
-			                            after=lambda e: asyncio.run_coroutine_threadsafe(on_play_song_finished(ctx, e),
-			                                                                             loop),
-			                            wait_finish=True)
-	except PytubeRegexMatchError:
-		file = await download(url)
-		player = discord.PCMVolumeTransformer(
-			discord.FFmpegPCMAudio(file, executable="ffmpeg", pipe=True),
-			server.volume / 100)
-		try:
-			get_logger("Bot").info(f"Playing song {url}")
-			_ = ctx.guild.voice_client.play(player,
-			                            after=lambda e: asyncio.run_coroutine_threadsafe(on_play_song_finished(ctx, e),
-			                                                                             loop),
-			                            wait_finish=True)
-		except discord.errors.ClientException:
-			try:
-				await ctx.guild.voice_client.disconnect(force=True)
-			except discord.errors.ClientException:
-				pass
-			await ctx.author.voice.channel.connect()
-			get_logger("Bot").info(f"Playing song {url}")
-			_ = ctx.guild.voice_client.play(player,
-			                            after=lambda e: asyncio.run_coroutine_threadsafe(on_play_song_finished(ctx, e),
-			                                                                             loop),
-			                            wait_finish=True)
+		get_logger("Bot").info(f"Playing song {url}")
+		_ = ctx.guild.voice_client.play(player,
+		                            after=lambda e: asyncio.run_coroutine_threadsafe(on_play_song_finished(ctx, e),
+		                                                                             loop),
+		                            wait_finish=True)
+	except discord.errors.ClientException:
+		while ctx.guild.voice_client.is_playing():
+			await asyncio.sleep(0.1)
+		get_logger("Bot").info(f"Playing song {url}")
+		_ = ctx.guild.voice_client.play(player,
+		                            after=lambda e: asyncio.run_coroutine_threadsafe(on_play_song_finished(ctx, e),
+		                                                                             loop),
+		                            wait_finish=True)
 
 
 async def on_play_song_finished(ctx: discord.ApplicationContext, error: Exception | None = None) -> None:
