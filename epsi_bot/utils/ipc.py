@@ -1,12 +1,13 @@
 import asyncio
-import threading
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
 from multiprocessing import Queue, Event as Event
 from multiprocessing.synchronize import Event as EventClass
+from queue import Empty
 from typing import Any, Callable, Coroutine, Optional
 
+from epsi_bot.utils.type_utils import type_checking
 from epsi_bot.utils.loggers import get_logger
 
 __all__ = ["IPCMessage", "IPCManager", "MessageType"]
@@ -27,6 +28,19 @@ class IPCMessage:
 	id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
 
+def validate_ipc_message(message: IPCMessage) -> bool:
+	"""Validate the IPCMessage structure"""
+	return type_checking(
+		message,
+		IPCMessage,
+		use_attrs=True,
+		type=MessageType,
+		channel=str,
+		payload=Any,
+		id=str
+	)
+
+
 class IPCManager:
 	def __init__(self, side: str, in_queue: Queue, out_queue: Queue, event: Optional[EventClass] = None):
 		self._in_queue: Queue[IPCMessage] = in_queue
@@ -44,18 +58,29 @@ class IPCManager:
 	async def start(self):
 		self._logger.info(f"Starting IPCManager for {self._side}")
 		asyncio.create_task(self._process_queue())
-		threading.Thread(target=self._sync_reader, name=f"IPCManager-{self._side}",
-		                 args=(asyncio.get_event_loop(),)).start()
+		asyncio.create_task(
+			asyncio.to_thread(self._sync_reader, asyncio.get_event_loop()),
+			name=f"IPCManager-{self._side}"
+		)
 
 	def _sync_reader(self, loop):
-		while self._running:
-			msg = self._in_queue.get()
-			loop.call_soon_threadsafe(self._async_in_queue.put_nowait, msg)
+		try:
+			while self._running:
+				try:
+					msg = self._in_queue.get(timeout=0.5)
+					loop.call_soon_threadsafe(self._async_in_queue.put_nowait, msg)
+				except Empty:
+					continue
+		except asyncio.CancelledError:
+			self._logger.debug("Sync reader task cancelled")
 
 	async def _process_queue(self):
 		while self._running:
 			msg = await self._async_in_queue.get()
 			self._logger.debug(f"Received message: {msg}")
+			if not validate_ipc_message(msg):
+				self._logger.warning(f"Invalid IPCMessage received: {msg}")
+				continue
 			if msg.type == MessageType.RESPONSE:
 				async with self._pending_lock:
 					self._logger.debug(f"Received response for {msg.id}")
@@ -161,6 +186,16 @@ class IPCManager:
 		self._logger.info("Stopping IPCManager")
 		self._running = False
 		self._event.set()
+
+	async def cancel_request(self, request_id: str) -> bool:
+		async with self._pending_lock:
+			if request_id in self._pending_requests:
+				future = self._pending_requests.pop(request_id)
+				if not future.done():
+					future.cancel()
+					self._logger.debug(f"Cancelled request {request_id}")
+					return True
+		return False
 
 	@classmethod
 	def create_pair(cls) -> tuple["IPCManager", "IPCManager"]:
