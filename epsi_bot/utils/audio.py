@@ -12,7 +12,7 @@ from ffmpeg.asyncio import FFmpeg  # type: ignore[import-untyped]
 from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError  # type: ignore[import-error]
 
 from epsi_bot.utils.cache import download
-from epsi_bot.utils.constants import YOUTUBE_CLIENT
+from epsi_bot.utils.constants import YOUTUBE_CLIENT, MAX_TRACK_LENGTH
 from epsi_bot.utils.loggers import get_logger
 from epsi_bot.utils.models import Server, Song, SongListenCount, database_context
 from epsi_bot.utils.type_utils import FfmpegFormats
@@ -149,7 +149,7 @@ async def play_song(ctx: discord.ApplicationContext, url: str) -> None:
 				embed=discord.Embed(title="Error", description=f"The [video]({url}) is age restricted",
 				                    color=discord.Color.dark_red()))
 			return
-		if video.length > 12000:
+		if video.length > MAX_TRACK_LENGTH:
 			await ctx.respond(
 				embed=discord.Embed(title="Error", description=f"The video [{video.title}]({url}) is too long",
 				                    color=discord.Color.dark_red()))

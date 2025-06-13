@@ -4,7 +4,7 @@ import discord
 import pytubefix
 
 from epsi_bot.utils.audio import play_song, get_youtube
-from epsi_bot.utils.constants import EMBED_ERROR_BOT_NOT_CONNECTED
+from epsi_bot.utils.constants import EMBED_ERROR_BOT_NOT_CONNECTED, MAX_TRACK_LENGTH
 from epsi_bot.utils.models import User, Queue, Server, Song, database_context
 
 
@@ -56,7 +56,7 @@ class SelectVideo(discord.ui.Select):
 			embed=discord.Embed(title="Select audio", description=f"You selected : {self.options[0].label}",
 			                    color=discord.Color.green()), view=None)
 		if self.download:
-			if get_youtube(self.values[0]).length > 12000:
+			if get_youtube(self.values[0]).length > MAX_TRACK_LENGTH:
 				return await interaction.message.edit(embed=discord.Embed(title="Error",
 				                                                          description=f"The video "
 				                                                                      f"""[{get_youtube(self.values[0])

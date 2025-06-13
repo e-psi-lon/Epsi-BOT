@@ -21,9 +21,10 @@ from epsi_bot.utils import (Sinks,
                             finished_record_callback,
                             YOUTUBE_REGEX,
                             GET_FILE_HTTP_URL,
+							MAX_TRACK_LENGTH,
+							YOUTUBE_CLIENT,
                             get_youtube
                             )
-from epsi_bot.utils import YOUTUBE_CLIENT
 
 
 class State(commands.Cog):
@@ -110,7 +111,7 @@ class State(commands.Cog):
 			url = get_youtube(query).watch_url
 			try:
 				server = await Server.get(server_id=ctx.guild.id).prefetch_related("queue", "queue__song")
-				if get_youtube(url).length > 12000:
+				if get_youtube(url).length > MAX_TRACK_LENGTH:
 					return await ctx.respond(
 						discord.Embed(title="Error",
 						              description=f"The video [{get_youtube(url).title}]({url}) is too long",

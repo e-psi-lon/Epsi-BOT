@@ -15,7 +15,8 @@ __all__ = [
 	"OWNER_ID",
 	"YOUTUBE_REGEX",
 	"GET_FILE_HTTP_URL",
-	"YOUTUBE_CLIENT"
+	"YOUTUBE_CLIENT",
+	"MAX_TRACK_LENGTH"
 ]
 
 OWNER_ID = 708006478807695450
@@ -48,3 +49,5 @@ YOUTUBE_REGEX = re.compile(
 GET_FILE_HTTP_URL = re.compile(r'^https?://[^\s/$.?#]+\.[^\s/]+/.*?([^/]+\.[^/\s?#]+)(?:\?.*)?(?:#.*)?$')
 
 YOUTUBE_CLIENT = "WEB"
+
+MAX_TRACK_LENGTH = 10_800  # in seconds, 10,800 seconds = 3 hours

@@ -58,7 +58,8 @@ __all__ = [
 	'CustomFormatter',
 	"get_youtube",
 	"get_db_url",
-	"YOUTUBE_CLIENT"
+	"YOUTUBE_CLIENT",
+	"MAX_TRACK_LENGTH",
 ]
 
 from epsi_bot.utils.async_utils import (AsyncRequests,
@@ -96,7 +97,8 @@ from epsi_bot.utils.constants import (OWNER_ID,
                                       EMBED_ERROR_NOT_BOT_OWNER,
                                       YOUTUBE_REGEX,
                                       GET_FILE_HTTP_URL,
-                                      YOUTUBE_CLIENT
+                                      YOUTUBE_CLIENT,
+									  MAX_TRACK_LENGTH
                                       )
 from epsi_bot.utils.ipc import (MessageType,
                                 IPCMessage,
