@@ -1,5 +1,7 @@
 import argparse
+import queue
 import logging
+import logging.handlers
 import os
 from typing import Optional, Any
 
@@ -44,13 +46,15 @@ def parse_args() -> argparse.Namespace:
 	return parsed
 
 
-configured_loggers = set()
+_configured_loggers = set()
+_queue_handlers: dict[str, logging.handlers.QueueHandler] = {}
+_queue_listeners: dict[str, logging.handlers.QueueListener] = {}
 
 
 def get_logger(name: str, level: Optional[int] = parse_args().log_level.upper()) -> logging.Logger:
 	"""Get a logger with the specified name and level"""
 	logger = logging.getLogger(name)
-	if name in configured_loggers:
+	if name in _configured_loggers:
 		return logger
 	logger.propagate = False
 	if level is not None:
@@ -62,8 +66,19 @@ def get_logger(name: str, level: Optional[int] = parse_args().log_level.upper())
 			break
 	else:
 		logger.handlers.clear()
-	handler = logging.StreamHandler()
-	handler.setFormatter(CustomFormatter(name))
-	logger.addHandler(handler)
-	configured_loggers.add(name)
+		log_queue = queue.Queue(-1)
+		queue_handler = logging.handlers.QueueHandler(log_queue)
+		logger.addHandler(queue_handler)
+		_queue_handlers[name] = queue_handler
+
+		# Set up a stream handler for the queue listener
+		stream_handler = logging.StreamHandler()
+		stream_handler.setFormatter(CustomFormatter(name))
+
+		# Create and start the queue listener
+		listener = logging.handlers.QueueListener(log_queue, stream_handler, respect_handler_level=True)
+		listener.start()
+		_queue_listeners[name] = listener
+
+		_configured_loggers.add(name)
 	return logger
