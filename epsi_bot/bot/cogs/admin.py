@@ -67,14 +67,14 @@ class Admin(commands.Cog):
 			for cog in self.bot.cogs:
 				if cog == "admin":
 					continue
-				self.bot.reload_extension(f"epsi_bot.cogs.{cog}")
+				self.bot.reload_extension(f"epsi_bot.bot.cogs.{cog}")
 			embed = discord.Embed(title="Reload", description="Reloaded the cogs.", color=discord.Color.green())
 			await ctx.respond(embed=embed, delete_after=30)
 		else:
 			await ctx.response.defer()
 			if ctx.author.id != OWNER_ID:
 				return await ctx.respond(embed=EMBED_ERROR_NOT_BOT_OWNER, delete_after=30)
-			self.bot.reload_extension(f"epsi_bot.cogs.{cog}")
+			self.bot.reload_extension(f"epsi_bot.bot.cogs.{cog}")
 			embed = discord.Embed(title="Reload", description=f"Reloaded the {cog} cog.", color=discord.Color.green())
 			await ctx.respond(embed=embed, delete_after=30)
 		return None

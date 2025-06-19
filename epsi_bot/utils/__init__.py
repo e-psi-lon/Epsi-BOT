@@ -130,4 +130,4 @@ from epsi_bot.utils.type_utils import (FfmpegFormats,
 from epsi_bot.utils.views import Research
 
 
-import requests
+import epsi_bot.utils.requests as requests

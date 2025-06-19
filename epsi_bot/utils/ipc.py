@@ -20,7 +20,7 @@ class MessageType(Enum):
 	RESPONSE = "response"
 
 
-@dataclass
+@dataclass(slots=True)
 class IPCMessage:
 	type: MessageType
 	channel: str
