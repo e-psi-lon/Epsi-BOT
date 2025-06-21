@@ -13,24 +13,33 @@ class CustomFormatter(logging.Formatter):
 		super().__init__(*args, **kwargs)
 		self.source = source
 
-	FORMAT = "[{asctime}] {source} — {levelname} : {message} ({path}:{lineno})\033[0m"
+	FORMAT = "[{asctime}] {source} — {color}{levelname}\033[0m : {message} ({path}:{lineno})"
 
 	FORMATS = {
-		logging.DEBUG: "\033[34m" + FORMAT,  # Blue
-		logging.INFO: "\033[32m" + FORMAT,  # Green
-		logging.WARNING: "\033[33m" + FORMAT,  # Yellow
-		logging.ERROR: "\033[31m" + FORMAT,  # Red
-		logging.CRITICAL: "\033[41m" + FORMAT  # Red
+		logging.DEBUG: "\033[34m",  # Blue
+		logging.INFO: "\033[32m",  # Green
+		logging.WARNING: "\033[33m",  # Yellow
+		logging.ERROR: "\033[31m",  # Red
+		logging.CRITICAL: "\033[41m"  # Red
 	}
 
+	_path_cache = {}
+
 	def format(self, record: logging.LogRecord) -> str:
-		log_fmt = self.FORMATS.get(record.levelno)
-		path = os.path.relpath(record.pathname, os.getcwd()).replace(os.sep, ".").lower()
-		if path.endswith(".py"):
-			path = path[:-3]
-		path = path.replace(".venv.lib.site-packages.", "libs.")
-		formatter = logging.Formatter(log_fmt, "%d/%m/%Y %H:%M:%S", "{", True,
-		                              defaults={"source": self.source, "path": path})
+		log_color = self.FORMATS.get(record.levelno)
+
+		# Cache key based on pathname
+		cache_key = record.pathname
+		if cache_key not in self._path_cache:
+			path = os.path.relpath(record.pathname, os.getcwd()).replace(os.sep, ".").lower()
+			if path.endswith(".py"):
+				path = path[:-3]
+			path = (path.replace(".venv.lib.python3.13.site-packages.", "libs.")
+			        .replace(".venv.lib.site-packages.", "libs."))
+			self._path_cache[cache_key] = path
+
+		formatter = logging.Formatter(self.FORMAT, "%d/%m/%Y %H:%M:%S", "{", True,
+		                              defaults={"source": self.source, "path": self._path_cache[cache_key], "color": log_color})
 		return formatter.format(record)
 
 
