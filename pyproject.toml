@@ -17,7 +17,6 @@ dependencies = [
     "charset-normalizer>=3.4.2",
     "psutil>=7.0.0",
     "py-cord>=2.6.1",
-    "pydub>=0.25.1",
     "pynacl>=1.5.0",
     "python-dotenv>=1.1.0",
     "python-ffmpeg>=2.0.12",

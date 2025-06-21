@@ -5,7 +5,6 @@ import random
 
 import discord
 import discord.ext.pages
-import pydub  # type: ignore[import-untyped]
 import pytubefix  # type: ignore[import-untyped]
 from discord.ext import commands
 from ffmpeg.asyncio import FFmpeg  # type: ignore[import-untyped]
@@ -17,7 +16,6 @@ from epsi_bot.utils.loggers import get_logger
 from epsi_bot.utils.models import Server, Song, SongListenCount, database_context
 from epsi_bot.utils.type_utils import FfmpegFormats
 
-pydub.AudioSegment.converter = "ffmpeg"
 
 __all__ = [
 	"finished_record_callback",
@@ -34,43 +32,73 @@ async def finished_record_callback(sink: discord.sinks.Sink, channel: discord.Te
 	"""Callback function to execute when the recording is finished that processes the audio and sends it to the
 	channel"""
 	mention_strs = []
-	audio_segments: list[pydub.AudioSegment] = []
 	files: list[discord.File] = []
 
-	longest = pydub.AudioSegment.empty()
+	# Collect user mentions
 	for user_id in sink.audio_data.keys():
 		mention_strs.append(f"<@{user_id}>")
+
 	message = await channel.send(
 		f"## Recorded {', '.join(mention_strs)}\nProcessing audio" if
 		len(mention_strs) > 1 else f"Recorded {mention_strs[0]}\nProcessing audio" if
 		len(mention_strs) == 1 else "Recorded no one"
 	)
+
+	# Process individual user audio files
+	audio_streams = []
 	for user_id, audio in sink.audio_data.items():
-		user_id: int
-		seg = pydub.AudioSegment.from_file(audio.file, format=getattr(sink, "encoding", "wav"))
-
-		# Determine the longest audio segment
-		if len(seg) > len(longest):
-			audio_segments.append(longest)
-			longest = seg
-		else:
-			audio_segments.append(seg)
-
 		audio.file.seek(0)
+		audio_streams.append(audio.file.read())
+		audio.file.seek(0)
+
 		member = channel.guild.get_member(user_id)
 		if member is not None:
 			files.append(discord.File(audio.file, filename=f"{member.name}.{getattr(sink, 'encoding', 'wav')}"))
 
-	for seg in audio_segments:
-		longest = longest.overlay(seg)
-	with io.BytesIO() as f:
-		longest.export(f, format=getattr(sink, "encoding", "wav"))
-		await message.edit(content=f"## Recorded {', '.join(mention_strs)}" if len(
-			mention_strs) > 1 else f"Recorded {mention_strs[0]}" if len(
-			mention_strs) == 1 else "Recorded no one",
-		                   files=files + [
-			                   discord.File(f, filename=f"record.{getattr(sink, 'encoding', 'wav')}")] if getattr(sink, "encoding", "wav") != "wav" else files
-		                   )
+	# Merge audio using FFmpeg
+	if len(audio_streams) > 0:
+		merged_audio = await merge_audio_streams(audio_streams, getattr(sink, "encoding", "wav"))
+		with io.BytesIO(merged_audio) as f:
+			await message.edit(
+				content=f"## Recorded {', '.join(mention_strs)}" if len(
+					mention_strs) > 1 else f"Recorded {mention_strs[0]}" if len(
+					mention_strs) == 1 else "Recorded no one",
+				files=files + [discord.File(f, filename=f"record.{getattr(sink, 'encoding', 'wav')}")] if getattr(
+					sink, "encoding", "wav") != "wav" else files
+			)
+
+async def merge_audio_streams(audio_streams: list[bytes], format_name: str = "wav") -> bytes:
+	"""Merge multiple audio streams using FFmpeg"""
+	if len(audio_streams) == 0:
+		return b''
+	if len(audio_streams) == 1:
+		return audio_streams[0]
+
+	# Create FFmpeg complex filter to merge audio
+	inputs = []
+
+	for i in range(len(audio_streams)):
+		inputs.append(f"[{i}:a]")
+
+	filter_str = f"{' '.join(inputs)}amix=inputs={len(audio_streams)}:dropout_transition=0[out]"
+
+	# Setup FFmpeg command
+	ffmpeg = FFmpeg("ffmpeg")
+
+	# Add inputs
+	for i, stream in enumerate(audio_streams):
+		ffmpeg = ffmpeg.input(f"pipe:{i}", format=format_name)
+
+	# Add filter complex and output
+	ffmpeg = ffmpeg.filter_complex(filter_str).output("pipe:out", map="[out]", format=format_name)
+
+	# Execute FFmpeg with all input streams
+	result = await ffmpeg.execute(
+		*audio_streams,
+		stdout=True,
+		stderr=True
+	)
+	return result
 
 
 async def disconnect_from_channel(state: discord.VoiceState, bot: commands.Bot) -> None:
