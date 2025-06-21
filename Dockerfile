@@ -41,6 +41,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY epsi_bot ./epsi_bot
 COPY .env* ./
 
+ENV DOCKER_ENV=1
 
 # Create volume for data
 VOLUME /app/data

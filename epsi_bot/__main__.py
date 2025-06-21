@@ -10,7 +10,10 @@ from epsi_bot.panel import create_app
 from epsi_bot.utils.loggers import CustomFormatter, parse_args
 
 aiomultiprocess.set_start_method("fork")
-load_dotenv()
+if os.environ.get("DOCKER_ENV", False):
+	load_dotenv(".env.docker")
+else:
+	load_dotenv()
 
 start_time = datetime.datetime.now()
 
