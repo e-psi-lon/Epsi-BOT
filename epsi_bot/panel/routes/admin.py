@@ -1,31 +1,31 @@
 import datetime
 import os
 import psutil
-from typing import cast
+from typing import cast, Any
 from quart import Blueprint, render_template, request, websocket, current_app
 
 from epsi_bot.utils import models, admin_required
 from epsi_bot.utils.models import BaseModel
 from epsi_bot.panel.services.cache import get_cache_stats
 from epsi_bot.panel.helpers import format_table_info
-from epsi_bot.panel.PanelProtocol import PanelApp
+from epsi_bot.panel.PanelProtocol import PanelProtocol
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
 @admin_bp.route('/')
-async def admin_panel():
+async def admin_panel() -> str:
 	@admin_required
-	async def _admin_panel():
+	async def _admin_panel() -> str:
 		current_app.logger.info(f"Admin page requested by {request.remote_addr}")
 		return await render_template('admin.html')
 
 	return await _admin_panel()
 
 @admin_bp.websocket('/')
-async def admin_websocket():
+async def admin_websocket() -> None:
 	@admin_required
-	async def _admin_websocket():
-		panel_app = cast(PanelApp, current_app)
+	async def _admin_websocket() -> None:
+		panel_app = cast(PanelProtocol, current_app)
 		panel_app.logger.info(f"Admin websocket requested by {websocket.remote_addr}")
 		try:
 			while True:
@@ -39,18 +39,26 @@ async def admin_websocket():
 
 	return await _admin_websocket()
 
-async def _get_admin_data():
-	panel_app = cast(PanelApp, current_app)
+async def _get_admin_data() -> dict[str, Any]:
+	panel_app = cast(PanelProtocol, current_app)
 	# Get cache stats
-	cache_stats = {
-		key.decode(): value.decode()
-		for key, value in (await get_cache_stats()).items()
+	cache_stats: dict[str, str]
+	if (stats := await get_cache_stats()) is None:
+		cache_stats = {}
+	else:
+		cache_stats = {
+			key.decode(): value.decode()
+			for key, value in stats.items()
 	}
 
 	# Get process information
 	current_process = psutil.Process(os.getpid())
 	bot_process = psutil.Process(panel_app.bot_process.pid)
-
+	start_time: datetime.datetime
+	if panel_app.start_time is None:
+		start_time = datetime.datetime.now()
+	else:
+		start_time = panel_app.start_time
 	process_info = {
 		"main": {
 			"pid": current_process.pid,
@@ -58,7 +66,7 @@ async def _get_admin_data():
 			"memory_percent": current_process.memory_percent(),
 			"memory_usage": current_process.memory_info().rss,
 			"threads": len(current_process.threads()),
-			"uptime": (datetime.datetime.now() - panel_app.start_time).total_seconds()
+			"uptime": (datetime.datetime.now() - start_time).total_seconds()
 		},
 		"bot": {
 			"pid": bot_process.pid,
@@ -79,7 +87,7 @@ async def _get_admin_data():
 		"database": database
 	}
 
-async def _get_database_info():
+async def _get_database_info() -> dict[str, Any]:
 	tables = [
 		getattr(models, model_name)
 		for model_name in models.__all__

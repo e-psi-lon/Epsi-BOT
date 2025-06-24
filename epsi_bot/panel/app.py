@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import logging
 import os
@@ -5,9 +6,9 @@ from asyncio import TimerHandle
 from typing import Any, Optional
 
 import discord
-from aiomultiprocess import Process
+from aiomultiprocess import Process  # type: ignore[import-untyped]
 from quart import Quart
-from quart_session import Session
+from quart_session import Session  # type: ignore[import-untyped]
 from tortoise import Tortoise
 from tortoise.contrib.quart import register_tortoise
 
@@ -20,7 +21,7 @@ from epsi_bot.panel.helpers import register_error_handlers
 
 
 class Panel(Quart):
-	def __init__(self, config_name: str = 'default', *args, **kwargs):
+	def __init__(self, config_name: str = 'default', *args: Any, **kwargs: Any) -> None:
 		super().__init__(__name__, *args, **kwargs)
 
 		# Load configuration
@@ -63,11 +64,14 @@ class Panel(Quart):
 	def set_start_time(self, start_time: datetime.datetime) -> None:
 		self.start_time = start_time
 
-	async def start_bot(self):
+	async def start_bot(self) -> None:
 		bot = Bot(self.bot_ipc, intents=discord.Intents.all())
-		await start(bot, self.start_time)
+		if self.start_time is not None:
+			await start(bot, self.start_time)
+		else:
+			raise RuntimeError("Start time not set")
 
-	async def startup(self):
+	async def startup(self) -> None:
 		# Database initialization
 		if not os.path.exists("database/database.db"):
 			if not os.path.exists("database/"):
@@ -86,15 +90,23 @@ class Panel(Quart):
 		self.bot_process.start()
 		return await super().startup()
 
-	def run(self, host: str | None = None, port: int | None = None,
-	        debug: bool | None = None, **kwargs: Any) -> None:
+	def run(self,
+	        host: str | None = None,
+	        port: int | None = None,
+	        debug: bool | None = None,
+	        use_reloader: bool = True,
+	        loop: asyncio.AbstractEventLoop | None = None,
+	        ca_certs: str | None = None,
+	        certfile: str | None = None,
+	        keyfile: str | None = None,
+	        **kwargs: Any) -> None:
 		if debug is None:
 			debug = parse_args().log_level.upper() == "DEBUG"
 		super().run(host=host, port=port, debug=debug, **kwargs)
 
-	def _register_ipc_handlers(self):
+	def _register_ipc_handlers(self) -> None:
 		@self.ipc.handle("stop")
-		async def shutdown():
+		async def shutdown(_: str) -> None:
 			if self.bot_process:
 				await self.bot_process.join()
 			await Tortoise.close_connections()

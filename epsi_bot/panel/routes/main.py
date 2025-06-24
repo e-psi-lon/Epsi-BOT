@@ -1,24 +1,32 @@
-from quart import Blueprint, session, redirect, url_for, render_template, current_app
+from quart import (
+    Blueprint,
+    session,
+    redirect,
+    url_for,
+    render_template,
+    current_app
+)
 from typing import cast
+
+from werkzeug import Response
+
 from epsi_bot.panel.services.discord_api import get_user_data
 from epsi_bot.utils.decorators import login_required
-from epsi_bot.panel.PanelProtocol import PanelApp
-
+from epsi_bot.panel.PanelProtocol import PanelProtocol
 
 main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/')
-async def index():
+async def index() -> Response | str:
 	if 'token' in session:
 		return redirect(url_for('main.panel'))
 	return await render_template('index.html')
 
 @main_bp.route('/panel')
-async def panel():
-
+async def panel() -> Response | str:
 	@login_required
-	async def _panel():
-		panel_app = cast(PanelApp, current_app)
+	async def _panel() -> Response | str:
+		panel_app = cast(PanelProtocol, current_app)
 		token = session['token']
 		if 'user' not in session:
 			user = await get_user_data(token['access_token'])

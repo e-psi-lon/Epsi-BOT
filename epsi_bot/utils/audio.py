@@ -8,7 +8,7 @@ import discord.ext.pages
 import pytubefix  # type: ignore[import-untyped]
 from discord.ext import commands
 from ffmpeg.asyncio import FFmpeg  # type: ignore[import-untyped]
-from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError  # type: ignore[import-error]
+from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError  # type: ignore[import-untyped]
 
 from epsi_bot.utils.cache import download
 from epsi_bot.utils.constants import YOUTUBE_CLIENT, MAX_TRACK_LENGTH, EMBED_ERROR_VIDEO_TOO_LONG

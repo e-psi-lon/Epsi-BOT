@@ -3,11 +3,12 @@ import subprocess
 import sys
 import traceback
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any, Iterable, Callable, Coroutine
 
 import discord
 from discord.ext import commands
 from discord.ext import tasks
+from discord.ext.commands import when_mentioned
 from tortoise import Tortoise, connections
 
 from epsi_bot.bot.memcached_std import MemcachedStd
@@ -46,10 +47,14 @@ async def update_top_songs(self: 'Bot') -> None:
 	]
 	await SongListenCount.all().delete()
 	await connections.close_all()
+	to_download: list[str]
 	async with AudioCache(len(top_songs_data)) as cache:
 		to_download = []
 		# First update TTL for cached songs and collect uncached ones
 		for song in top_songs_data:
+			if not isinstance(song["url"], str):
+				self.logger.warning(f"Invalid URL for song {song['name']}, skipping.")
+				continue
 			if await cache.exists(song["url"]):
 				cache.update_ttl(song["url"], 60 * 60 * 24 * 3)
 			else:
@@ -61,14 +66,23 @@ async def update_top_songs(self: 'Bot') -> None:
 	self.logger.info("Top 5 songs updated and cached.")
 
 
+"""
+,
+             command_prefix: str | Iterable[str] | (Bot | AutoShardedBot, Message) -> str | Iterable[str] | Coroutine[Any, Any, str | Iterable[str]] = when_mentioned,
+             help_command: HelpCommand | None = MISSING,
+             **options: An
+"""
 class Bot(commands.Bot):
-	def __init__(self, manager: IPCManager, *args, **options) -> None:
-		super().__init__(*args, **options)
-		self.start_time = None
+	def __init__(self,
+	             manager: IPCManager,
+	             command_prefix: str | Iterable[str] | Callable[[discord.Bot | discord.AutoShardedBot, discord.Message], str | Iterable[str] | Coroutine[Any, Any, str | Iterable[str]]] = when_mentioned,
+	             help_command: Optional[commands.HelpCommand] = discord.MISSING,
+	             **options: Any) -> None:
+		super().__init__(command_prefix, help_command, **options)
+		self.start_time: datetime | None = None
 		self.ipc: IPCManager = manager
 		self.memcached: Optional[subprocess.Popen] = None
 		self.logger = get_logger("Bot")
-		self.start_time: datetime
 		self.handle = self.ipc.handle
 		self.post_to_panel = self.ipc.send
 		self.get_from_panel = self.ipc.request
@@ -91,7 +105,8 @@ class Bot(commands.Bot):
 				self.logger.error("Memcached not found, please install it")
 				self.memcached = None
 				exit(1)
-		self.logger.info(f"Bot ready in {datetime.now() - self.start_time}")
+		if self.start_time is not None:
+			self.logger.info(f"Bot ready in {datetime.now() - self.start_time}")
 		await Tortoise.init(
 			db_url=get_db_url(),
 			modules={'models': [models]}
@@ -104,7 +119,7 @@ class Bot(commands.Bot):
 		if not update_top_songs.is_running():
 			update_top_songs.start(self)
 
-	async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
+	async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException) -> None:
 		exc_type, exc_value, exc_traceback = type(error), error, error.__traceback__
 		traceback_str = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
 		self.logger.error(f"Error in {ctx.command} from module {ctx.command.cog.__class__.__name__}"
@@ -122,7 +137,7 @@ class Bot(commands.Bot):
 			await ctx.channel.send("Ce message se supprimera d'ici 20s", embed=embed, delete_after=20)
 			await self.get_user(self.owner_id).send(embed=embed)  # type: ignore[union-attr]
 
-	async def on_error(self, event_method: str, *args, **kwargs) -> None:
+	async def on_error(self, event_method: str, *args: Any, **kwargs: Any) -> None:
 		context = None
 		for arg in args:
 			if isinstance(arg, discord.ApplicationContext):
@@ -158,14 +173,14 @@ class Bot(commands.Bot):
 				f"\n Kwargs: {kwargs}")
 
 
-async def start(instance: Bot, start_time: datetime):
+async def start(instance: Bot, start_time: datetime) -> None:
 	instance.start_time = start_time
 	instance.owner_id = 708006478807695450
 
 	@instance.slash_command(name="send", description="Envoie un message dans un salon")
 	@discord.option("channel", discord.TextChannel, descritpion="Le salon où envoyer le message")
 	@discord.option("message", str, description="Le message à envoyer")
-	async def send_message(ctx: discord.ApplicationContext, channel: discord.TextChannel, message: str):
+	async def send_message(ctx: discord.ApplicationContext, channel: discord.TextChannel, message: str) -> None:
 		if ctx.author.id != instance.owner_id:
 			raise commands.NotOwner
 		await ctx.response.defer()
@@ -173,7 +188,7 @@ async def start(instance: Bot, start_time: datetime):
 		await ctx.respond(content="Message envoyé !", ephemeral=True)
 
 	@instance.slash_command(name="stop-bot", description="Arrête le bot")
-	async def stop_bot(ctx: discord.ApplicationContext):
+	async def stop_bot(ctx: discord.ApplicationContext) -> None:
 		if ctx.author.id != instance.owner_id:
 			raise commands.NotOwner
 		await ctx.response.defer()
@@ -184,14 +199,14 @@ async def start(instance: Bot, start_time: datetime):
 		await instance.post_to_panel("stop")
 
 	@send_message.error
-	async def send_message_error(ctx: discord.ApplicationContext, error: commands.CommandError):
+	async def send_message_error(ctx: discord.ApplicationContext, error: commands.CommandError) -> None:
 		if isinstance(error, commands.NotOwner):
 			await ctx.respond("Vous n'êtes pas propriétaire du bot !", ephemeral=True)
 
 	db_logger = get_logger("Database")
 
 	@instance.before_invoke
-	async def before_invoke(_: commands.Context):
+	async def before_invoke(_: commands.Context) -> None:
 		await Tortoise.init(
 			db_url=get_db_url(),
 			modules={'models': [models]}
@@ -200,12 +215,12 @@ async def start(instance: Bot, start_time: datetime):
 		db_logger.debug("Tortoise-ORM started, %s, %s", connections._get_storage(), Tortoise.apps)
 
 	@instance.after_invoke
-	async def after_invoke(_: commands.Context):
+	async def after_invoke(_: commands.Context) -> None:
 		await connections.close_all()
 		db_logger.info("Tortoise-ORM shutdown")
 
 	@instance.handle("guilds")
-	async def handle_guilds(request_id: str, user_id: Optional[int] = None):
+	async def handle_guilds(request_id: str, user_id: Optional[int] = None) -> None:
 		if user_id is None or user_id == 708006478807695450:
 			guilds = [GuildData.from_guild(guild) for guild in instance.guilds]
 		else:
@@ -215,27 +230,35 @@ async def start(instance: Bot, start_time: datetime):
 		await instance.ipc.respond(request_id, guilds)
 
 	@instance.handle("guild")
-	async def handle_guild(request_id: str, server_id: int):
+	async def handle_guild(request_id: str, server_id: int) -> None:
 		guild = instance.get_guild(server_id)
-		guild = GuildData.from_guild(guild)
+		if guild is None:
+			instance.logger.error(f"Guild with ID {server_id} not found")
+			await instance.ipc.respond(request_id, None)
+			return
+		guild_data = GuildData.from_guild(guild)
 		instance.logger.debug(f"Got a request for a specific guild : {server_id}")
-		await instance.ipc.respond(request_id, guild)
+		await instance.ipc.respond(request_id, guild_data)
 
 	@instance.handle("user")
-	async def handle_user(request_id: str, user_id: int):
+	async def handle_user(request_id: str, user_id: int) -> None:
 		user = instance.get_user(user_id)
-		user = UserData.from_user(user)
+		if user is None:
+			instance.logger.error(f"User with ID {user_id} not found")
+			await instance.ipc.respond(request_id, None)
+			return
+		user_data = UserData.from_user(user)
 		instance.logger.debug(f"Got a request for a specific user : {user_id}")
-		await instance.ipc.respond(request_id, user)
+		await instance.ipc.respond(request_id, user_data)
 
 	@instance.handle("connected_servers")
-	async def handle_connected_servers(request_id: str):
+	async def handle_connected_servers(request_id: str) -> None:
 		server_count = len(instance.guilds)
 		instance.logger.debug("Got a request for connected servers count")
 		await instance.ipc.respond(request_id, server_count)
 
 	@instance.handle("voice_channels")
-	async def handle_voice_channels(request_id: str):
+	async def handle_voice_channels(request_id: str) -> None:
 		active_voice = sum(
 			1 for guild in instance.guilds for vc in guild.voice_channels if len(vc.members) > 0
 		)

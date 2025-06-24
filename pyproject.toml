@@ -41,6 +41,7 @@ include = ["epsi_bot/**"]
 dev = [
     "aiosqlite>=0.21.0",
     "mypy>=1.16.1",
+    "types-psutil>=7.0.0",
     "pytest>=8.4.1",
     "pytest-aio>=1.9.0",
     "pytest-cov>=6.2.0",

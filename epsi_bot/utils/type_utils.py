@@ -1,6 +1,6 @@
 from enum import Enum
 from functools import lru_cache
-from typing import Any, Dict, List, Optional, Union, get_args, get_origin, TypeVar, Literal
+from typing import Any, Optional, Union, get_args, get_origin, TypeVar, Literal
 
 import discord
 
@@ -51,7 +51,7 @@ def _build_path(base_path: str, *parts: str) -> str:
 	return ".".join([base_path] + [str(p) for p in parts if p])
 
 
-def _parse_nested_key(key_to_split: str) -> List[str]:
+def _parse_nested_key(key_to_split: str) -> list[str]:
 	"""Parse nested key syntax: 'parent__child__attr' -> ['parent', 'child', 'attr']"""
 	return key_to_split.split('__')
 
@@ -62,7 +62,7 @@ def _type_checking(
 		*indexed: type,
 		raise_error: bool = False,
 		label: str = "value",
-		keys: Optional[Dict[Any, type]] = None,
+		keys: Optional[dict[Any, type]] = None,
 		use_attrs: bool = False,
 		_parent_path: str = "",
 		_depth: int = 0,
@@ -219,7 +219,7 @@ def _type_checking(
 	# Process **kwargs with nested syntax support
 	if not use_attrs:
 		# Process **kwargs for dictionary keys
-		nested_keys = {}
+		nested_keys: dict[str, dict[str, type]] = {}
 		for key, expected_type in key_or_attrs.items():
 			path_parts = _parse_nested_key(key)
 			if len(path_parts) == 1:
@@ -282,8 +282,8 @@ def _type_checking(
 	# Check object attributes (**kwargs when use_attrs=True) with nested support
 	if use_attrs and key_or_attrs:
 		# Process nested attributes
-		nested_attrs = {}
-		direct_attrs = {}
+		nested_attrs: dict[str, dict[str, type]] = {}
+		direct_attrs: dict[str, type] = {}
 
 		for attr_key, expected_type in key_or_attrs.items():
 			path_parts = _parse_nested_key(attr_key)
@@ -346,7 +346,7 @@ def type_checking(
 		*indexed: Any,
 		raise_error: bool = False,
 		label: str = "value",
-		keys: Optional[Dict[Any, Any]] = None,
+		keys: Optional[dict[Any, Any]] = None,
 		use_attrs: bool = False,
 		**key_or_attrs: Any,
 ) -> bool:

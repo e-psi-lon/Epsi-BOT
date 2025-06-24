@@ -4,15 +4,15 @@ from typing import cast
 
 from epsi_bot.utils import models, ConfigData, get_youtube, YOUTUBE_REGEX
 from epsi_bot.utils.decorators import login_required
-from epsi_bot.panel.PanelProtocol import PanelApp
+from epsi_bot.panel.PanelProtocol import PanelProtocol
 
 server_bp = Blueprint('server', __name__, url_prefix='/server')
 
 @server_bp.route('/<int:server_id>', methods=['GET', 'POST'])
-async def server_detail(server_id: int):
+async def server_detail(server_id: int) -> Response | str:
 	@login_required
-	async def _server_detail():
-		panel_app = cast(PanelApp, current_app)
+	async def _server_detail() -> Response | str:
+		panel_app = cast(PanelProtocol, current_app)
 		config = await models.Server.get_or_none(server_id=server_id)
 		if (server_id not in [guild["id"] for guild in session.get('guilds', [])] or
 				config is None):
@@ -37,7 +37,7 @@ async def server_detail(server_id: int):
 
 	return await _server_detail()
 
-async def _handle_server_update(server_id: int, config) -> Response:
+async def _handle_server_update(server_id: int, config: models.Server) -> Response:
 	values = (await request.form).to_dict()
 
 	# Convert checkbox values to boolean
@@ -83,7 +83,7 @@ async def _handle_server_update(server_id: int, config) -> Response:
 @server_bp.route('/<int:server_id>/clear')
 async def clear_queue(server_id: int) -> Response:
 	@login_required
-	async def _clear_queue():
+	async def _clear_queue() -> Response:
 		config = await models.Server.get(server_id=server_id)
 		await config.queue.all().delete()
 		return redirect(url_for('server.server_detail', server_id=server_id))
@@ -93,7 +93,7 @@ async def clear_queue(server_id: int) -> Response:
 @server_bp.route('/<int:server_id>/add', methods=['POST'])
 async def add_song(server_id: int) -> Response:
 	@login_required
-	async def _add_song():
+	async def _add_song() -> Response:
 		config = await models.Server.get(server_id=server_id)
 		form_data = await request.form
 

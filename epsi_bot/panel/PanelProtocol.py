@@ -1,7 +1,8 @@
 import datetime
+import logging
 from asyncio import TimerHandle
 from typing import Protocol, Any, TypeVar
-from aiomultiprocess import Process
+from aiomultiprocess import Process  # type: ignore[import-untyped]
 
 from epsi_bot.utils import IPCManager
 
@@ -13,7 +14,8 @@ class PanelProtocol(Protocol):
 
 	ipc: IPCManager
 	bot_ipc: IPCManager
-	async def start_bot(self): ...
+	logger: logging.Logger
+	async def start_bot(self) -> None: ...
 	async def stop_bot(self) -> None: ...
 	async def get_from_bot(self, command: str, **kwargs: Any) -> Any: ...
 	async def post_to_bot(self, command: str, **kwargs: Any) -> None: ...

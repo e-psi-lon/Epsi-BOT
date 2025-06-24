@@ -18,13 +18,14 @@ class Todo(commands.Cog):
 	@todo.command(name="add_line", description="Adds a line to the message")
 	@discord.option("line", str, description="The line to add", required=True)
 	@discord.option("index", int, description="The index of the line to add", required=False, default=None)
-	async def add_line(self, ctx: discord.ApplicationContext, line: str, index: int):
+	async def add_line(self, ctx: discord.ApplicationContext, line: str, index: int) -> None:
 		await ctx.response.defer()
 		if ctx.channel.id != 1128286383161745479:
 			embed = discord.Embed(title="Ajout d'une ligne", description="Cette commande ne peut être utilisée que dans"
 			                                                             " le channel <#1128286383161745479>",
 			                      color=discord.Color.dark_red())
-			return await ctx.respond(embed=embed, delete_after=30)
+			await ctx.respond(embed=embed, delete_after=30)
+			return
 		message = await ctx.channel.fetch_message(1128641774789861488)
 		if index is None:
 			index = len(message.embeds[0].fields) + 1
@@ -35,22 +36,22 @@ class Todo(commands.Cog):
 		await message.edit(embed=discord.Embed(title="To-Do List", description="Les points suivant sont les "
 		                                                                       "différentes tâches à effectuer pour "
 		                                                                       "améliorer le bot", fields=lines))
-		line = message.embeds[0].fields[index - 1]
-		embed = discord.Embed(title="Ajout d'une ligne", description=f"La ligne {line.name} a été ajoutée au message "
+		added_line = message.embeds[0].fields[index - 1]
+		embed = discord.Embed(title="Ajout d'une ligne", description=f"La ligne {added_line.name} a été ajoutée au message "
 		                                                             f"{message.jump_url}")
 		await ctx.respond(embed=embed, delete_after=30)
-		return None
 
 	@todo.command(name="remove_line", description="Removes a line from the message")
 	@discord.option("index", int, description="The index of the line to remove", required=True)
-	async def remove_line(self, ctx: discord.ApplicationContext, index: int):
+	async def remove_line(self, ctx: discord.ApplicationContext, index: int) -> None:
 		await ctx.response.defer()
 		if ctx.channel.id != 1128286383161745479:
 			embed = discord.Embed(title="Suppression d'une ligne",
 			                      description="Cette commande ne peut être utilisée que"
 			                                  " dans le channel <#1128286383161745479>",
 			                      color=discord.Color.dark_red())
-			return await ctx.respond(embed=embed, delete_after=30)
+			await ctx.respond(embed=embed, delete_after=30)
+			return
 		message = await ctx.channel.fetch_message(1128641774789861488)
 		lines = message.embeds[0].fields
 		if 0 < index <= len(lines):
@@ -58,7 +59,8 @@ class Todo(commands.Cog):
 		else:
 			embed = discord.Embed(title="Erreur", description="L'index fourni est hors des limites.",
 			                      color=discord.Color.dark_red())
-			return await ctx.respond(embed=embed, delete_after=30)
+			await ctx.respond(embed=embed, delete_after=30)
+			return
 		for index, line in enumerate(lines):
 			line.name = f"**`{index + 1}.`**"
 		await message.edit(embed=discord.Embed(title="To-Do List", description="Les points suivant sont les différentes"
@@ -67,24 +69,25 @@ class Todo(commands.Cog):
 		embed = discord.Embed(title="Suppression d'une ligne", description=f"La ligne {old_line.name} a été "
 		                                                                   f"supprimée du message {message.jump_url}")
 		await ctx.respond(embed=embed, delete_after=30)
-		return None
 
 	@todo.command(name="edit_line", description="Edits a line from the message")
 	@discord.option("index", int, description="The index of the line to edit", required=True)
 	@discord.option("line", str, description="The new line", required=True)
-	async def edit_line(self, ctx: discord.ApplicationContext, index: int, line: str):
+	async def edit_line(self, ctx: discord.ApplicationContext, index: int, line: str) -> None:
 		await ctx.response.defer()
 		if ctx.channel.id != 1128286383161745479:
 			embed = discord.Embed(title="Modification d'une ligne", description="Cette commande ne peut être utilisée "
 			                                                                    "que dans le channel "
 			                                                                    "<#1128286383161745479>")
-			return await ctx.respond(embed=embed, delete_after=30)
+			await ctx.respond(embed=embed, delete_after=30)
+			return
 		message = await ctx.channel.fetch_message(1128641774789861488)
 		lines = message.embeds[0].fields
 		if index <= 0 or index > len(lines):
 			embed = discord.Embed(title="Erreur", description="L'index fourni est hors des limites.",
 			                      color=discord.Color.dark_red())
-			return await ctx.respond(embed=embed, delete_after=30)
+			await ctx.respond(embed=embed, delete_after=30)
+			return
 		if " - Assigned to <@" in lines[index - 1].value:
 			lines[index - 1].value = line + lines[index - 1].value[lines[index - 1].value.find(" - Assigned to <@"):]
 		else:
@@ -92,24 +95,24 @@ class Todo(commands.Cog):
 		await message.edit(embed=discord.Embed(title="To-Do List", description="Les points suivant sont les différentes"
 		                                                                       " tâches à effectuer pour améliorer"
 		                                                                       " le bot", fields=lines))
-		line = message.embeds[0].fields[index - 1]
-		embed = discord.Embed(title="Modification d'une ligne", description=f"La ligne {line.name} a"
+		updated_line = message.embeds[0].fields[index - 1]
+		embed = discord.Embed(title="Modification d'une ligne", description=f"La ligne {updated_line.name} a"
 		                                                                    f" été modifiée dans le message"
 		                                                                    f" {message.jump_url}")
 		await ctx.respond(embed=embed, delete_after=30)
-		return None
 
 	@todo.command(name="assign", description="Assigns a task to a user")
 	@discord.option("index", int, description="The index of the line to assign", required=True)
 	@discord.option("user", discord.User, description="The user to assign the task to", required=True)
-	async def assign(self, ctx: discord.ApplicationContext, index: int, user: discord.User):
+	async def assign(self, ctx: discord.ApplicationContext, index: int, user: discord.User) -> None:
 		await ctx.response.defer()
 		if ctx.channel.id != 1128286383161745479:
 			embed = discord.Embed(title="Assignation d'une ligne", description="Cette commande ne peut être utilisée "
 			                                                                   "que dans le channel "
 			                                                                   "<#1128286383161745479>",
 			                      color=discord.Color.dark_red())
-			return await ctx.respond(embed=embed, delete_after=30)
+			await ctx.respond(embed=embed, delete_after=30)
+			return
 		message = await ctx.channel.fetch_message(1128641774789861488)
 		lines: list[discord.EmbedField] = message.embeds[0].fields
 		line: discord.EmbedField = lines[index - 1]
@@ -148,10 +151,9 @@ class Todo(commands.Cog):
 		                                       description="Les points suivant sont les différentes tâches à "
 		                                                   "effectuer pour améliorer le bot",
 		                                       fields=lines))
-		return None
 
 	@todo.command(name="tuto", description="Sends a tutorial on how to use the to-do list")
-	async def tuto(self, ctx: discord.ApplicationContext):
+	async def tuto(self, ctx: discord.ApplicationContext) -> None:
 		await ctx.response.defer()
 		embed = discord.Embed(title="Tutoriel",
 		                      description="Voici un tutoriel sur comment utiliser la to-do list, "
@@ -179,5 +181,5 @@ class Todo(commands.Cog):
 		await ctx.respond(embed=embed)
 
 
-def setup(bot: commands.Bot):
+def setup(bot: Bot) -> None:
 	bot.add_cog(Todo(bot))

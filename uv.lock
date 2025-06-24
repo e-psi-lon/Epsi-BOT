@@ -334,6 +334,7 @@ dev = [
     { name = "pytest-aio" },
     { name = "pytest-cov" },
     { name = "pytest-mock" },
+    { name = "types-psutil" },
 ]
 
 [package.metadata]
@@ -364,6 +365,7 @@ dev = [
     { name = "pytest-aio", specifier = ">=1.9.0" },
     { name = "pytest-cov", specifier = ">=6.2.0" },
     { name = "pytest-mock", specifier = ">=3.14.1" },
+    { name = "types-psutil", specifier = ">=7.0.0" },
 ]
 
 [[package]]
@@ -908,6 +910,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/d7/9b/de966810021fa773fead258efd8deea2bb73bb12479e27f288bd8ceb8763/tortoise_orm-0.25.1.tar.gz", hash = "sha256:4d5bfd13d5750935ffe636a6b25597c5c8f51c47e5b72d7509d712eda1a239fe", size = 128341, upload-time = "2025-06-05T10:43:31.058Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/70/55/2bda7f4445f4c07b734385b46d1647a388d05160cf5b8714a713e8709378/tortoise_orm-0.25.1-py3-none-any.whl", hash = "sha256:df0ef7e06eb0650a7e5074399a51ee6e532043308c612db2cac3882486a3fd9f", size = 167723, upload-time = "2025-06-05T10:43:29.309Z" },
+]
+
+[[package]]
+name = "types-psutil"
+version = "7.0.0.20250601"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c8/af/767b92be7de4105f5e2e87a53aac817164527c4a802119ad5b4e23028f7c/types_psutil-7.0.0.20250601.tar.gz", hash = "sha256:71fe9c4477a7e3d4f1233862f0877af87bff057ff398f04f4e5c0ca60aded197", size = 20297, upload-time = "2025-06-01T03:25:16.698Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8d/85/864c663a924a34e0d87bd10ead4134bb4ab6269fa02daaa5dd644ac478c5/types_psutil-7.0.0.20250601-py3-none-any.whl", hash = "sha256:0c372e2d1b6529938a080a6ba4a9358e3dfc8526d82fabf40c1ef9325e4ca52e", size = 23106, upload-time = "2025-06-01T03:25:15.386Z" },
 ]
 
 [[package]]

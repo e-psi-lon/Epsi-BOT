@@ -52,7 +52,7 @@ class Help(commands.Cog):
 		self.bot = bot
 
 	@commands.slash_command(name="help", description="Shows the help menu")
-	async def help(self, ctx: discord.ApplicationContext):
+	async def help(self, ctx: discord.ApplicationContext) -> None:
 		await ctx.response.defer()
 		help_pages: list[discord.Embed | list[discord.Embed]] = []
 
@@ -120,5 +120,5 @@ class Help(commands.Cog):
 		await paginator.respond(ctx.interaction)
 
 
-def setup(bot: Bot):
+def setup(bot: Bot) -> None:
 	bot.add_cog(Help(bot))

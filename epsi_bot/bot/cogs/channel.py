@@ -1,21 +1,23 @@
-import discord
-import pytubefix.exceptions
-from discord.ext import commands
+from typing import TypeVar
 
+import discord
+import pytubefix.exceptions  # type: ignore[import-untyped]
+from discord.ext import commands
 from epsi_bot.bot.bot import Bot
 from epsi_bot.utils import EMBED_ERROR_BOT_NOT_CONNECTED, play_song, Server, download_bulk, get_youtube
 
 
 class Channel(commands.Cog):
-	def __init__(self, bot: Bot):
+	def __init__(self, bot: Bot) -> None:
 		self.bot = bot
 		self.description = "Voice channel related commands"
 
 	@commands.slash_command(name="leave", description="Leaves the voice channel")
-	async def leave(self, ctx: discord.ApplicationContext):
+	async def leave(self, ctx: discord.ApplicationContext) -> None:
 		await ctx.response.defer()
 		if ctx.guild.voice_client is None:
-			return await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
+			await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
+			return
 		await ctx.guild.voice_client.disconnect(force=True)
 		await ctx.respond(embed=discord.Embed(title="Leave", description="Bot left the voice channel.",
 		                                      color=discord.Color.green()))
@@ -23,20 +25,25 @@ class Channel(commands.Cog):
 		await server.queue.all().delete()
 		server.position = 0
 		await server.save()
-		return None
+
 
 	@commands.slash_command(name='join', description='Join the voice channel you are in.')
-	async def join(self, ctx: discord.ApplicationContext):
+	async def join(self, ctx: discord.ApplicationContext) -> None:
 		await ctx.response.defer()
 		if ctx.guild.voice_client is not None:
-			return await ctx.respond(
+			await ctx.respond(
 				embed=discord.Embed(title="Error", description="Bot is already connected to a voice "
 				                                               "channel.", color=discord.Color.dark_red())
 			)
-		if ctx.author.voice is None:
-			return await ctx.respond(embed=discord.Embed(title="Error", description="You must be in a voice channel.",
+			return
+		if isinstance(ctx.author, discord.User) or ctx.author.voice is None:
+			await ctx.respond(embed=discord.Embed(title="Error", description="You must be in a voice channel.",
 			                                             color=discord.Color.dark_red()))
-
+			return
+		if ctx.author.voice.channel is None:
+			await ctx.respond(embed=discord.Embed(title="Error", description="You must be in a voice channel.",
+			                                             color=discord.Color.dark_red()))
+			return
 		await ctx.author.voice.channel.connect()
 		await ctx.respond(
 			embed=discord.Embed(title="Join", description="Bot joined the voice channel.", color=discord.Color.green()))
@@ -53,8 +60,6 @@ class Channel(commands.Cog):
 			await play_song(ctx, url, direct_play=True)
 			queue = [queue.song.url for queue in server.queue]
 			await download_bulk(queue)
-		return None
 
-
-def setup(bot: commands.Bot):
+def setup(bot: Bot) -> None:
 	bot.add_cog(Channel(bot))

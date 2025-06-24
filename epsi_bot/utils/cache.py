@@ -8,7 +8,7 @@ import binascii
 import pytubefix  # type: ignore[import-untyped]
 import zlib
 from aiocache import MemcachedCache  # type: ignore[import-untyped]
-from aiocache.serializers import JsonSerializer
+from aiocache.serializers import JsonSerializer  # type: ignore[import-untyped]
 
 import epsi_bot.utils.requests as requests
 from epsi_bot.utils.constants import YOUTUBE_REGEX, YOUTUBE_CLIENT
@@ -60,7 +60,7 @@ class AudioCache(MemcachedCache):
 		return super().__aexit__(exc_type, exc_val, exc_tb)
 
 	class Base64Serializer(JsonSerializer):
-		def dumps(self, value):
+		def dumps(self, value: Any) -> str:
 			if isinstance(value, io.BytesIO):
 				logger = get_logger("Memcached")
 				logger.debug(f"Audio size: {len(value.getvalue())} bytes")
@@ -69,7 +69,7 @@ class AudioCache(MemcachedCache):
 				return binascii.hexlify(compressed).decode()
 			return super().dumps(value)
 
-		def loads(self, value: str):
+		def loads(self, value: str) -> io.BytesIO | Any:
 			try:
 				val = io.BytesIO(base64.b64decode(zlib.decompress(binascii.unhexlify(value.encode()))))
 				val.seek(0)
@@ -85,7 +85,9 @@ async def to_cache(url: str, cache: AudioCache) -> io.BytesIO:
 	buffer = io.BytesIO()
 	buffer.seek(0)
 	if not YOUTUBE_REGEX.match(url):
-		r: bytes = await requests.get(url, return_type="content")
+		r = await requests.get(url, return_type="content")
+		if not isinstance(r, bytes):
+			raise TypeError(f"Expected bytes, got {type(r)} for url {url}")
 		buffer.write(r)
 	else:
 		yt_video = pytubefix.YouTube(url, client=YOUTUBE_CLIENT)
@@ -118,8 +120,7 @@ async def download(url: str, download_logger: logging.Logger = get_logger("Audio
 	return value
 
 
-async def download_bulk(urls: list[str], download_logger: logging.Logger = get_logger("Audio-Downloader")) -> list[
-	io.BytesIO]:
+async def download_bulk(urls: list[str], download_logger: logging.Logger = get_logger("Audio-Downloader")) -> list[io.BytesIO]:
 	"""
 	Download a list of videos from YouTube (or other) URLs in bulk.
 	
@@ -136,7 +137,7 @@ async def download_bulk(urls: list[str], download_logger: logging.Logger = get_l
 		The downloaded videos
 	"""
 
-	async def download_worker(url: str, cache_) -> io.BytesIO:
+	async def download_worker(url: str, cache_: AudioCache) -> io.BytesIO:
 		result = await to_cache(url, cache_)
 		download_logger.info(f"Downloaded {url}")
 		return result

@@ -3,14 +3,22 @@ import queue
 import logging
 import logging.handlers
 import os
-from typing import Optional, Any
+from typing import Optional, Any, Literal
 
 
 class CustomFormatter(logging.Formatter):
 	"""Custom formatter for the bot and the panel's logs"""
 
-	def __init__(self, source: str, *args: Any, **kwargs: Any) -> None:
-		super().__init__(*args, **kwargs)
+	def __init__(self,
+	             source: str,
+	             fmt: str | None = None,
+	             datefmt: str | None = None,
+	             style: Literal["%", "{", "$"] = "%",
+	             validate: bool = True,
+	             *,
+	             defaults: Optional[dict[str, Any]] = None,
+	             ) -> None:
+		super().__init__(fmt=fmt, datefmt=datefmt, style=style, validate=validate, defaults=defaults)
 		self.source = source
 
 	FORMAT = "[{asctime}] {source} — {color}{levelname}\033[0m : {message} ({path}:{lineno})"
@@ -23,7 +31,7 @@ class CustomFormatter(logging.Formatter):
 		logging.CRITICAL: "\033[41m"  # Red
 	}
 
-	_path_cache = {}
+	_path_cache: dict[str, str] = {}
 
 	def format(self, record: logging.LogRecord) -> str:
 		log_color = self.FORMATS.get(record.levelno)
@@ -75,7 +83,7 @@ def get_logger(name: str, level: Optional[int] = parse_args().log_level.upper())
 			break
 	else:
 		logger.handlers.clear()
-		log_queue = queue.Queue(-1)
+		log_queue: queue.Queue[logging.LogRecord] = queue.Queue(-1)
 		queue_handler = logging.handlers.QueueHandler(log_queue)
 		logger.addHandler(queue_handler)
 		_queue_handlers[name] = queue_handler

@@ -7,7 +7,7 @@ from epsi_bot.utils import OWNER_ID, EMBED_ERROR_NOT_BOT_OWNER, Server, AudioCac
 removed_count = 0
 
 
-def cogs_autocomplete(ctx: discord.AutocompleteContext):
+def cogs_autocomplete(ctx: discord.AutocompleteContext) -> list[str]:
 	cogs = []
 	for _, cog in ctx.bot.cogs.items():
 		cogs.append(cog.qualified_name)
@@ -21,10 +21,11 @@ class Admin(commands.Cog):
 		self.description = "Bot administration commands"
 
 	@commands.slash_command(name="remove_cache", description="Removes the audio cache", guild_ids=[761485410596552736])
-	async def remove_cache(self, ctx: discord.ApplicationContext):
+	async def remove_cache(self, ctx: discord.ApplicationContext) -> None:
 		await ctx.response.defer()
 		if ctx.author.id != OWNER_ID:
-			return await ctx.respond(embed=EMBED_ERROR_NOT_BOT_OWNER, delete_after=30)
+			await ctx.respond(embed=EMBED_ERROR_NOT_BOT_OWNER, delete_after=30)
+			return None
 		server = await Server.get(server_id=ctx.guild.id)
 		if ctx.voice_client is not None and ctx.voice_client.is_playing():
 			ctx.voice_client.stop()
@@ -39,14 +40,15 @@ class Admin(commands.Cog):
 	@commands.slash_command(name="clean", description="Cleans the bot's messages", guild_ids=[761485410596552736])
 	@discord.option("count", int, description="The number of messages to delete", required=False, default=1,
 	                min_value=1, max_value=100)
-	async def clean(self, ctx: discord.ApplicationContext, count: int):
+	async def clean(self, ctx: discord.ApplicationContext, count: int) -> None:
 		global removed_count
 		await ctx.response.defer()
 		if ctx.author.id != OWNER_ID:
-			return await ctx.respond(embed=EMBED_ERROR_NOT_BOT_OWNER, delete_after=30)
+			await ctx.respond(embed=EMBED_ERROR_NOT_BOT_OWNER, delete_after=30)
+			return
 		removed_count = 0
 
-		def check(m: discord.Message):
+		def check(m: discord.Message) -> bool:
 			global removed_count
 			removed_count += 1
 			return m.author.id == self.bot.user.id and m.id != 1128641774789861488 and removed_count <= count  # type: ignore[union-attr]
@@ -54,16 +56,16 @@ class Admin(commands.Cog):
 		await ctx.channel.purge(check=check)
 		embed = discord.Embed(title="Clean", description=f"Cleaned {count} messages.", color=discord.Color.green())
 		await ctx.respond(embed=embed, delete_after=30)
-		return None
 
 	@commands.slash_command(name="reload", description="Reloads the cogs", guild_ids=[761485410596552736])
 	@discord.option("cog", str, description="The cog to reload", required=False, default="all",
 	                autocomplete=discord.utils.basic_autocomplete(cogs_autocomplete))
-	async def reload(self, ctx: discord.ApplicationContext, cog: str):
+	async def reload(self, ctx: discord.ApplicationContext, cog: str) -> None:
 		if cog == "all":
 			await ctx.response.defer()
 			if ctx.author.id != OWNER_ID:
-				return await ctx.respond(embed=EMBED_ERROR_NOT_BOT_OWNER, delete_after=30)
+				await ctx.respond(embed=EMBED_ERROR_NOT_BOT_OWNER, delete_after=30)
+				return None
 			for cog in self.bot.cogs:
 				if cog == "admin":
 					continue
@@ -73,12 +75,13 @@ class Admin(commands.Cog):
 		else:
 			await ctx.response.defer()
 			if ctx.author.id != OWNER_ID:
-				return await ctx.respond(embed=EMBED_ERROR_NOT_BOT_OWNER, delete_after=30)
+				await ctx.respond(embed=EMBED_ERROR_NOT_BOT_OWNER, delete_after=30)
+				return None
 			self.bot.reload_extension(f"epsi_bot.bot.cogs.{cog}")
 			embed = discord.Embed(title="Reload", description=f"Reloaded the {cog} cog.", color=discord.Color.green())
 			await ctx.respond(embed=embed, delete_after=30)
 		return None
 
 
-def setup(bot):
+def setup(bot: Bot) -> None:
 	bot.add_cog(Admin(bot))

@@ -1,6 +1,6 @@
 import io
 import sys
-from typing import Iterable, Literal
+from typing import Iterable, Literal, Any
 
 from typing_extensions import Buffer
 
@@ -8,10 +8,10 @@ from epsi_bot.utils import get_logger
 
 
 class MemcachedStd(io.TextIOBase):
-	def __init__(self, std_type: Literal["stdout", "stderr"] = "stdout", *args, **kwargs):
+	def __init__(self, std_type: Literal["stdout", "stderr"] = "stdout") -> None:
 		self.type = std_type
 		self.logger = get_logger("Memcached")
-		super().__init__(*args, **kwargs)
+		super().__init__()
 
 	def write(self, string: str | Buffer) -> int:
 		content: str
@@ -43,7 +43,13 @@ class MemcachedStd(io.TextIOBase):
 			return sys.stderr.isatty()
 
 	def readable(self) -> bool:
-		return True
+		return False
 
 	def writable(self) -> bool:
 		return True
+
+	def seekable(self) -> bool:
+		return False
+
+	def read(self, size: int | None = -1) -> str:
+		raise io.UnsupportedOperation("read() not supported on MemcachedStd")

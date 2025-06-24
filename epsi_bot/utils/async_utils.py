@@ -76,7 +76,7 @@ class Event:
 		return f"<Event {'set' if self.is_set() else 'clear'} is_response={self.is_response}>"
 
 
-async def set_callback(event: Event, callback: Callable[[], Coroutine[Any, Any, None]],
+async def set_callback(event: Event, callback: Callable[..., Coroutine[Any, Any, None]],
                        event_loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
 	"""
 	Set a callback to be called when the event is set.

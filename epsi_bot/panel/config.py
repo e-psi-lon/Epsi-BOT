@@ -1,6 +1,9 @@
 import os
 from typing import Any
 
+from quart import Quart
+
+
 class Config:
 	"""Base configuration."""
 	SECRET_KEY = os.environ.get('PANEL_SECRET_KEY')
@@ -12,7 +15,7 @@ class Config:
 	DEBUG: bool
 
 	@staticmethod
-	def init_app(app):
+	def init_app(app: Quart) -> None:
 		"""Initialize app with this config."""
 		pass
 

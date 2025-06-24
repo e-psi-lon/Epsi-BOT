@@ -16,7 +16,7 @@ class Listeners(commands.Cog):
 		self.description = "Listeners, doesn't contain any commands"
 
 	@commands.Cog.listener("on_message")
-	async def on_message(self, message: discord.Message):
+	async def on_message(self, message: discord.Message) -> None:
 		if message.content.startswith("e!eval"):
 			output = io.StringIO()
 			if message.author.id == self.bot.owner_id:
@@ -39,7 +39,7 @@ class Listeners(commands.Cog):
 
 	@commands.Cog.listener("on_voice_state_update")
 	async def on_voice_state_update(self, _: discord.Member, before: discord.VoiceState,
-	                                after: discord.VoiceState):
+	                                after: discord.VoiceState) -> None:
 
 		if after.channel is not None:
 			if len(after.channel.members) == 1 and after.channel.members[
@@ -53,7 +53,7 @@ class Listeners(commands.Cog):
 				self.bot.logger.info("Bot disconnected from channel, no more members in it")
 
 	@commands.Cog.listener("on_guild_join")
-	async def on_guild_join(self, guild: discord.Guild):
+	async def on_guild_join(self, guild: discord.Guild) -> None:
 		channel = guild.system_channel
 		text = 'Hey, je suis un bot de musique en cours de développement fait par ' \
 		       '<@!708006478807695450>, je permet de jouer de la musique depuis YouTube dans un channel ' \
@@ -75,5 +75,5 @@ class Listeners(commands.Cog):
 		await Server.get_or_create(server_id=guild.id)
 
 
-def setup(bot: Bot):
+def setup(bot: Bot) -> None:
 	bot.add_cog(Listeners(bot))
