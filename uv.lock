@@ -317,7 +317,6 @@ dependencies = [
     { name = "charset-normalizer" },
     { name = "psutil" },
     { name = "py-cord" },
-    { name = "pydub" },
     { name = "pynacl" },
     { name = "python-dotenv" },
     { name = "python-ffmpeg" },
@@ -348,11 +347,10 @@ requires-dist = [
     { name = "charset-normalizer", specifier = ">=3.4.2" },
     { name = "psutil", specifier = ">=7.0.0" },
     { name = "py-cord", specifier = ">=2.6.1" },
-    { name = "pydub", specifier = ">=0.25.1" },
     { name = "pynacl", specifier = ">=1.5.0" },
-    { name = "python-dotenv", specifier = ">=1.1.0" },
+    { name = "python-dotenv", specifier = ">=1.1.1" },
     { name = "python-ffmpeg", specifier = ">=2.0.12" },
-    { name = "pytubefix", specifier = ">=9.2.0" },
+    { name = "pytubefix", specifier = ">=9.2.1" },
     { name = "quart", specifier = ">=0.20.0" },
     { name = "quart-session", specifier = ">=3.0.0" },
     { name = "tortoise-orm", specifier = ">=0.25.1" },
@@ -716,15 +714,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pydub"
-version = "0.25.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/fe/9a/e6bca0eed82db26562c73b5076539a4a08d3cffd19c3cc5913a3e61145fd/pydub-0.25.1.tar.gz", hash = "sha256:980a33ce9949cab2a569606b65674d748ecbca4f0796887fd6f46173a7b0d30f", size = 38326, upload-time = "2021-03-10T02:09:54.659Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a6/53/d78dc063216e62fc55f6b2eebb447f6a4b0a59f55c8406376f76bf959b08/pydub-0.25.1-py2.py3-none-any.whl", hash = "sha256:65617e33033874b59d87db603aa1ed450633288aefead953b30bded59cb599a6", size = 32327, upload-time = "2021-03-10T02:09:53.503Z" },
-]
-
-[[package]]
 name = "pyee"
 version = "12.1.1"
 source = { registry = "https://pypi.org/simple" }
@@ -839,11 +828,11 @@ wheels = [
 
 [[package]]
 name = "python-dotenv"
-version = "1.1.0"
+version = "1.1.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/88/2c/7bb1416c5620485aa793f2de31d3df393d3686aa8a8506d11e10e13c5baf/python_dotenv-1.1.0.tar.gz", hash = "sha256:41f90bc6f5f177fb41f53e87666db362025010eb28f60a01c9143bfa33a2b2d5", size = 39920, upload-time = "2025-03-25T10:14:56.835Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f6/b0/4bc07ccd3572a2f9df7e6782f52b0c6c90dcbb803ac4a167702d7d0dfe1e/python_dotenv-1.1.1.tar.gz", hash = "sha256:a8a6399716257f45be6a007360200409fce5cda2661e3dec71d23dc15f6189ab", size = 41978, upload-time = "2025-06-24T04:21:07.341Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1e/18/98a99ad95133c6a6e2005fe89faedf294a748bd5dc803008059409ac9b1e/python_dotenv-1.1.0-py3-none-any.whl", hash = "sha256:d7c01d9e2293916c18baf562d95698754b0dbbb5e74d457c45d4f6561fb9d55d", size = 20256, upload-time = "2025-03-25T10:14:55.034Z" },
+    { url = "https://files.pythonhosted.org/packages/5f/ed/539768cf28c661b5b068d66d96a2f155c4971a5d55684a514c1a0e0dec2f/python_dotenv-1.1.1-py3-none-any.whl", hash = "sha256:31f23644fe2602f88ff55e1f5c79ba497e01224ee7737937930c448e4d0e24dc", size = 20556, upload-time = "2025-06-24T04:21:06.073Z" },
 ]
 
 [[package]]
@@ -861,11 +850,11 @@ wheels = [
 
 [[package]]
 name = "pytubefix"
-version = "9.2.0"
+version = "9.2.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/5f/61/e5ddfe61efd62114a17ce6e4de179dc6ed7f42bd075decbec592ef16fa66/pytubefix-9.2.0.tar.gz", hash = "sha256:40d1979f5873d17953f7d91d82ca0b25dd0182b3cc9d36fa43d8be462636aac1", size = 751615, upload-time = "2025-06-18T02:24:35.496Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b2/be/dabc1bed948fe161f26f44e0680bcbae3b870fc963ff2d891ef5a3e43ac9/pytubefix-9.2.1.tar.gz", hash = "sha256:816f7718094b21595ebffa4af73d7ff0e3bbeef9659961c742c97cf01c06f3de", size = 751559, upload-time = "2025-06-23T01:49:43.299Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/80/05/2c806e9b4a997f42756e1aef1d33ea80f8d8844124f79f80ba7bc3b8aae2/pytubefix-9.2.0-py3-none-any.whl", hash = "sha256:06c428a6f28e6e8719bd97036e363151197d1708cd65d508ad1b95f035371a05", size = 758496, upload-time = "2025-06-18T02:24:32.915Z" },
+    { url = "https://files.pythonhosted.org/packages/09/86/fe9dafd9b5a05bd6aedc89d2e826c0b7cdd391e763a9de4eed5501c9d022/pytubefix-9.2.1-py3-none-any.whl", hash = "sha256:59312d33fffc7d75c9387892c8944faaf48a057b431d713cbe2c69e812223055", size = 758498, upload-time = "2025-06-23T01:49:40.962Z" },
 ]
 
 [[package]]
