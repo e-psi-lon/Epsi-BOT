@@ -1,5 +1,4 @@
-from typing import TypeVar
-
+import asyncio 
 import discord
 import pytubefix.exceptions  # type: ignore[import-untyped]
 from discord.ext import commands
@@ -59,7 +58,7 @@ class Channel(commands.Cog):
 				pass
 			await play_song(ctx, url, direct_play=True)
 			queue = [queue.song.url for queue in server.queue]
-			await download_bulk(queue)
+			asyncio.create_task(download_bulk(queue))
 
 def setup(bot: Bot) -> None:
 	bot.add_cog(Channel(bot))

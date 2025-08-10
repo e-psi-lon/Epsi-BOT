@@ -1,3 +1,4 @@
+import asyncio
 import discord
 import pytubefix  # type: ignore[import-untyped]
 from discord.commands import SlashCommandGroup
@@ -279,7 +280,7 @@ class Playlists(commands.Cog):
 			embed=discord.Embed(title="Play", description=f"Playing {server.queue[server.position].song.name}",
 			                    color=discord.Color.green()))
 		queue = [queue.song.url for queue in server.queue]
-		await download_bulk(queue)
+		asyncio.create_task(download_bulk(queue))
 
 	@playlist.command(name="list", description="Lists all the playlists")
 	@discord.option("playlist-type", str, description="The type of the playlist", required=False,
