@@ -7,8 +7,7 @@
 
 ## Database Schema
 
-The bot uses SQLite3 for data persistence [`database/database.db`](database/database.db). Database file is created
-automatically if not present.
+The bot uses MySQL for data persistence. You need to provide all the informations regarding how to connect to it in the environment variables.
 
 ### Core Tables
 
