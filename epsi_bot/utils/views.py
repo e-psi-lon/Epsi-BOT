@@ -54,12 +54,18 @@ class SelectVideo(discord.ui.Select):
 	             channel_types: list[discord.ChannelType] | None = None,
 	             disabled: bool = False,
 	             row: int | None = None) -> None:
+		if options is None:
+			options = []
+		if channel_types is None:
+			channel_types = []
+		
 		super().__init__(select_type, custom_id=custom_id, placeholder=placeholder, min_values=min_values, max_values=max_values, options=options, channel_types=channel_types, disabled=disabled, row=row)
 		self.placeholder = "Select an audio to play"
 		self.min_values = 1
 		self.max_values = 1
 		self.ctx = ctx
 		self.download = download_file
+		
 		for video in videos:
 			if any(option.value == video.watch_url for option in options):
 				continue
@@ -75,21 +81,27 @@ class SelectVideo(discord.ui.Select):
 		interaction : discord.Interaction
 			The interaction that triggered the callback
 		"""
+		if interaction.user is None or interaction.message is None:
+			await interaction.response.send_message("Error: Invalid interaction state.", ephemeral=True)
+			return
+			
 		if interaction.user.id != self.ctx.author.id:
 			await interaction.response.send_message("You are not the author of the command.", ephemeral=True)
 			return
+		selected_url = str(self.values[0])
 		await interaction.message.edit(
 			embed=discord.Embed(title="Select audio", description=f"You selected : {self.options[0].label}",
 			                    color=discord.Color.green()), view=None)
+		
 		if self.download:
-			if get_youtube(self.values[0]).length > MAX_TRACK_LENGTH:
+			yt_video = get_youtube(selected_url)
+			if yt_video.length > MAX_TRACK_LENGTH:
 				await interaction.message.edit(embed=discord.Embed(title="Error",
 				                                                          description=f"The video "
-				                                                                      f"""[{get_youtube(self.values[0])
-				                                                          .title}]({self.values[0]}) is too long""",
+				                                                                      f"[{yt_video.title}]({selected_url}) is too long",
 				                                                          color=discord.Color.dark_red()))
 				return
-			stream = get_youtube(self.values[0]).streams.get_audio_only()
+			stream = yt_video.streams.get_audio_only()
 			buffer = io.BytesIO()
 			stream.stream_to_buffer(buffer)
 			buffer.seek(0)
@@ -98,36 +110,43 @@ class SelectVideo(discord.ui.Select):
 				file=discord.File(buffer, filename=f"{stream.title}.mp3"),
 				view=None)
 			return
+			
+		if interaction.guild is None:
+			await interaction.message.edit(embed=discord.Embed(title="Error", description="This command can only be used in a guild.", color=discord.Color.dark_red()))
+			return
+			
 		async with database_context():
 			server = await Server.get(server_id=interaction.guild.id).prefetch_related("queue", "queue__song")
 			if not await server.queue.all():
 				server.position = 0
 				await server.save()
-				yt_video = get_youtube(self.values[0])
-				song, _ = await Song.get_or_create_important(["url"], url=self.values[0], name=yt_video.title)
+				yt_video = get_youtube(selected_url)
+				song, _ = await Song.get_or_create_important(["url"], url=selected_url, name=yt_video.title)
 				user, _ = await User.get_or_create(discord_id=interaction.user.id)
 				await Queue.create(song=song, asker=user, position=0, server=server)
 			else:
-				yt_video = get_youtube(self.values[0])
-				song, _ = await Song.get_or_create_important(["url"], url=self.values[0], name=yt_video.title)
+				yt_video = get_youtube(selected_url)
+				song, _ = await Song.get_or_create_important(["url"], url=selected_url, name=yt_video.title)
 				user, _ = await User.get_or_create(discord_id=interaction.user.id)
 				await Queue.create(song=song, asker=user, position=len(server.queue), server=server)
+				
 			if interaction.guild.voice_client is None:
 				await interaction.message.edit(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
 				return
+				
 			if not interaction.guild.voice_client.is_playing():
 				await interaction.message.edit(embed=discord.Embed(title="Play",
 				                                                   description=f"Playing song "
-				                                                               f"[{get_youtube(self.values[0]).title}]"
-				                                                               f"({self.values[0]})",
+				                                                               f"[{get_youtube(selected_url).title}]"
+				                                                               f"({selected_url})",
 				                                                   color=discord.Color.green()))
 				await play_song(self.ctx, server.queue[server.position].song.url)
 				return
 			else:
 				await interaction.message.edit(embed=discord.Embed(title="Queue",
 				                                                   description=f"Song "
-				                                                               f"[{get_youtube(self.values[0]).title}]"
-				                                                               f"({self.values[0]}) added to queue.",
+				                                                               f"[{get_youtube(selected_url).title}]"
+				                                                               f"({selected_url}) added to queue.",
 				                                                   color=discord.Color.green()))
 
 

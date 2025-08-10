@@ -51,31 +51,37 @@ class State(commands.Cog):
 		if ctx.guild.voice_client is None:
 			await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
 			return
-		if not GET_FILE_HTTP_URL.match(url):
+		
+		url_match = GET_FILE_HTTP_URL.match(url)
+		if not url_match:
 			await ctx.respond(
 				embed=discord.Embed(title="Error", description="Invalid URL.", color=discord.Color.dark_red()))
 			return
-		if GET_FILE_HTTP_URL.match(url).group(1).split('.')[-1] not in ['mp3', 'wav', 'ogg', 'mp4']:
+		
+		filename = url_match.group(1)
+		file_extension = filename.split('.')[-1]
+		if file_extension not in ['mp3', 'wav', 'ogg', 'mp4']:
 			await ctx.respond(
 				embed=discord.Embed(title="Error", description="Invalid URL.", color=discord.Color.dark_red()))
 			return
+		
 		server = await Server.get(server_id=ctx.guild.id)
-		song, _ = await Song.get_or_create_important(["url"], name=GET_FILE_HTTP_URL.match(url).group(1).split('.')[0],
-		                                             url=url)
+		song_name = filename.split('.')[0]
+		song, _ = await Song.get_or_create_important(["url"], name=song_name, url=url)
 		user, _ = await User.get_or_create(discord_id=ctx.author.id)
+		
 		if not await server.queue.all():
 			await Queue.create(server=server, song=song, position=0, asker=user)
 			await ctx.respond(embed=discord.Embed(title="Play",
-			                                      description=f"Playing song "
-			                                                  f"[{GET_FILE_HTTP_URL.match(url).group(1).split('.')[0]}]({url})",
+			                                      description=f"Playing song [{song_name}]({url})",
 			                                      color=discord.Color.green()))
 			await play_song(ctx, url)
 			await asyncio.sleep(1)
 			return
+		
 		await Queue.create(server=server, song=song, position=len(server.queue), asker=user)
 		await ctx.respond(embed=discord.Embed(title="Queue",
-		                                      description=f"Song [{GET_FILE_HTTP_URL.match(url).group(1).split('.')[0]}]({url})"
-		                                                  f" added to queue.",
+		                                      description=f"Song [{song_name}]({url}) added to queue.",
 		                                      color=discord.Color.green()))
 
 	@play.command(name="file", description="Plays the audio of a file")

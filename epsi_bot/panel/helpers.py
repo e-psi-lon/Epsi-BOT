@@ -1,4 +1,4 @@
-from typing import Any, Coroutine
+from typing import Any
 
 from quart import Quart, render_template
 import tortoise.fields.relational as relational
@@ -40,9 +40,9 @@ def register_error_handlers(app: Quart) -> None:
 	for code in range(400, 500):
 		try:
 			@app.errorhandler(code)
-			async def _error_page(e: Any) -> int | tuple[str, int]:
-				if e.name == "NotFound":
-					return 404
+			async def _error_page(e: Any) -> tuple[str, int]:
+				if hasattr(e, 'name') and e.name == "NotFound":
+					return await render_template('error.html', code=404), 404
 				return await render_template('error.html', code=code), code
 		except ValueError:
 			continue

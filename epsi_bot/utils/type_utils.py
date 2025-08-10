@@ -1,6 +1,6 @@
 from enum import Enum
 from functools import lru_cache
-from typing import Any, Optional, Union, get_args, get_origin, TypeVar, Literal
+from typing import Any, Optional, Union, get_args, get_origin, TypeVar, Literal, cast
 
 import discord
 
@@ -66,7 +66,7 @@ def _type_checking(
 		use_attrs: bool = False,
 		_parent_path: str = "",
 		_depth: int = 0,
-		**key_or_attrs: type,
+		**key_or_attrs: Any,
 ) -> bool:
 	"""
 	Internal function to check the type structure of a value comprehensively.
@@ -89,7 +89,7 @@ def _type_checking(
 			if origin is Union and type(None) in args:
 				return True
 
-			if expected is type(None) or expected == type(None):
+			if expected is type(None) or expected is None:
 				return True
 
 			if raise_error:
@@ -271,7 +271,7 @@ def _type_checking(
 						_parent_path=current_path,
 						use_attrs=False,
 						_depth=_depth + 1,
-						**nested_checks
+						keys=cast(dict[Any, type], nested_checks)
 				):
 					return False
 			except (KeyError, TypeError, IndexError) as e:
@@ -329,7 +329,7 @@ def _type_checking(
 						_parent_path=current_path,
 						use_attrs=True,
 						_depth=_depth + 1,
-						**nested_checks
+						keys=cast(dict[Any, type], nested_checks)
 				):
 					return False
 			except AttributeError as e:

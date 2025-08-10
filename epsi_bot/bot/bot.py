@@ -75,7 +75,7 @@ async def update_top_songs(self: 'Bot') -> None:
 class Bot(commands.Bot):
 	def __init__(self,
 	             manager: IPCManager,
-	             command_prefix: str | Iterable[str] | Callable[[discord.Bot | discord.AutoShardedBot, discord.Message], str | Iterable[str] | Coroutine[Any, Any, str | Iterable[str]]] = when_mentioned,
+	             command_prefix: str | Iterable[str] | Callable[[commands.Bot | commands.AutoShardedBot, discord.Message], str | Iterable[str] | Coroutine[Any, Any, str | Iterable[str]]] = when_mentioned,
 	             help_command: Optional[commands.HelpCommand] = discord.MISSING,
 	             **options: Any) -> None:
 		super().__init__(command_prefix, help_command, **options)
