@@ -22,8 +22,13 @@ from epsi_bot.utils.loggers import get_logger
 
 # database = SqliteDatabase('./database/database.db')
 
-__all__ = ['User', 'Playlist', 'Song', 'PlaylistSong', 'Server', 'Queue', "PlaylistReference", 'ServerPlaylist', 'UserPlaylist',
-           "BaseModel", "SongListenCount", "database_context", "get_db_url"]
+__all__ = [
+    'BaseModel',
+    'User', 'Song', 'Playlist', 'Server',
+    'AudioReference', 'PlaylistReference',
+    'PlaylistSong', 'Queue', 'ServerPlaylist', 'UserPlaylist',
+    'SongListenCount', 'database_context', 'get_db_url'
+]
 
 
 class BaseModel(Model):
@@ -125,6 +130,52 @@ class BaseModel(Model):
 		abstract = True
 
 
+class AudioReference(BaseModel):
+    """
+    Abstract base class for models that reference a Song and have a position.
+    Used by PlaylistSong and Queue.
+    """
+    asker: fields.ForeignKeyRelation['User'] = fields.ForeignKeyField('models.User')
+    position = fields.IntField()
+    song: fields.ForeignKeyRelation['Song'] = fields.ForeignKeyField('models.Song', on_delete=fields.CASCADE)
+
+    class Meta:
+        abstract = True
+
+    async def save(self, using_db: BaseDBAsyncClient | None = None, update_fields: Iterable[str] | None = None,
+                   force_create: bool = False, force_update: bool = False) -> None:
+        async with in_transaction():
+            if self.position is None:
+                # Use the correct filter depending on subclass
+                if hasattr(self, "playlist"):
+                    values = await self.__class__.filter(playlist=self.playlist)
+                elif hasattr(self, "server"):
+                    values = await self.__class__.filter(server=self.server)
+                else:
+                    values = []
+                max_position = max([value.position for value in values], default=0)
+                self.position = max_position + 1
+            return await super().save(using_db=using_db, update_fields=update_fields,
+                                      force_create=force_create, force_update=force_update)
+		
+
+class PlaylistReference(BaseModel):
+	"""
+	Abstract base class for models that reference playlists.
+	This pattern allows different entities (servers, users) to reference 
+	the same playlist without duplicating the playlist itself.
+	
+	Attributes
+	----------
+	playlist : fields.ForeignKeyRelation
+		A foreign key reference to the Playlist model
+	"""
+	playlist: fields.ForeignKeyRelation['Playlist'] = fields.ForeignKeyField('models.Playlist')
+	
+	class Meta:
+		abstract = True
+
+
 class User(BaseModel):
 	"""
 	Represents a user and their associated data.
@@ -195,20 +246,7 @@ class PlaylistSong(BaseModel):
 	song : fields.ForeignKeyRelation
 		Link to the associated song
 	"""
-	asker: fields.ForeignKeyRelation[User] = fields.ForeignKeyField('models.User')
 	playlist: fields.ForeignKeyRelation[Playlist] = fields.ForeignKeyField('models.Playlist', related_name='songs')
-	position = fields.IntField()
-	song: fields.ForeignKeyRelation[Song] = fields.ForeignKeyField('models.Song')
-
-	async def save(self, using_db: BaseDBAsyncClient | None = None, update_fields: Iterable[str] | None = None,
-	               force_create: bool = False, force_update: bool = False) -> None:
-		async with in_transaction():
-			if self.position is None:
-				values = await PlaylistSong.filter(playlist=self.playlist)
-				max_position = max([value.position for value in values], default=0)
-				self.position = max_position + 1
-			return await super().save(using_db=using_db, update_fields=update_fields,
-			                          force_create=force_create, force_update=force_update)
 
 	class Meta:
 		unique_together = (('playlist', 'song', 'position'),)
@@ -270,43 +308,13 @@ class Queue(BaseModel):
 	song : fields.ForeignKeyRelation
 		The song associated with the queued entry
 	"""
-	asker: fields.ForeignKeyRelation[User] = fields.ForeignKeyField('models.User')
-	position = fields.IntField()
 	server: fields.ForeignKeyRelation[Server] = fields.ForeignKeyField('models.Server', related_name='queue')
-	song: fields.ForeignKeyRelation[Song] = fields.ForeignKeyField('models.Song', on_delete=fields.CASCADE)
-
-	async def save(self, using_db: BaseDBAsyncClient | None = None, update_fields: Iterable[str] | None = None,
-	               force_create: bool = False, force_update: bool = False) -> None:
-		async with in_transaction():
-			if self.position is None:
-				values = await Queue.filter(server=self.server)
-				max_position = max([value.position for value in values], default=0)
-				self.position = max_position + 1
-			return await super().save(using_db=using_db, update_fields=update_fields,
-			                          force_create=force_create, force_update=force_update)
-
 	class Meta:
 		unique_together = (('server', 'song', 'position'),)
 		indexes = [
 			("server_id", "position")
 		]
 
-
-class PlaylistReference(BaseModel):
-	"""
-	Abstract base class for models that reference playlists.
-	This pattern allows different entities (servers, users) to reference 
-	the same playlist without duplicating the playlist itself.
-	
-	Attributes
-	----------
-	playlist : fields.ForeignKeyRelation
-		A foreign key reference to the Playlist model
-	"""
-	playlist: fields.ForeignKeyRelation[Playlist] = fields.ForeignKeyField('models.Playlist')
-	
-	class Meta:
-		abstract = True
 
 
 class ServerPlaylist(PlaylistReference):
