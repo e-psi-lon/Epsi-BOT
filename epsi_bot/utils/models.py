@@ -22,7 +22,7 @@ from epsi_bot.utils.loggers import get_logger
 
 # database = SqliteDatabase('./database/database.db')
 
-__all__ = ['User', 'Playlist', 'Song', 'PlaylistSong', 'Server', 'Queue', 'ServerPlaylist', 'UserPlaylist',
+__all__ = ['User', 'Playlist', 'Song', 'PlaylistSong', 'Server', 'Queue', "PlaylistReference", 'ServerPlaylist', 'UserPlaylist',
            "BaseModel", "SongListenCount", "database_context", "get_db_url"]
 
 
@@ -292,39 +292,52 @@ class Queue(BaseModel):
 		]
 
 
-class ServerPlaylist(BaseModel):
+class PlaylistReference(BaseModel):
 	"""
-	Represents a mapping between a playlist and a server.
+	Abstract base class for models that reference playlists.
+	This pattern allows different entities (servers, users) to reference 
+	the same playlist without duplicating the playlist itself.
 	
 	Attributes
 	----------
 	playlist : fields.ForeignKeyRelation
 		A foreign key reference to the Playlist model
+	"""
+	playlist: fields.ForeignKeyRelation[Playlist] = fields.ForeignKeyField('models.Playlist')
+	
+	class Meta:
+		abstract = True
+
+
+class ServerPlaylist(PlaylistReference):
+	"""
+	Represents a mapping between a playlist and a server.
+	Allows servers to reference playlists without owning them.
+	
+	Attributes
+	----------
 	server : fields.ForeignKeyRelation
 		A foreign key reference to the Server model
 	"""
-	playlist: fields.ForeignKeyRelation[Playlist] = fields.ForeignKeyField('models.Playlist')
 	server: fields.ForeignKeyRelation[Server] = fields.ForeignKeyField('models.Server', related_name='playlists',
-	                                                                   on_delete=fields.CASCADE)
+																	   on_delete=fields.CASCADE)
 
 	class Meta:
 		unique_together = (('playlist', 'server'),)
 
 
-class UserPlaylist(BaseModel):
+class UserPlaylist(PlaylistReference):
 	"""
 	Represents a relationship between a user and a playlist.
+	Allows users to reference playlists without duplicating them.
 	
 	Attributes
 	----------
-	playlist : fields.ForeignKeyRelation
-		A foreign key relation linking to the associated Playlist
 	user : fields.ForeignKeyRelation
 		A foreign key relation linking to the associated User
 	"""
-	playlist: fields.ForeignKeyRelation[Playlist] = fields.ForeignKeyField('models.Playlist')
 	user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField('models.User', related_name='playlists',
-	                                                               on_delete=fields.CASCADE)
+																   on_delete=fields.CASCADE)
 
 	class Meta:
 		unique_together = (('playlist', 'user'),)
