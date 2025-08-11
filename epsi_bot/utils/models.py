@@ -129,133 +129,6 @@ class BaseModel(Model):
 	class Meta:
 		abstract = True
 
-
-class AudioReference(BaseModel):
-    """
-    Abstract base class for models that reference a Song and have a position.
-    Used by PlaylistSong and Queue.
-    """
-    asker: fields.ForeignKeyRelation['User'] = fields.ForeignKeyField('models.User')
-    position = fields.IntField()
-    song: fields.ForeignKeyRelation['Song'] = fields.ForeignKeyField('models.Song', on_delete=fields.CASCADE)
-
-    class Meta:
-        abstract = True
-
-    async def save(self, using_db: BaseDBAsyncClient | None = None, update_fields: Iterable[str] | None = None,
-                   force_create: bool = False, force_update: bool = False) -> None:
-        async with in_transaction():
-            if self.position is None:
-                # Use the correct filter depending on subclass
-                if hasattr(self, "playlist"):
-                    values = await self.__class__.filter(playlist=self.playlist)
-                elif hasattr(self, "server"):
-                    values = await self.__class__.filter(server=self.server)
-                else:
-                    values = []
-                max_position = max([value.position for value in values], default=0)
-                self.position = max_position + 1
-            return await super().save(using_db=using_db, update_fields=update_fields,
-                                      force_create=force_create, force_update=force_update)
-		
-
-class PlaylistReference(BaseModel):
-	"""
-	Abstract base class for models that reference playlists.
-	This pattern allows different entities (servers, users) to reference 
-	the same playlist without duplicating the playlist itself.
-	
-	Attributes
-	----------
-	playlist : fields.ForeignKeyRelation
-		A foreign key reference to the Playlist model
-	"""
-	playlist: fields.ForeignKeyRelation['Playlist'] = fields.ForeignKeyField('models.Playlist')
-	
-	class Meta:
-		abstract = True
-
-
-class User(BaseModel):
-	"""
-	Represents a user and their associated data.
-	
-	Attributes
-	----------
-	user_id : fields.IntField
-		The primary key identifier for the user
-	discord_id : fields.BigIntField
-		Unique Discord identifier for the user
-	playlists : fields.ReverseRelation
-		Associated playlists belonging to the user
-	"""
-	user_id = fields.IntField(primary_key=True)
-	discord_id = fields.BigIntField(unique=True)
-	playlists: fields.ReverseRelation['UserPlaylist']
-
-
-class Playlist(BaseModel):
-	"""
-	Represents a playlist entity in the application.
-	
-	Attributes
-	----------
-	playlist_id : fields.IntField
-		The primary key identifier for the playlist
-	name : fields.CharField
-		The name of the playlist, with a maximum length of 100 characters
-	songs : fields.ReverseRelation
-		Reverse relation that links the playlist to its associated songs
-	"""
-	playlist_id = fields.IntField(primary_key=True)
-	name = fields.CharField(100)
-	songs: fields.ReverseRelation['PlaylistSong']
-
-
-class Song(BaseModel):
-	"""
-	Represents a Song entity with attributes for song ID, name, and URL.
-	
-	Attributes
-	----------
-	song_id : fields.IntField
-		The primary key identifier for the song
-	name : fields.CharField
-		The name of the song, with a maximum length of 100 characters
-	url : fields.CharField
-		The unique URL of the song, with a maximum length of 200 characters
-	"""
-	song_id = fields.IntField(primary_key=True)
-	name = fields.CharField(100)
-	url = fields.CharField(200, unique=True)
-
-
-class PlaylistSong(BaseModel):
-	"""
-	Represents a song entry within a playlist.
-	Extends the save method to automatically calculate position when not provided.
-	
-	Attributes
-	----------
-	asker : fields.ForeignKeyRelation
-		Link to the User who added the song
-	playlist : fields.ForeignKeyRelation
-		Link to the associated playlist
-	position : fields.IntField
-		The song's position within the playlist
-	song : fields.ForeignKeyRelation
-		Link to the associated song
-	"""
-	playlist: fields.ForeignKeyRelation[Playlist] = fields.ForeignKeyField('models.Playlist', related_name='songs')
-
-	class Meta:
-		unique_together = (('playlist', 'song', 'position'),)
-		indexes = [
-			("playlist_id", "position"),
-			("song_id",)
-		]
-
-
 class Server(BaseModel):
 	"""
 	Represents a server configuration and its properties.
@@ -291,8 +164,127 @@ class Server(BaseModel):
 	queue: fields.ReverseRelation['Queue']
 	playlists: fields.ReverseRelation['ServerPlaylist']
 
+class User(BaseModel):
+	"""
+	Represents a user and their associated data.
+	
+	Attributes
+	----------
+	user_id : fields.IntField
+		The primary key identifier for the user
+	discord_id : fields.BigIntField
+		Unique Discord identifier for the user
+	playlists : fields.ReverseRelation
+		Associated playlists belonging to the user
+	"""
+	user_id = fields.IntField(primary_key=True)
+	discord_id = fields.BigIntField(unique=True)
+	playlists: fields.ReverseRelation['UserPlaylist']
 
-class Queue(BaseModel):
+class Playlist(BaseModel):
+	"""
+	Represents a playlist entity in the application.
+	
+	Attributes
+	----------
+	playlist_id : fields.IntField
+		The primary key identifier for the playlist
+	name : fields.CharField
+		The name of the playlist, with a maximum length of 100 characters
+	songs : fields.ReverseRelation
+		Reverse relation that links the playlist to its associated songs
+	"""
+	playlist_id = fields.IntField(primary_key=True)
+	name = fields.CharField(100)
+	songs: fields.ReverseRelation['PlaylistSong']
+
+class Song(BaseModel):
+	"""
+	Represents a Song entity with attributes for song ID, name, and URL.
+	
+	Attributes
+	----------
+	song_id : fields.IntField
+		The primary key identifier for the song
+	name : fields.CharField
+		The name of the song, with a maximum length of 100 characters
+	url : fields.CharField
+		The unique URL of the song, with a maximum length of 200 characters
+	"""
+	song_id = fields.IntField(primary_key=True)
+	name = fields.CharField(100)
+	url = fields.CharField(200, unique=True)
+
+class AudioReference(BaseModel):
+    """
+    Abstract base class for models that reference a Song and have a position.
+    Used by PlaylistSong and Queue.
+    """
+    asker: fields.ForeignKeyRelation['User'] = fields.ForeignKeyField('models.User')
+    position = fields.IntField()
+    song: fields.ForeignKeyRelation['Song'] = fields.ForeignKeyField('models.Song', on_delete=fields.CASCADE)
+
+    class Meta:
+        abstract = True
+
+    async def save(self, using_db: BaseDBAsyncClient | None = None, update_fields: Iterable[str] | None = None,
+                   force_create: bool = False, force_update: bool = False) -> None:
+        async with in_transaction():
+            if self.position is None:
+                # Use the correct filter depending on subclass
+                if hasattr(self, "playlist"):
+                    values = await self.__class__.filter(playlist=self.playlist)
+                elif hasattr(self, "server"):
+                    values = await self.__class__.filter(server=self.server)
+                else:
+                    values = []
+                max_position = max([value.position for value in values], default=0)
+                self.position = max_position + 1
+            return await super().save(using_db=using_db, update_fields=update_fields,
+                                      force_create=force_create, force_update=force_update)
+
+class PlaylistReference(BaseModel):
+	"""
+	Abstract base class for models that reference playlists.
+	This pattern allows different entities (servers, users) to reference 
+	the same playlist without duplicating the playlist itself.
+	
+	Attributes
+	----------
+	playlist : fields.ForeignKeyRelation
+		A foreign key reference to the Playlist model
+	"""
+	playlist: fields.ForeignKeyRelation['Playlist'] = fields.ForeignKeyField('models.Playlist')
+	
+	class Meta:
+		abstract = True
+
+class PlaylistSong(AudioReference):
+	"""
+	Represents a song entry within a playlist.
+	Extends the save method to automatically calculate position when not provided.
+	
+	Attributes
+	----------
+	asker : fields.ForeignKeyRelation
+		Link to the User who added the song
+	playlist : fields.ForeignKeyRelation
+		Link to the associated playlist
+	position : fields.IntField
+		The song's position within the playlist
+	song : fields.ForeignKeyRelation
+		Link to the associated song
+	"""
+	playlist: fields.ForeignKeyRelation[Playlist] = fields.ForeignKeyField('models.Playlist', related_name='songs')
+
+	class Meta:
+		unique_together = (('playlist', 'song', 'position'),)
+		indexes = [
+			("playlist_id", "position"),
+			("song_id",)
+		]
+
+class Queue(AudioReference):
 	"""
 	Represents a Queue model to manage song requests within a server.
 	Extends the save method to automatically calculate position when not provided.
@@ -315,8 +307,6 @@ class Queue(BaseModel):
 			("server_id", "position")
 		]
 
-
-
 class ServerPlaylist(PlaylistReference):
 	"""
 	Represents a mapping between a playlist and a server.
@@ -333,7 +323,6 @@ class ServerPlaylist(PlaylistReference):
 	class Meta:
 		unique_together = (('playlist', 'server'),)
 
-
 class UserPlaylist(PlaylistReference):
 	"""
 	Represents a relationship between a user and a playlist.
@@ -349,7 +338,6 @@ class UserPlaylist(PlaylistReference):
 
 	class Meta:
 		unique_together = (('playlist', 'user'),)
-
 
 class SongListenCount(BaseModel):
 	"""
