@@ -1,9 +1,8 @@
 import asyncio
 import concurrent.futures
 from multiprocessing import Event as _Event
-from typing import Literal, Optional, Union, Callable, Coroutine, Any
+from typing import Optional, Callable, Coroutine, Any
 
-import aiohttp
 
 from epsi_bot.utils.loggers import get_logger
 
