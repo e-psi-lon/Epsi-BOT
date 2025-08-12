@@ -89,6 +89,5 @@ async def get_queue_songs(ctx: discord.AutocompleteContext) -> list[str]:
 		if len(config.queue) < 1:
 			return []
 		queue = await config.queue.all()
-		await queue.pop(config.position)
-		queue_songs = list(map(lambda queue_elem: queue_elem.song, queue))
-		return [song.name for song in queue_songs]
+		queue.pop(config.position)
+		return [queue_elem.song.name for queue_elem in queue]
