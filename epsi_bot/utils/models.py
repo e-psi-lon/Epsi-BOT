@@ -384,4 +384,4 @@ def get_db_url() -> str:
 		The database URL for the Tortoise-ORM configuration
 	"""
 	# Load everything from the environment variables
-	return f'mysql://{getenv("DB_USER")}:{getenv("DB_PASSWORD")}@{getenv("DB_HOST")}:{getenv("DB_PORT")}/epsi_bot'
+	return f'mysql://{getenv("DB_USER")}:{getenv("DB_PASSWORD")}@{getenv("DB_HOST")}:{getenv("DB_PORT")}/{getenv("DB_NAME")}'
