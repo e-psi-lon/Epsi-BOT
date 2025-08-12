@@ -120,7 +120,7 @@ async def disconnect_from_channel(state: discord.VoiceState, bot: commands.Bot) 
 				break
 		if ok:
 			break
-	return None
+	return
 
 
 def get_index_from_title(title: str, list_to_check: list[Song]) -> int:
