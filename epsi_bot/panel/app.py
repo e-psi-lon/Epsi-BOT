@@ -1,7 +1,6 @@
 import asyncio
 import datetime
 import logging
-import os
 from asyncio import TimerHandle
 from typing import Any, Optional
 
@@ -55,6 +54,19 @@ class Panel(Quart):
 		# Register IPC handlers
 		self._register_ipc_handlers()
 
+		@self.before_serving()
+		async def startup():
+			await Tortoise.init(
+				db_url=get_db_url(),
+				modules={'models': ['epsi_bot.utils.models']}
+			)
+			await Tortoise.generate_schemas(safe=True)
+			# Start bot process
+			self.bot_process = Process(target=self.start_bot, name="Bot")
+			await self.ipc.start()
+			self.bot_process.start()
+
+
 	@property
 	def logger(self) -> logging.Logger:
 		if self._logger is None:
@@ -69,26 +81,7 @@ class Panel(Quart):
 		if self.start_time is not None:
 			await start(bot, self.start_time)
 		else:
-			raise RuntimeError("Start time not set")
-
-	async def startup(self) -> None:
-		# Database initialization
-		if not os.path.exists("database/database.db"):
-			if not os.path.exists("database/"):
-				os.mkdir("database/")
-			with open("database/database.db", "w") as f:
-				f.write("")
-			await Tortoise.init(
-				db_url=get_db_url(),
-				modules={'models': ['epsi_bot.utils.models']}
-			)
-			await Tortoise.generate_schemas(safe=True)
-
-		# Start bot process
-		self.bot_process = Process(target=self.start_bot, name="Bot")
-		await self.ipc.start()
-		self.bot_process.start()
-		return await super().startup()
+			raise RuntimeError("Start time not set") # Should never be reached
 
 	def run(self,
 	        host: str | None = None,

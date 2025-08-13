@@ -89,7 +89,7 @@ Legend:
 - Python development tools (usually python3-dev or python3-devel)
 - FFmpeg
 - Libffi-dev (or libffi-devel)
-- SQLite3
+- MySQL (SQLite if you plan to run unit tests)
 - Memcached
 - (Optional) Uses [`uv`](https://docs.astral.sh/uv) for easy dependency management and build
 

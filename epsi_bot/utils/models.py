@@ -20,8 +20,6 @@ from tortoise.validators import MinValueValidator, MaxValueValidator
 import epsi_bot.utils
 from epsi_bot.utils.loggers import get_logger
 
-# database = SqliteDatabase('./database/database.db')
-
 __all__ = [
     'BaseModel',
     'User', 'Song', 'Playlist', 'Server',
