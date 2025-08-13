@@ -85,10 +85,10 @@ BaseModel (abstract)
 ```
 
 ### Advanced Model Features
-- **Auto-Positioning**: `AudioReference` subclasses automatically calculate position on save
+- **Auto-Positioning**: `AudioReference` subclasses automatically calculate position on save (transaction-safe/atomic)
 - **Bulk Operations**: Efficient bulk creation for playlist imports and queue operations
 - **Relationship Prefetching**: Extensive use of `prefetch_related()` for performance
-- **Database Context Manager**: `@database_context` decorator for operations outside main lifecycle
+- **Database Context Manager**: `async with database_context()` to manage connections to the database
 - **Connection Pooling**: Automatic connection management with `connections.close_all()`
 
 ### Key Relationships
