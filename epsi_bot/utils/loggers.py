@@ -9,26 +9,31 @@ from typing import Optional, Any, Literal
 class CustomFormatter(logging.Formatter):
 	"""Custom formatter for the bot and the panel's logs"""
 
-	def __init__(self,
-	             source: str,
-	             fmt: str | None = None,
-	             datefmt: str | None = None,
-	             style: Literal["%", "{", "$"] = "%",
-	             validate: bool = True,
-	             *,
-	             defaults: Optional[dict[str, Any]] = None,
-	             ) -> None:
-		super().__init__(fmt=fmt, datefmt=datefmt, style=style, validate=validate, defaults=defaults)
+	def __init__(
+		self,
+		source: str,
+		fmt: str | None = None,
+		datefmt: str | None = None,
+		style: Literal["%", "{", "$"] = "%",
+		validate: bool = True,
+		*,
+		defaults: Optional[dict[str, Any]] = None,
+	) -> None:
+		super().__init__(
+			fmt=fmt, datefmt=datefmt, style=style, validate=validate, defaults=defaults
+		)
 		self.source = source
 
-	FORMAT = "[{asctime}] {source} — {color}{levelname}\033[0m : {message} ({path}:{lineno})"
+	FORMAT = (
+		"[{asctime}] {source} — {color}{levelname}\033[0m : {message} ({path}:{lineno})"
+	)
 
 	FORMATS = {
 		logging.DEBUG: "\033[34m",  # Blue
 		logging.INFO: "\033[32m",  # Green
 		logging.WARNING: "\033[33m",  # Yellow
 		logging.ERROR: "\033[31m",  # Red
-		logging.CRITICAL: "\033[41m"  # Red
+		logging.CRITICAL: "\033[41m",  # Red
 	}
 
 	_path_cache: dict[str, str] = {}
@@ -39,26 +44,49 @@ class CustomFormatter(logging.Formatter):
 		# Cache key based on pathname
 		cache_key = record.pathname
 		if cache_key not in self._path_cache:
-			path = os.path.relpath(record.pathname, os.getcwd()).replace(os.sep, ".").lower()
+			path = (
+				os.path.relpath(record.pathname, os.getcwd())
+				.replace(os.sep, ".")
+				.lower()
+			)
 			if path.endswith(".py"):
 				path = path[:-3]
-			path = (path.replace(".venv.lib.python3.13.site-packages.", "libs.")
-			        .replace(".venv.lib.site-packages.", "libs."))
+			path = path.replace(".venv.lib.python3.13.site-packages.", "libs.").replace(
+				".venv.lib.site-packages.", "libs."
+			)
 			self._path_cache[cache_key] = path
 
-		formatter = logging.Formatter(self.FORMAT, "%d/%m/%Y %H:%M:%S", "{", True,
-		                              defaults={"source": self.source, "path": self._path_cache[cache_key], "color": log_color})
+		formatter = logging.Formatter(
+			self.FORMAT,
+			"%d/%m/%Y %H:%M:%S",
+			"{",
+			True,
+			defaults={
+				"source": self.source,
+				"path": self._path_cache[cache_key],
+				"color": log_color,
+			},
+		)
 		return formatter.format(record)
 
 
 def parse_args() -> argparse.Namespace:
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--log-level", type=str, default="INFO",
-	                    help="The log level of the bot (valid levels: DEBUG, INFO, WARNING, ERROR, CRITICAL)",
-	                    required=False)
+	parser.add_argument(
+		"--log-level",
+		type=str,
+		default="INFO",
+		help="The log level of the bot (valid levels: DEBUG, INFO, WARNING, ERROR, CRITICAL)",
+		required=False,
+	)
 	parsed = parser.parse_known_args()[0]
-	if not hasattr(parsed, "log_level") or parsed.log_level.upper() not in ["DEBUG", "INFO", "WARNING", "ERROR",
-	                                                                        "CRITICAL"]:
+	if not hasattr(parsed, "log_level") or parsed.log_level.upper() not in [
+		"DEBUG",
+		"INFO",
+		"WARNING",
+		"ERROR",
+		"CRITICAL",
+	]:
 		setattr(parsed, "log_level", "INFO")
 	return parsed
 
@@ -68,7 +96,9 @@ _queue_handlers: dict[str, logging.handlers.QueueHandler] = {}
 _queue_listeners: dict[str, logging.handlers.QueueListener] = {}
 
 
-def get_logger(name: str, level: Optional[int] = parse_args().log_level.upper()) -> logging.Logger:
+def get_logger(
+	name: str, level: Optional[int] = parse_args().log_level.upper()
+) -> logging.Logger:
 	"""Get a logger with the specified name and level"""
 	logger = logging.getLogger(name)
 	if name in _configured_loggers:
@@ -93,7 +123,9 @@ def get_logger(name: str, level: Optional[int] = parse_args().log_level.upper())
 		stream_handler.setFormatter(CustomFormatter(name))
 
 		# Create and start the queue listener
-		listener = logging.handlers.QueueListener(log_queue, stream_handler, respect_handler_level=True)
+		listener = logging.handlers.QueueListener(
+			log_queue, stream_handler, respect_handler_level=True
+		)
 		listener.start()
 		_queue_listeners[name] = listener
 

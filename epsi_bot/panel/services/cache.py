@@ -15,15 +15,21 @@ async def get_cache_stats() -> Optional[dict[bytes, bytes]]:
 	finally:
 		await mc.close()
 
-async def get_from_bot_cached(channel: str, **payload: dict[str, Any] | Any | None) -> Any:
+
+async def get_from_bot_cached(
+	channel: str, **payload: dict[str, Any] | Any | None
+) -> Any:
 	"""Get data from bot with caching."""
-	async with MemcachedCache(serializer=PickleSerializer(), namespace="ipc_cache") as cache:
+	async with MemcachedCache(
+		serializer=PickleSerializer(), namespace="ipc_cache"
+	) as cache:
 		cache_key = f"{channel}_{payload}"
 		if await cache.exists(cache_key):
 			return await cache.get(cache_key)
 		else:
 			from quart import current_app
+
 			panel_app = cast(PanelProtocol, current_app)
-			response = await panel_app.bot_ipc.request(channel, timeout=5.,  **payload)
+			response = await panel_app.bot_ipc.request(channel, timeout=5.0, **payload)
 			await cache.set(cache_key, response, ttl=60)
 			return response

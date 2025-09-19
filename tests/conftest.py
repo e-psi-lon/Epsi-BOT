@@ -1,4 +1,3 @@
-
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
 from typing import Generator, AsyncGenerator
@@ -24,8 +23,7 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
 async def db_fixture() -> AsyncGenerator[None, None]:
 	"""Initialize test database with in-memory SQLite."""
 	await Tortoise.init(
-		db_url='sqlite://:memory:',
-		modules={'models': ['epsi_bot.utils.models']}
+		db_url="sqlite://:memory:", modules={"models": ["epsi_bot.utils.models"]}
 	)
 	await Tortoise.generate_schemas()
 	yield
@@ -56,7 +54,7 @@ def mock_discord_user(mocker: MockerFixture) -> MagicMock:
 	user = mocker.MagicMock(spec=discord.User)
 	user.id = 123456789
 	user.name = "test_user"
-	user.discriminator = "0000" # Discriminators are now deprecated in Discord
+	user.discriminator = "0000"  # Discriminators are now deprecated in Discord
 	user.display_name = "Test User"
 	user.mention = f"<@{user.id}>"
 	user.bot = False
@@ -142,11 +140,11 @@ def mock_bot(mocker: MockerFixture, mock_discord_guild) -> MagicMock:
 
 @pytest.fixture
 async def mock_application_context(
-		mocker: MockerFixture,
-		mock_bot,
-		mock_discord_guild,
-		mock_discord_member,
-		mock_discord_channel
+	mocker: MockerFixture,
+	mock_bot,
+	mock_discord_guild,
+	mock_discord_member,
+	mock_discord_channel,
 ) -> MagicMock:
 	"""Create a mock Discord application context (for slash commands)."""
 	ctx = mocker.MagicMock(spec=discord.ApplicationContext)
@@ -164,11 +162,11 @@ async def mock_application_context(
 
 @pytest.fixture
 async def mock_message_context(
-		mocker: MockerFixture,
-		mock_bot,
-		mock_discord_guild,
-		mock_discord_member,
-		mock_discord_channel
+	mocker: MockerFixture,
+	mock_bot,
+	mock_discord_guild,
+	mock_discord_member,
+	mock_discord_channel,
 ) -> MagicMock:
 	"""Create a mock Discord message context (for prefix commands)."""
 	ctx = mocker.MagicMock(spec=discord.ext.commands.Context)
@@ -190,7 +188,7 @@ async def sample_server(clean_db) -> Server:
 		position=0,
 		loop_queue=False,
 		loop_song=False,
-		random=False
+		random=False,
 	)
 
 
@@ -204,9 +202,7 @@ async def sample_user(clean_db) -> User:
 async def sample_song(clean_db) -> Song:
 	"""Create a sample song for testing."""
 	return await Song.create(
-		name="Test Song",
-		url="https://youtube.com/watch?v=test123",
-		duration=180
+		name="Test Song", url="https://youtube.com/watch?v=test123", duration=180
 	)
 
 
@@ -219,13 +215,13 @@ async def sample_playlist(clean_db) -> Playlist:
 @pytest.fixture
 def mock_youtube_dl(mocker: MockerFixture) -> MagicMock:
 	"""Mock youtube-dl or yt-dlp functionality."""
-	mock_extractor = mocker.patch('yt_dlp.YoutubeDL')
+	mock_extractor = mocker.patch("yt_dlp.YoutubeDL")
 	mock_instance = mock_extractor.return_value
 	mock_instance.extract_info.return_value = {
-		'title': 'Test Song',
-		'url': 'https://youtube.com/watch?v=test123',
-		'duration': 180,
-		'formats': [{'url': 'https://direct-audio-url.com/audio.m4a'}]
+		"title": "Test Song",
+		"url": "https://youtube.com/watch?v=test123",
+		"duration": 180,
+		"formats": [{"url": "https://direct-audio-url.com/audio.m4a"}],
 	}
 	return mock_instance
 
@@ -233,15 +229,12 @@ def mock_youtube_dl(mocker: MockerFixture) -> MagicMock:
 @pytest.fixture
 def mock_ffmpeg(mocker: MockerFixture) -> MagicMock:
 	"""Mock FFmpeg audio source."""
-	return mocker.patch('discord.FFmpegPCMAudio')
+	return mocker.patch("discord.FFmpegPCMAudio")
 
 
 @pytest.fixture
 async def bot_in_voice_channel(
-		mock_application_context,
-		mock_voice_channel,
-		mock_voice_client,
-		mock_discord_member
+	mock_application_context, mock_voice_channel, mock_voice_client, mock_discord_member
 ) -> tuple[MagicMock, MagicMock]:
 	"""Setup bot connected to voice channel with user."""
 	# User is in voice channel
@@ -258,7 +251,7 @@ async def bot_in_voice_channel(
 @pytest.fixture
 def mock_async_timeout(mocker: MockerFixture) -> MagicMock:
 	"""Mock asyncio timeout for testing timeout scenarios."""
-	return mocker.patch('asyncio.wait_for')
+	return mocker.patch("asyncio.wait_for")
 
 
 # Pytest configuration
@@ -274,7 +267,9 @@ class DiscordAssertions:
 	"""Custom assertions for Discord bot testing."""
 
 	@staticmethod
-	def assert_embed_contains(embed: discord.Embed, title: str = None, description: str = None):
+	def assert_embed_contains(
+		embed: discord.Embed, title: str = None, description: str = None
+	):
 		"""Assert that embed contains expected content."""
 		if title:
 			assert embed.title == title
@@ -284,14 +279,18 @@ class DiscordAssertions:
 	@staticmethod
 	def assert_response_sent(mock_ctx: MagicMock, content: str = None):
 		"""Assert that a response was sent to the context."""
-		if hasattr(mock_ctx, 'respond'):
+		if hasattr(mock_ctx, "respond"):
 			mock_ctx.respond.assert_called()
-		elif hasattr(mock_ctx, 'send'):
+		elif hasattr(mock_ctx, "send"):
 			mock_ctx.send.assert_called()
 
 		if content:
 			# Check if content is in any of the calls
-			calls = mock_ctx.respond.call_args_list if hasattr(mock_ctx, 'respond') else mock_ctx.send.call_args_list
+			calls = (
+				mock_ctx.respond.call_args_list
+				if hasattr(mock_ctx, "respond")
+				else mock_ctx.send.call_args_list
+			)
 			assert any(content in str(call) for call in calls)
 
 

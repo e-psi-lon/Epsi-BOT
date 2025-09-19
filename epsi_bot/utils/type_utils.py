@@ -9,6 +9,7 @@ __all__ = ["type_checking", "Sinks", "FfmpegFormats"]
 
 class Sinks(Enum):
 	"""Enum for the different types of audio sinks"""
+
 	mp3 = discord.sinks.MP3Sink()
 	wav = discord.sinks.WaveSink()
 	ogg = discord.sinks.OGGSink()
@@ -25,7 +26,7 @@ class FfmpegFormats(Enum):
 
 
 # TypeVar for better type hinting
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 @lru_cache(maxsize=128)
@@ -34,9 +35,9 @@ def _format_type_name(type_hint: Any) -> str:
 	# noinspection PyProtectedMember
 	if isinstance(type_hint, tuple):
 		return " | ".join(_format_type_name(t) for t in type_hint)
-	elif hasattr(type_hint, '__name__'):
+	elif hasattr(type_hint, "__name__"):
 		return type_hint.__name__
-	elif hasattr(type_hint, '_name') and type_hint._name is not None:
+	elif hasattr(type_hint, "_name") and type_hint._name is not None:
 		# Handle special typing constructs like typing.List
 		# noinspection PyProtectedMember
 		return type_hint._name
@@ -53,20 +54,20 @@ def _build_path(base_path: str, *parts: str) -> str:
 
 def _parse_nested_key(key_to_split: str) -> list[str]:
 	"""Parse nested key syntax: 'parent__child__attr' -> ['parent', 'child', 'attr']"""
-	return key_to_split.split('__')
+	return key_to_split.split("__")
 
 
 def _type_checking(
-		value: Any,
-		expected_type: type,
-		*indexed: type,
-		raise_error: bool = False,
-		label: str = "value",
-		keys: Optional[dict[Any, type]] = None,
-		use_attrs: bool = False,
-		_parent_path: str = "",
-		_depth: int = 0,
-		**key_or_attrs: Any,
+	value: Any,
+	expected_type: type,
+	*indexed: type,
+	raise_error: bool = False,
+	label: str = "value",
+	keys: Optional[dict[Any, type]] = None,
+	use_attrs: bool = False,
+	_parent_path: str = "",
+	_depth: int = 0,
+	**key_or_attrs: Any,
 ) -> bool:
 	"""
 	Internal function to check the type structure of a value comprehensively.
@@ -75,7 +76,9 @@ def _type_checking(
 	# Add depth limit to prevent infinite recursion
 	if _depth > 50:  # Arbitrary recursion limit
 		if raise_error:
-			raise RecursionError(f"Maximum recursion depth exceeded when checking {_build_path(_parent_path, label)}")
+			raise RecursionError(
+				f"Maximum recursion depth exceeded when checking {_build_path(_parent_path, label)}"
+			)
 		return False
 
 	def _check_single_type(val: Any, expected: Any, path: str) -> bool:
@@ -93,7 +96,9 @@ def _type_checking(
 				return True
 
 			if raise_error:
-				raise TypeError(f"Expected {_format_type_name(expected)} for {path}, got None")
+				raise TypeError(
+					f"Expected {_format_type_name(expected)} for {path}, got None"
+				)
 			return False
 
 		# Handle tuple of types (union)
@@ -122,23 +127,26 @@ def _type_checking(
 			# For generic types like list[str], dict[str, int], etc.
 			if not isinstance(val, origin):
 				if raise_error:
-					raise TypeError(f"Expected {_format_type_name(expected)} for {path}, got {type(val).__name__}")
+					raise TypeError(
+						f"Expected {_format_type_name(expected)} for {path}, got {type(val).__name__}"
+					)
 				return False
 
 			# Check generic arguments if present - RECURSIVE VALIDATION
 			if args:
 				if origin in (list, tuple, set, frozenset):
 					# For sequences, recursively check all elements match the first type arg
-					if hasattr(val, '__iter__'):
+					if hasattr(val, "__iter__"):
 						for item_i, item in enumerate(val):
 							item_path = f"{path}[{item_i}]"
 							# Recursive call for nested structures
 							if not _type_checking(
-									item, args[0],
-									raise_error=raise_error,
-									label=item_path,
-									_parent_path=item_path,
-									_depth=_depth + 1
+								item,
+								args[0],
+								raise_error=raise_error,
+								label=item_path,
+								_parent_path=item_path,
+								_depth=_depth + 1,
 							):
 								return False
 				elif origin is dict and len(args) >= 2:
@@ -149,19 +157,21 @@ def _type_checking(
 
 						# Recursive validation for dict keys and values
 						if not _type_checking(
-								k, args[0],
-								raise_error=raise_error,
-								label=key_path,
-								_parent_path=key_path,
-								_depth=_depth + 1
+							k,
+							args[0],
+							raise_error=raise_error,
+							label=key_path,
+							_parent_path=key_path,
+							_depth=_depth + 1,
 						):
 							return False
 						if not _type_checking(
-								v, args[1],
-								raise_error=raise_error,
-								label=value_path,
-								_parent_path=value_path,
-								_depth=_depth + 1
+							v,
+							args[1],
+							raise_error=raise_error,
+							label=value_path,
+							_parent_path=value_path,
+							_depth=_depth + 1,
 						):
 							return False
 			return True
@@ -169,7 +179,9 @@ def _type_checking(
 		# Handle regular types
 		if not isinstance(val, expected):
 			if raise_error:
-				raise TypeError(f"Expected {_format_type_name(expected)} for {path}, got {type(val).__name__}")
+				raise TypeError(
+					f"Expected {_format_type_name(expected)} for {path}, got {type(val).__name__}"
+				)
 			return False
 
 		return True
@@ -183,14 +195,18 @@ def _type_checking(
 
 	# Check indexed values (*args) with recursive support
 	if indexed:
-		if not hasattr(value, '__getitem__') or not hasattr(value, '__len__'):
+		if not hasattr(value, "__getitem__") or not hasattr(value, "__len__"):
 			if raise_error:
-				raise TypeError(f"Cannot check indexed values on type {type(value).__name__} for {current_path}")
+				raise TypeError(
+					f"Cannot check indexed values on type {type(value).__name__} for {current_path}"
+				)
 			return False
 
 		if len(value) < len(indexed):
 			if raise_error:
-				raise TypeError(f"Expected at least {len(indexed)} items in {current_path}, got {len(value)}")
+				raise TypeError(
+					f"Expected at least {len(indexed)} items in {current_path}, got {len(value)}"
+				)
 			return False
 
 		for i, expected_item_type in enumerate(indexed):
@@ -199,11 +215,12 @@ def _type_checking(
 
 				# Recursive validation for indexed items
 				if not _type_checking(
-						item_value, expected_item_type,
-						raise_error=raise_error,
-						label=f"[{i}]",
-						_parent_path=current_path,
-						_depth=_depth + 1
+					item_value,
+					expected_item_type,
+					raise_error=raise_error,
+					label=f"[{i}]",
+					_parent_path=current_path,
+					_depth=_depth + 1,
 				):
 					return False
 			except (IndexError, TypeError) as e:
@@ -230,14 +247,16 @@ def _type_checking(
 				# Store for recursive processing
 				if path_parts[0] not in nested_keys:
 					nested_keys[path_parts[0]] = {}
-				nested_path = '__'.join(path_parts[1:])
+				nested_path = "__".join(path_parts[1:])
 				nested_keys[path_parts[0]][nested_path] = expected_type
 
 		# Check direct keys
 		if all_keys:
-			if not hasattr(value, '__getitem__'):
+			if not hasattr(value, "__getitem__"):
 				if raise_error:
-					raise TypeError(f"Cannot check keys on non-subscriptable type {type(value).__name__} for {current_path}")
+					raise TypeError(
+						f"Cannot check keys on non-subscriptable type {type(value).__name__} for {current_path}"
+					)
 				return False
 
 			for key, expected_key_type in all_keys.items():
@@ -246,16 +265,19 @@ def _type_checking(
 
 					# Recursive validation for key values
 					if not _type_checking(
-							key_value, expected_key_type,
-							raise_error=raise_error,
-							label=f"[{repr(key)}]",
-							_parent_path=current_path,
-							_depth=_depth + 1
+						key_value,
+						expected_key_type,
+						raise_error=raise_error,
+						label=f"[{repr(key)}]",
+						_parent_path=current_path,
+						_depth=_depth + 1,
 					):
 						return False
 				except (KeyError, TypeError, IndexError) as e:
 					if raise_error:
-						raise TypeError(f"Missing or invalid key {repr(key)} in {current_path}") from e
+						raise TypeError(
+							f"Missing or invalid key {repr(key)} in {current_path}"
+						) from e
 					return False
 
 		# Check nested keys recursively
@@ -265,18 +287,21 @@ def _type_checking(
 
 				# Recursive call for nested structure
 				if not _type_checking(
-						parent_value, type(parent_value),  # Accept whatever type it is
-						raise_error=raise_error,
-						label=f"[{repr(parent_key)}]",
-						_parent_path=current_path,
-						use_attrs=False,
-						_depth=_depth + 1,
-						keys=cast(dict[Any, type], nested_checks)
+					parent_value,
+					type(parent_value),  # Accept whatever type it is
+					raise_error=raise_error,
+					label=f"[{repr(parent_key)}]",
+					_parent_path=current_path,
+					use_attrs=False,
+					_depth=_depth + 1,
+					keys=cast(dict[Any, type], nested_checks),
 				):
 					return False
 			except (KeyError, TypeError, IndexError) as e:
 				if raise_error:
-					raise TypeError(f"Missing or invalid key {repr(parent_key)} in {current_path}") from e
+					raise TypeError(
+						f"Missing or invalid key {repr(parent_key)} in {current_path}"
+					) from e
 				return False
 
 	# Check object attributes (**kwargs when use_attrs=True) with nested support
@@ -294,7 +319,7 @@ def _type_checking(
 				# Nested attribute: parent__child__attr
 				if path_parts[0] not in nested_attrs:
 					nested_attrs[path_parts[0]] = {}
-				nested_path = '__'.join(path_parts[1:])
+				nested_path = "__".join(path_parts[1:])
 				nested_attrs[path_parts[0]][nested_path] = expected_type
 
 		# Check direct attributes
@@ -304,16 +329,19 @@ def _type_checking(
 
 				# Recursive validation for attribute values
 				if not _type_checking(
-						attr_value, expected_attr_type,
-						raise_error=raise_error,
-						label=attr_name,
-						_parent_path=current_path,
-						_depth=_depth + 1
+					attr_value,
+					expected_attr_type,
+					raise_error=raise_error,
+					label=attr_name,
+					_parent_path=current_path,
+					_depth=_depth + 1,
 				):
 					return False
 			except AttributeError as e:
 				if raise_error:
-					raise TypeError(f"Missing attribute {attr_name} in {current_path}") from e
+					raise TypeError(
+						f"Missing attribute {attr_name} in {current_path}"
+					) from e
 				return False
 
 		# Check nested attributes recursively
@@ -323,32 +351,35 @@ def _type_checking(
 
 				# Recursive call for nested attribute structure
 				if not _type_checking(
-						parent_value, type(parent_value),  # Accept whatever type it is
-						raise_error=raise_error,
-						label=parent_attr,
-						_parent_path=current_path,
-						use_attrs=True,
-						_depth=_depth + 1,
-						keys=cast(dict[Any, type], nested_checks)
+					parent_value,
+					type(parent_value),  # Accept whatever type it is
+					raise_error=raise_error,
+					label=parent_attr,
+					_parent_path=current_path,
+					use_attrs=True,
+					_depth=_depth + 1,
+					keys=cast(dict[Any, type], nested_checks),
 				):
 					return False
 			except AttributeError as e:
 				if raise_error:
-					raise TypeError(f"Missing attribute {parent_attr} in {current_path}") from e
+					raise TypeError(
+						f"Missing attribute {parent_attr} in {current_path}"
+					) from e
 				return False
 
 	return True
 
 
 def type_checking(
-		value: Any,
-		expected_type: Any,
-		*indexed: Any,
-		raise_error: bool = False,
-		label: str = "value",
-		keys: Optional[dict[Any, Any]] = None,
-		use_attrs: bool = False,
-		**key_or_attrs: Any,
+	value: Any,
+	expected_type: Any,
+	*indexed: Any,
+	raise_error: bool = False,
+	label: str = "value",
+	keys: Optional[dict[Any, Any]] = None,
+	use_attrs: bool = False,
+	**key_or_attrs: Any,
 ) -> bool:
 	"""
 	Check the type structure of a value comprehensively with recursive support.
@@ -356,44 +387,46 @@ def type_checking(
 	Parameters
 	----------
 	value : Any
-		The value to check
+	        The value to check
 	expected_type : Any
-		The expected type (can be a type, generic type, or tuple of types)
-		Supports recursive generic types like list[dict[str, int]]
-		Supports Optional, Union, and Literal types
+	        The expected type (can be a type, generic type, or tuple of types)
+	        Supports recursive generic types like list[dict[str, int]]
+	        Supports Optional, Union, and Literal types
 	*indexed : Any
-		Expected types for indexed positions (0, 1, 2, ...)
-		Supports recursive validation of nested structures
+	        Expected types for indexed positions (0, 1, 2, ...)
+	        Supports recursive validation of nested structures
 	raise_error : bool, default False
-		Whether to raise TypeError on mismatch
+	        Whether to raise TypeError on mismatch
 	label : str, default "value"
-		Label for error messages
+	        Label for error messages
 	keys : dict[Any, Any] | None, default None
-		Expected types for dictionary keys: {key: expected_type}
+	        Expected types for dictionary keys: {key: expected_type}
 	use_attrs : bool, default False
-		If True, **key_or_attrs are treated as object attributes
-		If False, **key_or_attrs are treated as dictionary keys
+	        If True, **key_or_attrs are treated as object attributes
+	        If False, **key_or_attrs are treated as dictionary keys
 	**key_or_attrs : Any
-		Expected types for keys/attributes with nested support:
-		- Simple: name=str, age=int
-		- Nested: profile__age=int, settings__theme__color=str
-		- Recursive validation automatically applied to nested structures
+	        Expected types for keys/attributes with nested support:
+	        - Simple: name=str, age=int
+	        - Nested: profile__age=int, settings__theme__color=str
+	        - Recursive validation automatically applied to nested structures
 
 	Returns
 	-------
 	bool
-		`True` if all checks pass, `False` otherwise
+	        `True` if all checks pass, `False` otherwise
 	"""
 	try:
 		return _type_checking(
-			value, expected_type, *indexed,
+			value,
+			expected_type,
+			*indexed,
 			raise_error=raise_error,
 			label=label,
 			keys=keys,
 			use_attrs=use_attrs,
 			_parent_path="",
 			_depth=0,
-			**key_or_attrs
+			**key_or_attrs,
 		)
 	except RecursionError:
 		if raise_error:

@@ -7,7 +7,7 @@ from epsi_bot.bot.bot import Bot
 def format_params(cmd: discord.SlashCommand) -> str:
 	params = []
 
-	if not hasattr(cmd, 'options'):
+	if not hasattr(cmd, "options"):
 		return ""
 
 	for option in cmd.options:
@@ -29,18 +29,27 @@ def get_command_signature(cmd: discord.SlashCommand, parent: str) -> str:
 	return base + format_params(cmd)
 
 
-def get_subcommands(cmd: discord.ApplicationCommand, parent: str = "") -> list[tuple[str, str]]:
+def get_subcommands(
+	cmd: discord.ApplicationCommand, parent: str = ""
+) -> list[tuple[str, str]]:
 	command_list = []
 
 	if isinstance(cmd, discord.commands.SlashCommandGroup):
 		# For each subcommand in the group
 		for subcmd in cmd.subcommands:
 			# Recursively get nested subcommands
-			sub_cmds = get_subcommands(subcmd, f"{parent} {cmd.name}" if parent else cmd.name)
+			sub_cmds = get_subcommands(
+				subcmd, f"{parent} {cmd.name}" if parent else cmd.name
+			)
 			command_list.extend(sub_cmds)
 	elif isinstance(cmd, discord.SlashCommand):
 		# Base command - add to list
-		command_list.append((get_command_signature(cmd, parent), cmd.description or "No description provided"))
+		command_list.append(
+			(
+				get_command_signature(cmd, parent),
+				cmd.description or "No description provided",
+			)
+		)
 	else:
 		raise ValueError(f"Unknown command type {type(cmd)}")
 	return command_list
@@ -60,16 +69,19 @@ class Help(commands.Cog):
 		main_page = discord.Embed(
 			title="Bot Help",
 			description="Use the buttons below to navigate through the help pages",
-			color=discord.Color.blurple()
+			color=discord.Color.blurple(),
 		)
 		help_pages.append(main_page)
 
 		# Generate pages for each cog
 		for cog_name, cog in self.bot.cogs.items():
 			# Skip hidden cogs
-			if cog_name.startswith('_') or cog_name == "Help" or \
-					(cog_name == "Admin" and ctx.author.id != self.bot.owner_id) or \
-					(cog_name == "Todo" and ctx.channel.id != 1128286383161745479):
+			if (
+				cog_name.startswith("_")
+				or cog_name == "Help"
+				or (cog_name == "Admin" and ctx.author.id != self.bot.owner_id)
+				or (cog_name == "Todo" and ctx.channel.id != 1128286383161745479)
+			):
 				continue
 
 			# Get all commands for this cog
@@ -79,15 +91,10 @@ class Help(commands.Cog):
 			if len(cog_commands) <= 25:
 				# Single page case
 				page = discord.Embed(
-					title=f"{cog_name} Commands",
-					color=discord.Color.blue()
+					title=f"{cog_name} Commands", color=discord.Color.blue()
 				)
 				for signature, description in cog_commands:
-					page.add_field(
-						name=signature,
-						value=description,
-						inline=False
-					)
+					page.add_field(name=signature, value=description, inline=False)
 				page.set_footer(text="[name] = optional")
 				help_pages.append(page)  # Add single Embed
 			else:
@@ -96,14 +103,10 @@ class Help(commands.Cog):
 				for i in range(0, len(cog_commands), 25):
 					page = discord.Embed(
 						title=f"{cog_name} Commands (Page {i // 25 + 1})",
-						color=discord.Color.blue()
+						color=discord.Color.blue(),
 					)
-					for signature, description in cog_commands[i:i + 25]:
-						page.add_field(
-							name=signature,
-							value=description,
-							inline=False
-						)
+					for signature, description in cog_commands[i : i + 25]:
+						page.add_field(name=signature, value=description, inline=False)
 					page.set_footer(text="[name] = optional")
 					cog_pages.append(page)
 					help_pages.append(cog_pages)  # Add a list of Embeds
@@ -114,7 +117,7 @@ class Help(commands.Cog):
 			show_indicator=True,
 			show_disabled=True,
 			disable_on_timeout=True,
-			timeout=180
+			timeout=180,
 		)
 
 		await paginator.respond(ctx.interaction)

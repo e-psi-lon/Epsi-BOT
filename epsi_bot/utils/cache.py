@@ -27,7 +27,7 @@ class AudioCache(MemcachedCache):
 			endpoint="127.0.0.1",
 			port=11211,
 			pool_size=pool_size,
-			timeout=15
+			timeout=15,
 		)
 		self.logger = get_logger("Memcached Audio Cache")
 
@@ -71,7 +71,11 @@ class AudioCache(MemcachedCache):
 
 		def loads(self, value: str) -> io.BytesIO | Any:
 			try:
-				val = io.BytesIO(base64.b64decode(zlib.decompress(binascii.unhexlify(value.encode()))))
+				val = io.BytesIO(
+					base64.b64decode(
+						zlib.decompress(binascii.unhexlify(value.encode()))
+					)
+				)
 				val.seek(0)
 				return val
 			except (TypeError, binascii.Error, zlib.error, AttributeError):
@@ -98,21 +102,23 @@ async def to_cache(url: str, cache: AudioCache) -> io.BytesIO:
 	return buffer
 
 
-async def download(url: str, download_logger: logging.Logger = get_logger("Audio-Downloader")) -> io.BytesIO:
+async def download(
+	url: str, download_logger: logging.Logger = get_logger("Audio-Downloader")
+) -> io.BytesIO:
 	"""
 	Download a video from a YouTube (or other) URL.
-	
+
 	Parameters
 	----------
 	url : str
-		The URL of the video to download
+	        The URL of the video to download
 	download_logger : logging.Logger
-		The logger to log the download
-	
+	        The logger to log the download
+
 	Returns
 	-------
 	Optional[io.BytesIO]
-		The downloaded video
+	        The downloaded video
 	"""
 	async with AudioCache() as cache:
 		value = await to_cache(url, cache)
@@ -120,21 +126,23 @@ async def download(url: str, download_logger: logging.Logger = get_logger("Audio
 	return value
 
 
-async def download_bulk(urls: list[str], download_logger: logging.Logger = get_logger("Audio-Downloader")) -> list[io.BytesIO]:
+async def download_bulk(
+	urls: list[str], download_logger: logging.Logger = get_logger("Audio-Downloader")
+) -> list[io.BytesIO]:
 	"""
 	Download a list of videos from YouTube (or other) URLs in bulk.
-	
+
 	Parameters
 	----------
 	urls : list[str]
-		The URLs of the videos to download
+	        The URLs of the videos to download
 	download_logger : logging.Logger
-		The logger to log the download
-	
+	        The logger to log the download
+
 	Returns
 	-------
 	list[io.BytesIO]
-		The downloaded videos
+	        The downloaded videos
 	"""
 
 	async def download_worker(url: str, cache_: AudioCache) -> io.BytesIO:

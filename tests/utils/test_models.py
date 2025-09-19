@@ -1,7 +1,15 @@
 import pytest
 from tortoise.exceptions import DoesNotExist
 
-from epsi_bot.utils.models import Server, User, Song, Queue, Playlist, PlaylistSong, UserPlaylist
+from epsi_bot.utils.models import (
+	Server,
+	User,
+	Song,
+	Queue,
+	Playlist,
+	PlaylistSong,
+	UserPlaylist,
+)
 
 
 async def test_server_crud(db_fixture):
@@ -32,10 +40,7 @@ async def test_server_crud(db_fixture):
 
 async def test_song_crud(db_fixture):
 	# Create
-	song = await Song.create(
-		name="Test Song",
-		url="https://youtube.com/watch?v=test"
-	)
+	song = await Song.create(name="Test Song", url="https://youtube.com/watch?v=test")
 	assert song.name == "Test Song"
 	assert song.url == "https://youtube.com/watch?v=test"
 
@@ -102,11 +107,7 @@ async def test_playlist_relationships(db_fixture):
 	user = await User.create(discord_id=123456789)
 
 	# Create a playlist song relationship
-	playlist_song = await PlaylistSong.create(
-		playlist=playlist,
-		song=song,
-		asker=user
-	)
+	playlist_song = await PlaylistSong.create(playlist=playlist, song=song, asker=user)
 
 	# Test automatic position assignment
 	assert playlist_song.position == 1
@@ -139,10 +140,7 @@ async def test_user_playlist_relationships(db_fixture):
 	playlist = await Playlist.create(name="Test Playlist")
 
 	# Create a user playlist relationship
-	user_playlist = await UserPlaylist.create(
-		asker=user,
-		playlist=playlist
-	)
+	user_playlist = await UserPlaylist.create(asker=user, playlist=playlist)
 
 	# Test relationships
 	await user.fetch_related("playlists")

@@ -25,7 +25,12 @@ def format_table(table: dict[str, list[str]]) -> str:
 	for i in range(len(table[keys[0]])):
 		values_lines.append("|")
 		for j in range(len(keys)):
-			values_lines[-1] += " " + str(table[keys[j]][i]) + " " * (sizes[j] - len(str(table[keys[j]][i]))) + " |"
+			values_lines[-1] += (
+				" "
+				+ str(table[keys[j]][i])
+				+ " " * (sizes[j] - len(str(table[keys[j]][i])))
+				+ " |"
+			)
 	# On crée la ligne du bas
 	bottom_line = "+"
 	for size in sizes:

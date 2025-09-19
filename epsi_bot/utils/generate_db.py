@@ -3,7 +3,7 @@ import sqlite3
 conn = sqlite3.connect("../database/database.db")
 cursor = conn.cursor()
 
-cursor.execute('''
+cursor.execute("""
                CREATE TABLE IF NOT EXISTS SERVER
                (
                    server_id  INTEGER,
@@ -14,34 +14,34 @@ cursor.execute('''
                    position   INTEGER,
                    PRIMARY KEY (server_id)
                );
-               ''')
+               """)
 
-cursor.execute('''
+cursor.execute("""
                CREATE TABLE IF NOT EXISTS SONG
                (
                    song_id INTEGER PRIMARY KEY AUTOINCREMENT,
                    name    VARCHAR(255),
                    url     TEXT
                );
-               ''')
+               """)
 
-cursor.execute('''
+cursor.execute("""
                CREATE TABLE IF NOT EXISTS ASKER
                (
                    user_id   INTEGER PRIMARY KEY AUTOINCREMENT,
                    discord_id INTEGER
                );
-               ''')
+               """)
 
-cursor.execute('''
+cursor.execute("""
                CREATE TABLE IF NOT EXISTS PLAYLIST
                (
                    playlist_id INTEGER PRIMARY KEY AUTOINCREMENT,
                    name        VARCHAR(255)
                );
-               ''')
+               """)
 
-cursor.execute('''
+cursor.execute("""
                CREATE TABLE IF NOT EXISTS QUEUE
                (
                    server_id INTEGER,
@@ -52,9 +52,9 @@ cursor.execute('''
                    FOREIGN KEY (song_id) REFERENCES SONG (song_id),
                    FOREIGN KEY (asker) REFERENCES USER (user_id)
                );
-               ''')
+               """)
 
-cursor.execute('''
+cursor.execute("""
                CREATE TABLE IF NOT EXISTS PLAYLIST_SONG
                (
                    playlist_id INTEGER,
@@ -66,9 +66,9 @@ cursor.execute('''
                    FOREIGN KEY (song_id) REFERENCES SONG (song_id)
 
                );
-               ''')
+               """)
 
-cursor.execute('''
+cursor.execute("""
                CREATE TABLE IF NOT EXISTS SERVER_PLAYLIST
                (
                    server_id   INTEGER,
@@ -76,9 +76,9 @@ cursor.execute('''
                    FOREIGN KEY (server_id) REFERENCES SERVER (server_id),
                    FOREIGN KEY (playlist_id) REFERENCES PLAYLIST (playlist_id)
                );
-               ''')
+               """)
 
-cursor.execute('''
+cursor.execute("""
                CREATE TABLE IF NOT EXISTS USER_PLAYLIST
                (
                    user_id     INTEGER,
@@ -86,16 +86,16 @@ cursor.execute('''
                    FOREIGN KEY (user_id) REFERENCES USER (user_id),
                    FOREIGN KEY (playlist_id) REFERENCES PLAYLIST (playlist_id)
                );
-               ''')
+               """)
 
-cursor.execute('''
+cursor.execute("""
                CREATE TABLE IF NOT EXISTS SONG_LISTEN_COUNT
                (
                    song_id INTEGER,
                    count   INTEGER,
                    FOREIGN KEY (song_id) REFERENCES SONG (song_id)
                );
-               ''')
+               """)
 
 conn.commit()
 conn.close()

@@ -11,7 +11,11 @@ from ffmpeg.asyncio import FFmpeg  # type: ignore[import-untyped]
 from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError  # type: ignore[import-untyped]
 
 from epsi_bot.utils.cache import download
-from epsi_bot.utils.constants import YOUTUBE_CLIENT, MAX_TRACK_LENGTH, EMBED_ERROR_VIDEO_TOO_LONG
+from epsi_bot.utils.constants import (
+	YOUTUBE_CLIENT,
+	MAX_TRACK_LENGTH,
+	EMBED_ERROR_VIDEO_TOO_LONG,
+)
 from epsi_bot.utils.loggers import get_logger
 from epsi_bot.utils.models import Server, Song, SongListenCount, database_context
 from epsi_bot.utils.type_utils import FfmpegFormats
@@ -24,11 +28,13 @@ __all__ = [
 	"play_song",
 	"convert",
 	"get_youtube",
-	"get_lyrics"
+	"get_lyrics",
 ]
 
 
-async def finished_record_callback(sink: discord.sinks.Sink, channel: discord.TextChannel) -> None:
+async def finished_record_callback(
+	sink: discord.sinks.Sink, channel: discord.TextChannel
+) -> None:
 	"""Callback function to execute when the recording is finished that processes the audio and sends it to the
 	channel"""
 	mention_strs = []
@@ -39,9 +45,11 @@ async def finished_record_callback(sink: discord.sinks.Sink, channel: discord.Te
 		mention_strs.append(f"<@{user_id}>")
 
 	message = await channel.send(
-		f"## Recorded {', '.join(mention_strs)}\nProcessing audio" if
-		len(mention_strs) > 1 else f"Recorded {mention_strs[0]}\nProcessing audio" if
-		len(mention_strs) == 1 else "Recorded no one"
+		f"## Recorded {', '.join(mention_strs)}\nProcessing audio"
+		if len(mention_strs) > 1
+		else f"Recorded {mention_strs[0]}\nProcessing audio"
+		if len(mention_strs) == 1
+		else "Recorded no one"
 	)
 
 	# Process individual user audio files
@@ -53,24 +61,42 @@ async def finished_record_callback(sink: discord.sinks.Sink, channel: discord.Te
 
 		member = channel.guild.get_member(user_id)
 		if member is not None:
-			files.append(discord.File(audio.file, filename=f"{member.name}.{getattr(sink, 'encoding', 'wav')}"))
+			files.append(
+				discord.File(
+					audio.file,
+					filename=f"{member.name}.{getattr(sink, 'encoding', 'wav')}",
+				)
+			)
 
 	# Merge audio using FFmpeg
 	if len(audio_streams) > 0:
-		merged_audio = await merge_audio_streams(audio_streams, getattr(sink, "encoding", "wav"))
+		merged_audio = await merge_audio_streams(
+			audio_streams, getattr(sink, "encoding", "wav")
+		)
 		with io.BytesIO(merged_audio) as f:
 			await message.edit(
-				content=f"## Recorded {', '.join(mention_strs)}" if len(
-					mention_strs) > 1 else f"Recorded {mention_strs[0]}" if len(
-					mention_strs) == 1 else "Recorded no one",
-				files=files + [discord.File(f, filename=f"record.{getattr(sink, 'encoding', 'wav')}")] if getattr(
-					sink, "encoding", "wav") != "wav" else files
+				content=f"## Recorded {', '.join(mention_strs)}"
+				if len(mention_strs) > 1
+				else f"Recorded {mention_strs[0]}"
+				if len(mention_strs) == 1
+				else "Recorded no one",
+				files=files
+				+ [
+					discord.File(
+						f, filename=f"record.{getattr(sink, 'encoding', 'wav')}"
+					)
+				]
+				if getattr(sink, "encoding", "wav") != "wav"
+				else files,
 			)
 
-async def merge_audio_streams(audio_streams: list[bytes], format_name: str = "wav") -> bytes:
+
+async def merge_audio_streams(
+	audio_streams: list[bytes], format_name: str = "wav"
+) -> bytes:
 	"""Merge multiple audio streams using FFmpeg"""
 	if len(audio_streams) == 0:
-		return b''
+		return b""
 	if len(audio_streams) == 1:
 		return audio_streams[0]
 
@@ -80,7 +106,9 @@ async def merge_audio_streams(audio_streams: list[bytes], format_name: str = "wa
 	for i in range(len(audio_streams)):
 		inputs.append(f"[{i}:a]")
 
-	filter_str = f"{' '.join(inputs)}amix=inputs={len(audio_streams)}:dropout_transition=0[out]"
+	filter_str = (
+		f"{' '.join(inputs)}amix=inputs={len(audio_streams)}:dropout_transition=0[out]"
+	)
 
 	# Setup FFmpeg command
 	ffmpeg = FFmpeg("ffmpeg")
@@ -90,14 +118,12 @@ async def merge_audio_streams(audio_streams: list[bytes], format_name: str = "wa
 		ffmpeg = ffmpeg.input(f"pipe:{i}", format=format_name)
 
 	# Add filter complex and output
-	ffmpeg = ffmpeg.filter_complex(filter_str).output("pipe:out", map="[out]", format=format_name)
+	ffmpeg = ffmpeg.filter_complex(filter_str).output(
+		"pipe:out", map="[out]", format=format_name
+	)
 
 	# Execute FFmpeg with all input streams
-	result = await ffmpeg.execute(
-		*audio_streams,
-		stdout=True,
-		stderr=True
-	)
+	result = await ffmpeg.execute(*audio_streams, stdout=True, stderr=True)
 	return result
 
 
@@ -135,7 +161,9 @@ async def change_song(ctx: discord.ApplicationContext) -> None:
 	"""Callback function to execute when a song is finished to change the song taking into account the server's
 	configuration"""
 	async with database_context():
-		server = await Server.get(server_id=ctx.guild.id).prefetch_related("queue", "queue__song")
+		server = await Server.get(server_id=ctx.guild.id).prefetch_related(
+			"queue", "queue__song"
+		)
 		if not await server.queue.all():
 			return
 		if server.loop_song:
@@ -146,7 +174,9 @@ async def change_song(ctx: discord.ApplicationContext) -> None:
 		else:
 			return
 		if server.random and len(server.queue) > 1:
-			server.position = random.sample(list(set(range(0, len(server.queue))) - {server.position}), 1)[0]
+			server.position = random.sample(
+				list(set(range(0, len(server.queue))) - {server.position}), 1
+			)[0]
 			await server.save()
 		try:
 			await play_song(ctx, server.queue[server.position].song.url)
@@ -154,18 +184,20 @@ async def change_song(ctx: discord.ApplicationContext) -> None:
 			get_logger("Bot").error(f"Error while playing song: {e}")
 
 
-async def play_song(ctx: discord.ApplicationContext, url: str, direct_play: bool = False) -> None:
+async def play_song(
+	ctx: discord.ApplicationContext, url: str, direct_play: bool = False
+) -> None:
 	"""
 	Play a song from a URL
 	Parameters
 	----------
 	ctx : discord.ApplicationContext
-		The context of the command
+	        The context of the command
 	url : str
-		The URL of the song to play
+	        The URL of the song to play
 	direct_play : bool
-		If True, the song will be played as a direct stream without downloading it.
-		A download will still occur for processing through ffmpeg
+	        If True, the song will be played as a direct stream without downloading it.
+	        A download will still occur for processing through ffmpeg
 	"""
 	if ctx.guild.voice_client is None:
 		return
@@ -192,8 +224,12 @@ async def play_song(ctx: discord.ApplicationContext, url: str, direct_play: bool
 			video = get_youtube(url)
 			if video.age_restricted:
 				await ctx.respond(
-					embed=discord.Embed(title="Error", description=f"The [video]({url}) is age restricted",
-					                    color=discord.Color.dark_red()))
+					embed=discord.Embed(
+						title="Error",
+						description=f"The [video]({url}) is age restricted",
+						color=discord.Color.dark_red(),
+					)
+				)
 				return
 			if video.length > MAX_TRACK_LENGTH:
 				await ctx.respond(embed=EMBED_ERROR_VIDEO_TOO_LONG)
@@ -203,46 +239,59 @@ async def play_song(ctx: discord.ApplicationContext, url: str, direct_play: bool
 			to_play = await download(url)
 	player = discord.PCMVolumeTransformer(
 		discord.FFmpegPCMAudio(
-			to_play,
-			executable="ffmpeg",
-			pipe=pipe,
-			before_options=before_options
+			to_play, executable="ffmpeg", pipe=pipe, before_options=before_options
 		),
-		server.volume / 100
+		server.volume / 100,
 	)
 	try:
 		get_logger("Bot").info(f"Playing song {url}")
-		_ = ctx.guild.voice_client.play(player,
-		                            after=lambda e: asyncio.run_coroutine_threadsafe(on_play_song_finished(ctx, e),
-		                                                                             loop),
-		                            wait_finish=True)
+		_ = ctx.guild.voice_client.play(
+			player,
+			after=lambda e: asyncio.run_coroutine_threadsafe(
+				on_play_song_finished(ctx, e), loop
+			),
+			wait_finish=True,
+		)
 	except discord.errors.ClientException:
 		while ctx.guild.voice_client.is_playing():
 			await asyncio.sleep(0.1)
 		get_logger("Bot").info(f"Playing song {url}")
-		_ = ctx.guild.voice_client.play(player,
-		                            after=lambda e: asyncio.run_coroutine_threadsafe(on_play_song_finished(ctx, e),
-		                                                                             loop),
-		                            wait_finish=True)
+		_ = ctx.guild.voice_client.play(
+			player,
+			after=lambda e: asyncio.run_coroutine_threadsafe(
+				on_play_song_finished(ctx, e), loop
+			),
+			wait_finish=True,
+		)
 
 
-async def on_play_song_finished(ctx: discord.ApplicationContext, error: Exception | None = None) -> None:
+async def on_play_song_finished(
+	ctx: discord.ApplicationContext, error: Exception | None = None
+) -> None:
 	"""Callback function to execute when a song is finished"""
 	if error:
 		get_logger("Bot").error("Error:", error)
 		await ctx.respond(
-			embed=discord.Embed(title="Error", description="An error occurred while playing the song.",
-			                    color=discord.Color.dark_red()))
+			embed=discord.Embed(
+				title="Error",
+				description="An error occurred while playing the song.",
+				color=discord.Color.dark_red(),
+			)
+		)
 	get_logger("Bot").info("Song finished")
 	await change_song(ctx)
 
 
-async def convert(audio: io.BytesIO, file_format: FfmpegFormats, log: logging.Logger = get_logger("Audio-Converter"),
-                  executable: str = "ffmpeg") -> io.BytesIO:
+async def convert(
+	audio: io.BytesIO,
+	file_format: FfmpegFormats,
+	log: logging.Logger = get_logger("Audio-Converter"),
+	executable: str = "ffmpeg",
+) -> io.BytesIO:
 	"""Convert an audio file to another format"""
 	ffmpeg = (
 		FFmpeg(executable)
-		.input('pipe:0')
+		.input("pipe:0")
 		.output("pipe:1", file_format.value, f=file_format.name.lower())
 	)
 	byte = await ffmpeg.execute(audio.getvalue())

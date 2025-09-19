@@ -21,11 +21,20 @@ import epsi_bot.utils
 from epsi_bot.utils.loggers import get_logger
 
 __all__ = [
-    'BaseModel',
-    'User', 'Song', 'Playlist', 'Server',
-    'AudioReference', 'PlaylistReference',
-    'PlaylistSong', 'Queue', 'ServerPlaylist', 'UserPlaylist',
-    'SongListenCount', 'database_context', 'get_db_url'
+	"BaseModel",
+	"User",
+	"Song",
+	"Playlist",
+	"Server",
+	"AudioReference",
+	"PlaylistReference",
+	"PlaylistSong",
+	"Queue",
+	"ServerPlaylist",
+	"UserPlaylist",
+	"SongListenCount",
+	"database_context",
+	"get_db_url",
 ]
 
 
@@ -36,45 +45,56 @@ class BaseModel(Model):
 	advanced save operations with error logging,
 	and utilities for creating or retrieving important objects. Elements can be
 	represented through repr() for ReverseRelation support and str() otherwise.
-	
+
 	Attributes
 	----------
 	created_at : fields.DatetimeField
-		Automatically sets the creation timestamp when an object is first created
+	        Automatically sets the creation timestamp when an object is first created
 	updated_at : fields.DatetimeField
-		Automatically updates the timestamp whenever an object is modified
+	        Automatically updates the timestamp whenever an object is modified
 	"""
+
 	created_at = fields.DatetimeField(auto_now_add=True)
 	updated_at = fields.DatetimeField(auto_now=True)
 
-	async def save(self, using_db: BaseDBAsyncClient | None = None, update_fields: Iterable[str] | None = None,
-	               force_create: bool = False, force_update: bool = False) -> None:
+	async def save(
+		self,
+		using_db: BaseDBAsyncClient | None = None,
+		update_fields: Iterable[str] | None = None,
+		force_create: bool = False,
+		force_update: bool = False,
+	) -> None:
 		logger = get_logger("Database")
 		try:
-			await super().save(using_db=using_db, update_fields=update_fields, force_create=force_create,
-			                   force_update=force_update)
+			await super().save(
+				using_db=using_db,
+				update_fields=update_fields,
+				force_create=force_create,
+				force_update=force_update,
+			)
 			logger.debug(f"Saved {self}")
 		except Exception as e:
 			logger.error(f"Error while saving {self}: {e}")
 
 	@classmethod
-	async def get_or_create_important(cls: Type[models.MODEL], important_fields: list[str], **kwargs: Any) -> tuple[
-		models.MODEL, bool]:
+	async def get_or_create_important(
+		cls: Type[models.MODEL], important_fields: list[str], **kwargs: Any
+	) -> tuple[models.MODEL, bool]:
 		"""
-	    Class method to retrieve an existing object or create a new one based on specified important fields.
+		Class method to retrieve an existing object or create a new one based on specified important fields.
 
-	    Parameters
-	    ----------
-	    important_fields : list[str]
-	        List of field names that are considered important for uniqueness checking
-	    **kwargs : Any
-	        Additional field values to use for object creation or retrieval
+		Parameters
+		----------
+		important_fields : list[str]
+		    List of field names that are considered important for uniqueness checking
+		**kwargs : Any
+		    Additional field values to use for object creation or retrieval
 
-	    Returns
-	    -------
-	    tuple[models.MODEL, bool]
-	        A tuple containing the retrieved or created object and a boolean indicating
-	        whether the object was created (True) or retrieved (False)
+		Returns
+		-------
+		tuple[models.MODEL, bool]
+		    A tuple containing the retrieved or created object and a boolean indicating
+		    whether the object was created (True) or retrieved (False)
 		"""
 		importants = {key: kwargs.pop(key) for key in important_fields}
 
@@ -127,229 +147,266 @@ class BaseModel(Model):
 	class Meta:
 		abstract = True
 
+
 class Server(BaseModel):
 	"""
 	Represents a server configuration and its properties.
-	
+
 	Attributes
 	----------
 	server_id : fields.IntField
-		The primary key identifier for the server
+	        The primary key identifier for the server
 	loop_queue : fields.BooleanField
-		Flag indicating if queue looping is enabled
+	        Flag indicating if queue looping is enabled
 	loop_song : fields.BooleanField
-		Flag indicating if song looping is enabled
+	        Flag indicating if song looping is enabled
 	position : fields.IntField
-		Current position in the queue
+	        Current position in the queue
 	random : fields.BooleanField
-		Flag indicating if random mode is enabled
+	        Flag indicating if random mode is enabled
 	volume : fields.IntField
-		Current volume level (0-100)
+	        Current volume level (0-100)
 	queue : fields.ReverseRelation
-		Associated queue entries for the server
+	        Associated queue entries for the server
 	playlists : fields.ReverseRelation
-		Associated playlists for the server
+	        Associated playlists for the server
 	"""
+
 	server_id = fields.BigIntField(primary_key=True)
 	loop_queue = fields.BooleanField(default=False)
 	loop_song = fields.BooleanField(default=False)
 	position = fields.IntField(default=0)
 	random = fields.BooleanField(default=False)
-	volume = fields.IntField(default=100, validators=[
-		MinValueValidator(0),
-		MaxValueValidator(100)
-	])
-	queue: fields.ReverseRelation['Queue']
-	playlists: fields.ReverseRelation['ServerPlaylist']
+	volume = fields.IntField(
+		default=100, validators=[MinValueValidator(0), MaxValueValidator(100)]
+	)
+	queue: fields.ReverseRelation["Queue"]
+	playlists: fields.ReverseRelation["ServerPlaylist"]
+
 
 class User(BaseModel):
 	"""
 	Represents a user and their associated data.
-	
+
 	Attributes
 	----------
 	user_id : fields.IntField
-		The primary key identifier for the user
+	        The primary key identifier for the user
 	discord_id : fields.BigIntField
-		Unique Discord identifier for the user
+	        Unique Discord identifier for the user
 	playlists : fields.ReverseRelation
-		Associated playlists belonging to the user
+	        Associated playlists belonging to the user
 	"""
+
 	user_id = fields.IntField(primary_key=True)
 	discord_id = fields.BigIntField(unique=True)
-	playlists: fields.ReverseRelation['UserPlaylist']
+	playlists: fields.ReverseRelation["UserPlaylist"]
+
 
 class Playlist(BaseModel):
 	"""
 	Represents a playlist entity in the application.
-	
+
 	Attributes
 	----------
 	playlist_id : fields.IntField
-		The primary key identifier for the playlist
+	        The primary key identifier for the playlist
 	name : fields.CharField
-		The name of the playlist, with a maximum length of 100 characters
+	        The name of the playlist, with a maximum length of 100 characters
 	songs : fields.ReverseRelation
-		Reverse relation that links the playlist to its associated songs
+	        Reverse relation that links the playlist to its associated songs
 	"""
+
 	playlist_id = fields.IntField(primary_key=True)
 	name = fields.CharField(100)
-	songs: fields.ReverseRelation['PlaylistSong']
+	songs: fields.ReverseRelation["PlaylistSong"]
+
 
 class Song(BaseModel):
 	"""
 	Represents a Song entity with attributes for song ID, name, and URL.
-	
+
 	Attributes
 	----------
 	song_id : fields.IntField
-		The primary key identifier for the song
+	        The primary key identifier for the song
 	name : fields.CharField
-		The name of the song, with a maximum length of 100 characters
+	        The name of the song, with a maximum length of 100 characters
 	url : fields.CharField
-		The unique URL of the song, with a maximum length of 200 characters
+	        The unique URL of the song, with a maximum length of 200 characters
 	"""
+
 	song_id = fields.IntField(primary_key=True)
 	name = fields.CharField(100)
 	url = fields.CharField(200, unique=True)
 
+
 class AudioReference(BaseModel):
-    """
-    Abstract base class for models that reference a Song and have a position.
-    Used by PlaylistSong and Queue.
-    """
-    asker: fields.ForeignKeyRelation['User'] = fields.ForeignKeyField('models.User')
-    position = fields.IntField()
-    song: fields.ForeignKeyRelation['Song'] = fields.ForeignKeyField('models.Song', on_delete=fields.CASCADE)
+	"""
+	Abstract base class for models that reference a Song and have a position.
+	Used by PlaylistSong and Queue.
+	"""
 
-    class Meta:
-        abstract = True
+	asker: fields.ForeignKeyRelation["User"] = fields.ForeignKeyField("models.User")
+	position = fields.IntField()
+	song: fields.ForeignKeyRelation["Song"] = fields.ForeignKeyField(
+		"models.Song", on_delete=fields.CASCADE
+	)
 
-    async def save(self, using_db: BaseDBAsyncClient | None = None, update_fields: Iterable[str] | None = None,
-                   force_create: bool = False, force_update: bool = False) -> None:
-        async with in_transaction():
-            if self.position is None:
-                # Use the correct filter depending on subclass
-                if hasattr(self, "playlist"):
-                    values = await self.__class__.filter(playlist=self.playlist)
-                elif hasattr(self, "server"):
-                    values = await self.__class__.filter(server=self.server)
-                else:
-                    values = []
-                max_position = max([value.position for value in values], default=0)
-                self.position = max_position + 1
-            return await super().save(using_db=using_db, update_fields=update_fields,
-                                      force_create=force_create, force_update=force_update)
+	class Meta:
+		abstract = True
+
+	async def save(
+		self,
+		using_db: BaseDBAsyncClient | None = None,
+		update_fields: Iterable[str] | None = None,
+		force_create: bool = False,
+		force_update: bool = False,
+	) -> None:
+		async with in_transaction():
+			if self.position is None:
+				# Use the correct filter depending on subclass
+				if hasattr(self, "playlist"):
+					values = await self.__class__.filter(playlist=self.playlist)
+				elif hasattr(self, "server"):
+					values = await self.__class__.filter(server=self.server)
+				else:
+					values = []
+				max_position = max([value.position for value in values], default=0)
+				self.position = max_position + 1
+			return await super().save(
+				using_db=using_db,
+				update_fields=update_fields,
+				force_create=force_create,
+				force_update=force_update,
+			)
+
 
 class PlaylistReference(BaseModel):
 	"""
 	Abstract base class for models that reference playlists.
-	This pattern allows different entities (servers, users) to reference 
+	This pattern allows different entities (servers, users) to reference
 	the same playlist without duplicating the playlist itself.
-	
+
 	Attributes
 	----------
 	playlist : fields.ForeignKeyRelation
-		A foreign key reference to the Playlist model
+	        A foreign key reference to the Playlist model
 	"""
-	playlist: fields.ForeignKeyRelation['Playlist'] = fields.ForeignKeyField('models.Playlist')
-	
+
+	playlist: fields.ForeignKeyRelation["Playlist"] = fields.ForeignKeyField(
+		"models.Playlist"
+	)
+
 	class Meta:
 		abstract = True
+
 
 class PlaylistSong(AudioReference):
 	"""
 	Represents a song entry within a playlist.
 	Extends the save method to automatically calculate position when not provided.
-	
+
 	Attributes
 	----------
 	asker : fields.ForeignKeyRelation
-		Link to the User who added the song
+	        Link to the User who added the song
 	playlist : fields.ForeignKeyRelation
-		Link to the associated playlist
+	        Link to the associated playlist
 	position : fields.IntField
-		The song's position within the playlist
+	        The song's position within the playlist
 	song : fields.ForeignKeyRelation
-		Link to the associated song
+	        Link to the associated song
 	"""
-	playlist: fields.ForeignKeyRelation[Playlist] = fields.ForeignKeyField('models.Playlist', related_name='songs')
+
+	playlist: fields.ForeignKeyRelation[Playlist] = fields.ForeignKeyField(
+		"models.Playlist", related_name="songs"
+	)
 
 	class Meta:
-		unique_together = (('playlist', 'song', 'position'),)
-		indexes = [
-			("playlist_id", "position"),
-			("song_id",)
-		]
+		unique_together = (("playlist", "song", "position"),)
+		indexes = [("playlist_id", "position"), ("song_id",)]
+
 
 class Queue(AudioReference):
 	"""
 	Represents a Queue model to manage song requests within a server.
 	Extends the save method to automatically calculate position when not provided.
-	
+
 	Attributes
 	----------
 	asker : fields.ForeignKeyRelation
-		The user who requested the song
+	        The user who requested the song
 	position : fields.IntField
-		The position of the song within the queue
+	        The position of the song within the queue
 	server : fields.ForeignKeyRelation
-		The server to which the queue belongs
+	        The server to which the queue belongs
 	song : fields.ForeignKeyRelation
-		The song associated with the queued entry
+	        The song associated with the queued entry
 	"""
-	server: fields.ForeignKeyRelation[Server] = fields.ForeignKeyField('models.Server', related_name='queue')
+
+	server: fields.ForeignKeyRelation[Server] = fields.ForeignKeyField(
+		"models.Server", related_name="queue"
+	)
+
 	class Meta:
-		unique_together = (('server', 'song', 'position'),)
-		indexes = [
-			("server_id", "position")
-		]
+		unique_together = (("server", "song", "position"),)
+		indexes = [("server_id", "position")]
+
 
 class ServerPlaylist(PlaylistReference):
 	"""
 	Represents a mapping between a playlist and a server.
 	Allows servers to reference playlists without owning them.
-	
+
 	Attributes
 	----------
 	server : fields.ForeignKeyRelation
-		A foreign key reference to the Server model
+	        A foreign key reference to the Server model
 	"""
-	server: fields.ForeignKeyRelation[Server] = fields.ForeignKeyField('models.Server', related_name='playlists',
-																	   on_delete=fields.CASCADE)
+
+	server: fields.ForeignKeyRelation[Server] = fields.ForeignKeyField(
+		"models.Server", related_name="playlists", on_delete=fields.CASCADE
+	)
 
 	class Meta:
-		unique_together = (('playlist', 'server'),)
+		unique_together = (("playlist", "server"),)
+
 
 class UserPlaylist(PlaylistReference):
 	"""
 	Represents a relationship between a user and a playlist.
 	Allows users to reference playlists without duplicating them.
-	
+
 	Attributes
 	----------
 	user : fields.ForeignKeyRelation
-		A foreign key relation linking to the associated User
+	        A foreign key relation linking to the associated User
 	"""
-	user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField('models.User', related_name='playlists',
-																   on_delete=fields.CASCADE)
+
+	user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
+		"models.User", related_name="playlists", on_delete=fields.CASCADE
+	)
 
 	class Meta:
-		unique_together = (('playlist', 'user'),)
+		unique_together = (("playlist", "user"),)
+
 
 class SongListenCount(BaseModel):
 	"""
 	Represents the listen count data associated with a song.
-	
+
 	Attributes
 	----------
 	song : fields.ForeignKeyRelation
-		Foreign key relation to the Song model
+	        Foreign key relation to the Song model
 	count : fields.IntField
-		Count of how many times the song has been listened to
+	        Count of how many times the song has been listened to
 	"""
-	song: fields.ForeignKeyRelation[Song] = fields.ForeignKeyField('models.Song', related_name='listen_count',
-	                                                               unique=True)
+
+	song: fields.ForeignKeyRelation[Song] = fields.ForeignKeyField(
+		"models.Song", related_name="listen_count", unique=True
+	)
 	count = fields.IntField(default=0, validators=[MinValueValidator(0)])
 
 
@@ -361,8 +418,7 @@ async def database_context() -> AsyncGenerator[None, None]:
 	logger = get_logger("Database")
 	try:
 		await Tortoise.init(
-			db_url=get_db_url(),
-			modules={'models': [epsi_bot.utils.models]}
+			db_url=get_db_url(), modules={"models": [epsi_bot.utils.models]}
 		)
 		await Tortoise.generate_schemas(safe=True)
 		yield
@@ -372,6 +428,7 @@ async def database_context() -> AsyncGenerator[None, None]:
 		await connections.close_all()
 		logger.debug("Tortoise-ORM shutdown")
 
+
 def get_db_url() -> str:
 	"""
 	Returns the database URL for the Tortoise-ORM configuration.
@@ -379,7 +436,7 @@ def get_db_url() -> str:
 	Returns
 	-------
 	str
-		The database URL for the Tortoise-ORM configuration
+	        The database URL for the Tortoise-ORM configuration
 	"""
 	# Load everything from the environment variables
-	return f'mysql://{getenv("DB_USER")}:{getenv("DB_PASSWORD")}@{getenv("DB_HOST")}:{getenv("DB_PORT")}/{getenv("DB_NAME")}'
+	return f"mysql://{getenv('DB_USER')}:{getenv('DB_PASSWORD')}@{getenv('DB_HOST')}:{getenv('DB_PORT')}/{getenv('DB_NAME')}"

@@ -12,8 +12,16 @@ from discord.ext.commands import when_mentioned
 from tortoise import Tortoise, connections
 
 from epsi_bot.bot.memcached_std import MemcachedStd
-from epsi_bot.utils import GuildData, UserData, get_logger, \
-	Server, download_bulk, AudioCache, SongListenCount, models
+from epsi_bot.utils import (
+	GuildData,
+	UserData,
+	get_logger,
+	Server,
+	download_bulk,
+	AudioCache,
+	SongListenCount,
+	models,
+)
 from epsi_bot.utils.ipc import IPCManager
 from epsi_bot.utils.models import get_db_url
 
@@ -21,7 +29,9 @@ from epsi_bot.utils.models import get_db_url
 @tasks.loop(hours=5)
 async def check_update() -> None:
 	current_hash = os.popen("git rev-parse HEAD").read().strip()
-	origin_hash = os.popen("git ls-remote origin main | awk '{print $1}'").read().strip()
+	origin_hash = (
+		os.popen("git ls-remote origin main | awk '{print $1}'").read().strip()
+	)
 	if current_hash != origin_hash:
 		os.system("git pull")
 		get_logger("Updater").info("Bot updated to the latest version")
@@ -31,16 +41,12 @@ async def check_update() -> None:
 
 
 @tasks.loop(hours=36)
-async def update_top_songs(self: 'Bot') -> None:
+async def update_top_songs(self: "Bot") -> None:
 	# Calculate top 5 songs
-	await Tortoise.init(
-		db_url=get_db_url(),
-		modules={'models': [models]}
+	await Tortoise.init(db_url=get_db_url(), modules={"models": [models]})
+	top_songs = (
+		await SongListenCount.all().prefetch_related("song").order_by("-count").limit(5)
 	)
-	top_songs = await SongListenCount.all() \
-		.prefetch_related("song") \
-		.order_by("-count") \
-		.limit(5)
 	top_songs_data = [
 		{"name": song.song.name, "url": song.song.url, "listen_count": song.count}
 		for song in top_songs
@@ -72,12 +78,21 @@ async def update_top_songs(self: 'Bot') -> None:
              help_command: HelpCommand | None = MISSING,
              **options: An
 """
+
+
 class Bot(commands.Bot):
-	def __init__(self,
-	             manager: IPCManager,
-	             command_prefix: str | Iterable[str] | Callable[[commands.Bot | commands.AutoShardedBot, discord.Message], str | Iterable[str] | Coroutine[Any, Any, str | Iterable[str]]] = when_mentioned,
-	             help_command: Optional[commands.HelpCommand] = discord.MISSING,
-	             **options: Any) -> None:
+	def __init__(
+		self,
+		manager: IPCManager,
+		command_prefix: str
+		| Iterable[str]
+		| Callable[
+			[commands.Bot | commands.AutoShardedBot, discord.Message],
+			str | Iterable[str] | Coroutine[Any, Any, str | Iterable[str]],
+		] = when_mentioned,
+		help_command: Optional[commands.HelpCommand] = discord.MISSING,
+		**options: Any,
+	) -> None:
 		super().__init__(command_prefix, help_command, **options)
 		self.start_time: datetime | None = None
 		self.ipc: IPCManager = manager
@@ -89,8 +104,15 @@ class Bot(commands.Bot):
 
 	async def on_ready(self) -> None:
 		await self.change_presence(
-			activity=discord.Activity(type=discord.ActivityType.watching, name=f"/help | {len(self.guilds)} servers"))
-		if os.popen("git branch --show-current").read().strip() == "main" and not check_update.is_running():
+			activity=discord.Activity(
+				type=discord.ActivityType.watching,
+				name=f"/help | {len(self.guilds)} servers",
+			)
+		)
+		if (
+			os.popen("git branch --show-current").read().strip() == "main"
+			and not check_update.is_running()
+		):
 			check_update.start()
 		if self.memcached is None:
 			try:
@@ -99,7 +121,7 @@ class Bot(commands.Bot):
 					args=["-d", "-p", "11211", "-I", "500m", "-m", "1024"],
 					executable="/usr/bin/memcached",
 					stdout=MemcachedStd(),
-					stderr=MemcachedStd("stderr")
+					stderr=MemcachedStd("stderr"),
 				)  # type: ignore[call-overload]
 			except FileNotFoundError:
 				self.logger.error("Memcached not found, please install it")
@@ -107,10 +129,7 @@ class Bot(commands.Bot):
 				exit(1)
 		if self.start_time is not None:
 			self.logger.info(f"Bot ready in {datetime.now() - self.start_time}")
-		await Tortoise.init(
-			db_url=get_db_url(),
-			modules={'models': [models]}
-		)
+		await Tortoise.init(db_url=get_db_url(), modules={"models": [models]})
 		await Tortoise.generate_schemas(safe=True)
 		for guild in self.guilds:
 			# Si la guilde n'existe pas dans la db, on l'ajoute avec les paramètres par défaut
@@ -119,22 +138,35 @@ class Bot(commands.Bot):
 		if not update_top_songs.is_running():
 			update_top_songs.start(self)
 
-	async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException) -> None:
+	async def on_application_command_error(
+		self, ctx: discord.ApplicationContext, error: discord.DiscordException
+	) -> None:
 		exc_type, exc_value, exc_traceback = type(error), error, error.__traceback__
-		traceback_str = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
-		self.logger.error(f"Error in {ctx.command} from module {ctx.command.cog.__class__.__name__}"
-		                  f"\n Error message: {exc_value}\n Traceback: {traceback_str}")
-		embed = discord.Embed(title="Une erreur est survenue", description=f"Erreur provoquée par {ctx.author.mention}",
-		                      color=discord.Color.dark_red())
+		traceback_str = "".join(
+			traceback.format_exception(exc_type, exc_value, exc_traceback)
+		)
+		self.logger.error(
+			f"Error in {ctx.command} from module {ctx.command.cog.__class__.__name__}"
+			f"\n Error message: {exc_value}\n Traceback: {traceback_str}"
+		)
+		embed = discord.Embed(
+			title="Une erreur est survenue",
+			description=f"Erreur provoquée par {ctx.author.mention}",
+			color=discord.Color.dark_red(),
+		)
 		embed.add_field(name="Commande", value=f"`/{ctx.command}`")
-		embed.add_field(name="Module", value=f"`{ctx.command.cog.__class__.__name__!r}`")
+		embed.add_field(
+			name="Module", value=f"`{ctx.command.cog.__class__.__name__!r}`"
+		)
 		embed.add_field(name="Message d'erreur", value=f"`{exc_value}`")
 		embed.add_field(name="Traceback", value=f"```\n{traceback_str[:1014]}...```")
 		try:
 			await ctx.respond(embed=embed, ephemeral=True)
 			await self.get_user(self.owner_id).send(embed=embed)  # type: ignore[union-attr]
 		except discord.HTTPException:
-			await ctx.channel.send("Ce message se supprimera d'ici 20s", embed=embed, delete_after=20)
+			await ctx.channel.send(
+				"Ce message se supprimera d'ici 20s", embed=embed, delete_after=20
+			)
 			await self.get_user(self.owner_id).send(embed=embed)  # type: ignore[union-attr]
 
 	async def on_error(self, event_method: str, *args: Any, **kwargs: Any) -> None:
@@ -149,28 +181,38 @@ class Bot(commands.Bot):
 					context = arg
 					break
 		exc_type, exc_value, exc_traceback = sys.exc_info()
-		traceback_str = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+		traceback_str = "".join(
+			traceback.format_exception(exc_type, exc_value, exc_traceback)
+		)
 		if context is not None:
 			self.logger.error(
 				f"Error in {event_method}\n Error message: {exc_value}\n Traceback: {traceback_str}\n Args: {args}"
-				f"\n Kwargs: {kwargs}")
-			embed = discord.Embed(title="Une erreur est survenue",
-			                      description=f"Erreur provoquée par {context.author.mention}",
-			                      color=discord.Color.dark_red())
+				f"\n Kwargs: {kwargs}"
+			)
+			embed = discord.Embed(
+				title="Une erreur est survenue",
+				description=f"Erreur provoquée par {context.author.mention}",
+				color=discord.Color.dark_red(),
+			)
 			embed.add_field(name="Commande", value=f"`{context.command}`")
-			embed.add_field(name="Module", value=f"`{context.command.cog.__class__.__name__}`")
+			embed.add_field(
+				name="Module", value=f"`{context.command.cog.__class__.__name__}`"
+			)
 			embed.add_field(name="Message d'erreur", value=f"`{exc_value}`")
 			embed.add_field(name="Traceback", value=f"```\n{traceback_str}```")
 			try:
 				await context.respond(embed=embed, ephemeral=True)
 				await self.get_user(self.owner_id).send(embed=embed)  # type: ignore[union-attr]
 			except discord.DiscordException:
-				await context.send("Ce message se supprimera d'ici 20s", embed=embed, delete_after=20)
+				await context.send(
+					"Ce message se supprimera d'ici 20s", embed=embed, delete_after=20
+				)
 				await self.get_user(self.owner_id).send(embed=embed)  # type: ignore[union-attr]
 		else:
 			self.logger.error(
 				f"Error in {event_method}\n Error message: {exc_value}\n Traceback: {traceback_str}\n Args: {args}"
-				f"\n Kwargs: {kwargs}")
+				f"\n Kwargs: {kwargs}"
+			)
 
 
 async def start(instance: Bot, start_time: datetime) -> None:
@@ -178,9 +220,13 @@ async def start(instance: Bot, start_time: datetime) -> None:
 	instance.owner_id = 708006478807695450
 
 	@instance.slash_command(name="send", description="Envoie un message dans un salon")
-	@discord.option("channel", discord.TextChannel, descritpion="Le salon où envoyer le message")
+	@discord.option(
+		"channel", discord.TextChannel, descritpion="Le salon où envoyer le message"
+	)
 	@discord.option("message", str, description="Le message à envoyer")
-	async def send_message(ctx: discord.ApplicationContext, channel: discord.TextChannel, message: str) -> None:
+	async def send_message(
+		ctx: discord.ApplicationContext, channel: discord.TextChannel, message: str
+	) -> None:
 		if ctx.author.id != instance.owner_id:
 			raise commands.NotOwner
 		await ctx.response.defer()
@@ -199,7 +245,9 @@ async def start(instance: Bot, start_time: datetime) -> None:
 		await instance.post_to_panel("stop")
 
 	@send_message.error
-	async def send_message_error(ctx: discord.ApplicationContext, error: commands.CommandError) -> None:
+	async def send_message_error(
+		ctx: discord.ApplicationContext, error: commands.CommandError
+	) -> None:
 		if isinstance(error, commands.NotOwner):
 			await ctx.respond("Vous n'êtes pas propriétaire du bot !", ephemeral=True)
 
@@ -207,12 +255,11 @@ async def start(instance: Bot, start_time: datetime) -> None:
 
 	@instance.before_invoke
 	async def before_invoke(_: commands.Context) -> None:
-		await Tortoise.init(
-			db_url=get_db_url(),
-			modules={'models': [models]}
-		)
+		await Tortoise.init(db_url=get_db_url(), modules={"models": [models]})
 		# noinspection PyProtectedMember
-		db_logger.debug("Tortoise-ORM started, %s, %s", connections._get_storage(), Tortoise.apps)
+		db_logger.debug(
+			"Tortoise-ORM started, %s, %s", connections._get_storage(), Tortoise.apps
+		)
 
 	@instance.after_invoke
 	async def after_invoke(_: commands.Context) -> None:
@@ -224,8 +271,11 @@ async def start(instance: Bot, start_time: datetime) -> None:
 		if user_id is None or user_id == 708006478807695450:
 			guilds = [GuildData.from_guild(guild) for guild in instance.guilds]
 		else:
-			guilds = [GuildData.from_guild(guild) for guild in instance.guilds if
-			          user_id in [member.id for member in guild.members]]
+			guilds = [
+				GuildData.from_guild(guild)
+				for guild in instance.guilds
+				if user_id in [member.id for member in guild.members]
+			]
 		instance.logger.debug("Got a request for all guilds of a user")
 		await instance.ipc.respond(request_id, guilds)
 
@@ -260,7 +310,10 @@ async def start(instance: Bot, start_time: datetime) -> None:
 	@instance.handle("voice_channels")
 	async def handle_voice_channels(request_id: str) -> None:
 		active_voice = sum(
-			1 for guild in instance.guilds for vc in guild.voice_channels if len(vc.members) > 0
+			1
+			for guild in instance.guilds
+			for vc in guild.voice_channels
+			if len(vc.members) > 0
 		)
 		instance.logger.debug("Got a request for active voice channels count")
 		await instance.ipc.respond(request_id, active_voice)
@@ -283,7 +336,9 @@ async def start(instance: Bot, start_time: datetime) -> None:
 	try:
 		token = os.getenv("TOKEN")
 		if token is None:
-			instance.logger.error("No token found, please set the environment variable TOKEN")
+			instance.logger.error(
+				"No token found, please set the environment variable TOKEN"
+			)
 			exit(1)
 		await instance.start(token)
 	except KeyboardInterrupt:

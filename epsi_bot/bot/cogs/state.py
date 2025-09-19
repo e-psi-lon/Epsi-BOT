@@ -10,40 +10,51 @@ from discord.sinks import RecordingException
 from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError  # type: ignore[import-untyped]
 
 from epsi_bot.bot.bot import Bot
-from epsi_bot.utils import (Sinks,
-                            EMBED_ERROR_BOT_NOT_CONNECTED,
-                            Song,
-                            User,
-                            Server,
-                            Queue,
-                            Research,
-                            play_song,
-                            download,
-                            finished_record_callback,
-                            YOUTUBE_REGEX,
-                            GET_FILE_HTTP_URL,
-							MAX_TRACK_LENGTH,
-							YOUTUBE_CLIENT,
-                            get_youtube
-                            )
+from epsi_bot.utils import (
+	Sinks,
+	EMBED_ERROR_BOT_NOT_CONNECTED,
+	Song,
+	User,
+	Server,
+	Queue,
+	Research,
+	play_song,
+	download,
+	finished_record_callback,
+	YOUTUBE_REGEX,
+	GET_FILE_HTTP_URL,
+	MAX_TRACK_LENGTH,
+	YOUTUBE_CLIENT,
+	get_youtube,
+)
 
 
 class State(commands.Cog):
 	def __init__(self, bot: Bot):
 		self.bot = bot
 		self.description = "Commands related to the playing state of the bot"
-		self.connections: dict[int, discord.VoiceClient] = {}  # Guild ID to VoiceClient mapping
+		self.connections: dict[
+			int, discord.VoiceClient
+		] = {}  # Guild ID to VoiceClient mapping
 
-	play = SlashCommandGroup(name="play", description="Commands related to the audio of the bot")
+	play = SlashCommandGroup(
+		name="play", description="Commands related to the audio of the bot"
+	)
 
 	@play.command(name="url", description="Plays the audio of a file from an URL")
-	@discord.option("url", str, description="The URL of the audio to play", required=True)
+	@discord.option(
+		"url", str, description="The URL of the audio to play", required=True
+	)
 	async def play_url(self, ctx: discord.ApplicationContext, url: str) -> None:
 		await ctx.response.defer()
 		if ctx.user.id in [501303816302362635, 942531230291877910]:
 			await ctx.respond(
-				embed=discord.Embed(title="Error", description="Non mais tu me prends pour qui, je te connais hein",
-				                    color=discord.Color.dark_red()))
+				embed=discord.Embed(
+					title="Error",
+					description="Non mais tu me prends pour qui, je te connais hein",
+					color=discord.Color.dark_red(),
+				)
+			)
 			return
 		if YOUTUBE_REGEX.match(url):
 			await self.play_youtube(ctx, url)
@@ -51,73 +62,126 @@ class State(commands.Cog):
 		if ctx.guild.voice_client is None:
 			await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
 			return
-		
+
 		url_match = GET_FILE_HTTP_URL.match(url)
 		if not url_match:
 			await ctx.respond(
-				embed=discord.Embed(title="Error", description="Invalid URL.", color=discord.Color.dark_red()))
+				embed=discord.Embed(
+					title="Error",
+					description="Invalid URL.",
+					color=discord.Color.dark_red(),
+				)
+			)
 			return
-		
+
 		filename = url_match.group(1)
-		file_extension = filename.split('.')[-1]
-		if file_extension not in ['mp3', 'wav', 'ogg', 'mp4']:
+		file_extension = filename.split(".")[-1]
+		if file_extension not in ["mp3", "wav", "ogg", "mp4"]:
 			await ctx.respond(
-				embed=discord.Embed(title="Error", description="Invalid URL.", color=discord.Color.dark_red()))
+				embed=discord.Embed(
+					title="Error",
+					description="Invalid URL.",
+					color=discord.Color.dark_red(),
+				)
+			)
 			return
-		
+
 		server = await Server.get(server_id=ctx.guild.id)
-		song_name = filename.split('.')[0]
+		song_name = filename.split(".")[0]
 		song, _ = await Song.get_or_create_important(["url"], name=song_name, url=url)
 		user, _ = await User.get_or_create(discord_id=ctx.author.id)
-		
+
 		if not await server.queue.all():
 			await Queue.create(server=server, song=song, position=0, asker=user)
-			await ctx.respond(embed=discord.Embed(title="Play",
-			                                      description=f"Playing song [{song_name}]({url})",
-			                                      color=discord.Color.green()))
+			await ctx.respond(
+				embed=discord.Embed(
+					title="Play",
+					description=f"Playing song [{song_name}]({url})",
+					color=discord.Color.green(),
+				)
+			)
 			await play_song(ctx, url)
 			await asyncio.sleep(1)
 			return
-		
-		await Queue.create(server=server, song=song, position=len(server.queue), asker=user)
-		await ctx.respond(embed=discord.Embed(title="Queue",
-		                                      description=f"Song [{song_name}]({url}) added to queue.",
-		                                      color=discord.Color.green()))
+
+		await Queue.create(
+			server=server, song=song, position=len(server.queue), asker=user
+		)
+		await ctx.respond(
+			embed=discord.Embed(
+				title="Queue",
+				description=f"Song [{song_name}]({url}) added to queue.",
+				color=discord.Color.green(),
+			)
+		)
 
 	@play.command(name="file", description="Plays the audio of a file")
-	@discord.option("file", discord.Attachment, description="The file to play", required=True)
-	async def play_file(self, ctx: discord.ApplicationContext, file: discord.Attachment) -> None:
+	@discord.option(
+		"file", discord.Attachment, description="The file to play", required=True
+	)
+	async def play_file(
+		self, ctx: discord.ApplicationContext, file: discord.Attachment
+	) -> None:
 		await ctx.response.defer()
 		if ctx.guild.voice_client is None:
 			await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
 			return
-		if file.content_type not in ['audio/mpeg', 'audio/wav', 'audio/ogg', 'video/mp4']:
-			await ctx.respond(embed=discord.Embed(title="Error", description="File is not an audio file.",
-			                                             color=discord.Color.dark_red()))
+		if file.content_type not in [
+			"audio/mpeg",
+			"audio/wav",
+			"audio/ogg",
+			"video/mp4",
+		]:
+			await ctx.respond(
+				embed=discord.Embed(
+					title="Error",
+					description="File is not an audio file.",
+					color=discord.Color.dark_red(),
+				)
+			)
 			return
 		if file.size > 10000000:
 			await ctx.respond(
-				embed=discord.Embed(title="Error", description="File is too big.", color=discord.Color.dark_red()))
+				embed=discord.Embed(
+					title="Error",
+					description="File is too big.",
+					color=discord.Color.dark_red(),
+				)
+			)
 			return
 		url = file.url
 		server = await Server.get(server_id=ctx.guild.id)
-		song, _ = await Song.get_or_create_important(["url"], name=file.filename, url=url)
+		song, _ = await Song.get_or_create_important(
+			["url"], name=file.filename, url=url
+		)
 		user, _ = await User.get_or_create(discord_id=ctx.author.id)
 		if not await server.queue.all():
 			await Queue.create(server=server, song=song, position=0, asker=user)
-			await ctx.respond(embed=discord.Embed(title="Play",
-			                                      description=f"Playing song [{file.filename}]({url})",
-			                                      color=discord.Color.green()))
+			await ctx.respond(
+				embed=discord.Embed(
+					title="Play",
+					description=f"Playing song [{file.filename}]({url})",
+					color=discord.Color.green(),
+				)
+			)
 			await play_song(ctx, url)
 			await asyncio.sleep(1)
 			return
-		await Queue.create(server=server, song=song, position=len(server.queue), asker=user)
-		await ctx.respond(embed=discord.Embed(title="Queue",
-		                                      description=f"Song [{file.filename}]({url}) added to queue.",
-		                                      color=discord.Color.green()))
+		await Queue.create(
+			server=server, song=song, position=len(server.queue), asker=user
+		)
+		await ctx.respond(
+			embed=discord.Embed(
+				title="Queue",
+				description=f"Song [{file.filename}]({url}) added to queue.",
+				color=discord.Color.green(),
+			)
+		)
 
 	@play.command(name="youtube", description="Plays the audio of a YouTube video")
-	@discord.option("query", str, description="The YouTube audio to play", required=True)
+	@discord.option(
+		"query", str, description="The YouTube audio to play", required=True
+	)
 	async def play_youtube(self, ctx: discord.ApplicationContext, query: str) -> None:
 		await ctx.response.defer()
 		if ctx.guild.voice_client is None:
@@ -126,55 +190,82 @@ class State(commands.Cog):
 		try:
 			url = get_youtube(query).watch_url
 			try:
-				server = await Server.get(server_id=ctx.guild.id).prefetch_related("queue", "queue__song")
+				server = await Server.get(server_id=ctx.guild.id).prefetch_related(
+					"queue", "queue__song"
+				)
 				if get_youtube(url).length > MAX_TRACK_LENGTH:
 					await ctx.respond(
-						discord.Embed(title="Error",
-						              description=f"The video [{get_youtube(url).title}]({url}) is too long",
-						              color=discord.Color.dark_red())
+						discord.Embed(
+							title="Error",
+							description=f"The video [{get_youtube(url).title}]({url}) is too long",
+							color=discord.Color.dark_red(),
+						)
 					)
 					return
-				song, _ = await Song.get_or_create_important(["url"], name=get_youtube(url).title, url=url)
+				song, _ = await Song.get_or_create_important(
+					["url"], name=get_youtube(url).title, url=url
+				)
 				user, _ = await User.get_or_create(discord_id=ctx.author.id)
 				if not await server.queue.all():
 					server.position = 0
 					await Queue.create(server=server, song=song, position=0, asker=user)
 				else:
-					await Queue.create(server=server, song=song, position=len(server.queue), asker=user)
+					await Queue.create(
+						server=server, song=song, position=len(server.queue), asker=user
+					)
 				if not ctx.guild.voice_client.is_playing():
-					await ctx.respond(embed=discord.Embed(title="Play",
-					                                      description=f"Playing song "
-					                                                  f"[{get_youtube(url)}]({url})",
-					                                      color=discord.Color.green()))
+					await ctx.respond(
+						embed=discord.Embed(
+							title="Play",
+							description=f"Playing song [{get_youtube(url)}]({url})",
+							color=discord.Color.green(),
+						)
+					)
 					await play_song(ctx, url)
 				else:
 					video = get_youtube(url)
-					asyncio.create_task(download(url), name=f"Download-{video.video_id}")
-					await ctx.respond(embed=discord.Embed(title="Queue",
-					                                      description=f"Song [{video.title}]({url})"
-					                                                  f" added to queue.",
-					                                      color=discord.Color.green()))
+					asyncio.create_task(
+						download(url), name=f"Download-{video.video_id}"
+					)
+					await ctx.respond(
+						embed=discord.Embed(
+							title="Queue",
+							description=f"Song [{video.title}]({url}) added to queue.",
+							color=discord.Color.green(),
+						)
+					)
 			except Exception as e:
 				self.bot.logger.error(f"Error while adding song to queue: {e}")
 				self.bot.logger.exception(e)
 				await ctx.respond(
-					embed=discord.Embed(title="Error", description=f"Error while adding song to queue. "
-					                                               f"(Error: {e})", color=discord.Color.dark_red())
+					embed=discord.Embed(
+						title="Error",
+						description=f"Error while adding song to queue. (Error: {e})",
+						color=discord.Color.dark_red(),
+					)
 				)
 				return
 		except PytubeRegexMatchError:
 			videos = pytubefix.Search(query, client=YOUTUBE_CLIENT).videos
 			if not videos:
 				await ctx.respond(
-					embed=discord.Embed(title="Error", description="No results found.", color=discord.Color.dark_red()))
+					embed=discord.Embed(
+						title="Error",
+						description="No results found.",
+						color=discord.Color.dark_red(),
+					)
+				)
 				return
 			view = Research(videos, ctx, False)
 			# noinspection SqlDialectInspection
 			await ctx.respond(
-				embed=discord.Embed(title="Select audio",
-				                    description=f"Select an audio to play for query `{query}` from the list below",
-				                    color=discord.Color.green()), view=view)
-
+				embed=discord.Embed(
+					title="Select audio",
+					description=f"Select an audio to play for query `{query}` from the list below",
+					color=discord.Color.green(),
+				),
+				view=view,
+			)
 
 	@commands.slash_command(name="pause", description="Pauses the current song")
 	async def pause(self, ctx: discord.ApplicationContext) -> None:
@@ -184,16 +275,28 @@ class State(commands.Cog):
 			return
 		if ctx.guild.voice_client.is_paused():
 			await ctx.respond(
-				embed=discord.Embed(title="Error", description="The song is already paused.",
-				                    color=discord.Color.dark_red()))
+				embed=discord.Embed(
+					title="Error",
+					description="The song is already paused.",
+					color=discord.Color.dark_red(),
+				)
+			)
 			return
 		if not ctx.guild.voice_client.is_playing():
 			await ctx.respond(
-				embed=discord.Embed(title="Error", description="There is no song playing.",
-				                    color=discord.Color.dark_red()))
+				embed=discord.Embed(
+					title="Error",
+					description="There is no song playing.",
+					color=discord.Color.dark_red(),
+				)
+			)
 			return
 		ctx.guild.voice_client.pause()
-		await ctx.respond(embed=discord.Embed(title="Pause", description="Song paused.", color=discord.Color.green()))
+		await ctx.respond(
+			embed=discord.Embed(
+				title="Pause", description="Song paused.", color=discord.Color.green()
+			)
+		)
 
 	@commands.slash_command(name="resume", description="Resumes the current song")
 	async def resume(self, ctx: discord.ApplicationContext) -> None:
@@ -203,11 +306,19 @@ class State(commands.Cog):
 			return
 		if not ctx.guild.voice_client.is_paused():
 			await ctx.respond(
-				embed=discord.Embed(title="Error", description="The song is not paused.",
-				                    color=discord.Color.dark_red()))
+				embed=discord.Embed(
+					title="Error",
+					description="The song is not paused.",
+					color=discord.Color.dark_red(),
+				)
+			)
 			return
 		ctx.guild.voice_client.resume()
-		await ctx.respond(embed=discord.Embed(title="Resume", description="Song resumed.", color=discord.Color.green()))
+		await ctx.respond(
+			embed=discord.Embed(
+				title="Resume", description="Song resumed.", color=discord.Color.green()
+			)
+		)
 
 	@commands.slash_command(name="stop", description="Stops the current song")
 	async def stop(self, ctx: discord.ApplicationContext) -> None:
@@ -217,20 +328,38 @@ class State(commands.Cog):
 			return
 		if not ctx.guild.voice_client.is_playing():
 			await ctx.respond(
-				embed=discord.Embed(title="Error", description="There is no song playing.",
-				                    color=discord.Color.dark_red()))
+				embed=discord.Embed(
+					title="Error",
+					description="There is no song playing.",
+					color=discord.Color.dark_red(),
+				)
+			)
 			return
 		server = await Server.get(server_id=ctx.guild.id)
 		server.position = 0
 		await server.queue.all().delete()
 		await server.save()
 		ctx.guild.voice_client.stop()
-		await ctx.respond(embed=discord.Embed(title="Stop", description="Song stopped.", color=discord.Color.green()))
+		await ctx.respond(
+			embed=discord.Embed(
+				title="Stop", description="Song stopped.", color=discord.Color.green()
+			)
+		)
 
-	@commands.slash_command(name="volume", description="Gets or sets the volume of the bot")
-	@discord.option("volume", int, description="The volume to set (from 0 to 100)", required=False, min_value=0,
-	                max_value=100)
-	async def volume(self, ctx: discord.ApplicationContext, volume: Optional[int] = None) -> None:
+	@commands.slash_command(
+		name="volume", description="Gets or sets the volume of the bot"
+	)
+	@discord.option(
+		"volume",
+		int,
+		description="The volume to set (from 0 to 100)",
+		required=False,
+		min_value=0,
+		max_value=100,
+	)
+	async def volume(
+		self, ctx: discord.ApplicationContext, volume: Optional[int] = None
+	) -> None:
 		await ctx.response.defer()
 		if ctx.guild.voice_client is None:
 			await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
@@ -238,13 +367,21 @@ class State(commands.Cog):
 		if volume is not None:
 			if volume > 100:
 				await ctx.respond(
-					embed=discord.Embed(title="Error", description="Volume is too high.",
-					                    color=discord.Color.dark_red()))
+					embed=discord.Embed(
+						title="Error",
+						description="Volume is too high.",
+						color=discord.Color.dark_red(),
+					)
+				)
 				return
 			if volume < 0:
 				await ctx.respond(
-					embed=discord.Embed(title="Error", description="Volume is too low.",
-					                    color=discord.Color.dark_red()))
+					embed=discord.Embed(
+						title="Error",
+						description="Volume is too low.",
+						color=discord.Color.dark_red(),
+					)
+				)
 				return
 			try:
 				ctx.guild.voice_client.source.volume = volume / 100
@@ -253,50 +390,94 @@ class State(commands.Cog):
 			server = await Server.get(server_id=ctx.guild.id)
 			server.volume = volume
 			await server.save()
-			await ctx.respond(embed=discord.Embed(title="Volume", description=f"Volume set to {volume}%",
-			                                             color=discord.Color.green()))
+			await ctx.respond(
+				embed=discord.Embed(
+					title="Volume",
+					description=f"Volume set to {volume}%",
+					color=discord.Color.green(),
+				)
+			)
 			return
 
 		try:
-			await ctx.respond(embed=discord.Embed(title="Volume",
-			                                      description=f"Volume is "
-			                                                  f"{ctx.guild.voice_client.source.volume * 100}%",
-			                                      color=discord.Color.green()))
+			await ctx.respond(
+				embed=discord.Embed(
+					title="Volume",
+					description=f"Volume is "
+					f"{ctx.guild.voice_client.source.volume * 100}%",
+					color=discord.Color.green(),
+				)
+			)
 		except AttributeError:
 			# noinspection PyBroadException
 			try:
 				server = await Server.get(server_id=ctx.guild.id)
-				await ctx.respond(embed=discord.Embed(title="Volume",
-				                                      description=f"Volume is {server.volume}%",
-				                                      color=discord.Color.green()))
+				await ctx.respond(
+					embed=discord.Embed(
+						title="Volume",
+						description=f"Volume is {server.volume}%",
+						color=discord.Color.green(),
+					)
+				)
 			except Exception:
 				await ctx.respond(
-					embed=discord.Embed(title="Error", description="Error while getting volume.",
-					                    color=discord.Color.dark_red()))
+					embed=discord.Embed(
+						title="Error",
+						description="Error while getting volume.",
+						color=discord.Color.dark_red(),
+					)
+				)
 
-	@commands.slash_command(name="record",
-	                        description="Enregistre nos chers gogols en train de chanter "
-	                                    "(c'est Rignchen qui m'as dit de laisser ça)")
-	@discord.option("time", int, description="Le temps d'enregistrement en secondes (de 1s à 260s)", required=True,
-	                min_value=1, max_value=260)
-	@discord.option("file-format", Sinks, description="Le format d'enregistrement", required=True)
-	async def record(self, ctx: discord.ApplicationContext, time: int, file_format: Sinks) -> None:
+	@commands.slash_command(
+		name="record",
+		description="Enregistre nos chers gogols en train de chanter "
+		"(c'est Rignchen qui m'as dit de laisser ça)",
+	)
+	@discord.option(
+		"time",
+		int,
+		description="Le temps d'enregistrement en secondes (de 1s à 260s)",
+		required=True,
+		min_value=1,
+		max_value=260,
+	)
+	@discord.option(
+		"file-format", Sinks, description="Le format d'enregistrement", required=True
+	)
+	async def record(
+		self, ctx: discord.ApplicationContext, time: int, file_format: Sinks
+	) -> None:
 		await ctx.response.defer()
 		if ctx.guild.voice_client is None:
 			await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
 			return
 		if time > 260:
 			await ctx.respond(
-				embed=discord.Embed(title="Error", description="Time is too long.", color=discord.Color.dark_red()))
+				embed=discord.Embed(
+					title="Error",
+					description="Time is too long.",
+					color=discord.Color.dark_red(),
+				)
+			)
 			return
 		if time < 1:
 			await ctx.respond(
-				embed=discord.Embed(title="Error", description="Time is too short.", color=discord.Color.dark_red()))
+				embed=discord.Embed(
+					title="Error",
+					description="Time is too short.",
+					color=discord.Color.dark_red(),
+				)
+			)
 			return
 		vc = ctx.guild.voice_client
 		if ctx.guild.id in self.connections.keys():
 			await ctx.respond(
-				embed=discord.Embed(title="Error", description="Already recording", color=discord.Color.dark_red()))
+				embed=discord.Embed(
+					title="Error",
+					description="Already recording",
+					color=discord.Color.dark_red(),
+				)
+			)
 			return
 
 		def finished_record() -> None:
@@ -308,13 +489,15 @@ class State(commands.Cog):
 
 		if vc.channel.voice_states[vc.client.user.id].self_deaf:
 			await ctx.respond(
-				embed=discord.Embed(title="Error", description="Bot is deafened.", color=discord.Color.dark_red()))
+				embed=discord.Embed(
+					title="Error",
+					description="Bot is deafened.",
+					color=discord.Color.dark_red(),
+				)
+			)
 			return
 		vc.start_recording(
-			file_format.value,
-			finished_record_callback,
-			ctx.channel,
-			sync_start=True
+			file_format.value, finished_record_callback, ctx.channel, sync_start=True
 		)
 		self.connections[ctx.guild.id] = vc
 		users = []
@@ -325,10 +508,13 @@ class State(commands.Cog):
 			users = ["No one will be recorded"]
 		await ctx.respond(
 			f":⚠: {', '.join(users)}, {ctx.author.mention} is recording you for {time} seconds",
-			embed=discord.Embed(title="Record",
-			                    description=f"Recording for {time} seconds. The record will stop at "
-			                                f"<t:{int(time + datetime.now().timestamp())}:R>.",
-			                    color=discord.Color.green()))
+			embed=discord.Embed(
+				title="Record",
+				description=f"Recording for {time} seconds. The record will stop at "
+				f"<t:{int(time + datetime.now().timestamp())}:R>.",
+				color=discord.Color.green(),
+			),
+		)
 		self.bot.loop.call_later(time, finished_record)
 
 	@commands.slash_command(name="stop_record", description="Arrête l'enregistrement")
@@ -340,15 +526,29 @@ class State(commands.Cog):
 		try:
 			ctx.guild.voice_client.stop_recording()
 			self.connections.pop(ctx.guild.id).stop_recording()
-			await ctx.respond(embed=discord.Embed(title="Stop record", description="Stopped recording.",
-			                                      color=discord.Color.green()))
+			await ctx.respond(
+				embed=discord.Embed(
+					title="Stop record",
+					description="Stopped recording.",
+					color=discord.Color.green(),
+				)
+			)
 		except RecordingException:
 			await ctx.respond(
-				embed=discord.Embed(title="Error", description="There is no recording in progress.",
-				                    color=discord.Color.dark_red()))
+				embed=discord.Embed(
+					title="Error",
+					description="There is no recording in progress.",
+					color=discord.Color.dark_red(),
+				)
+			)
 		except Exception as e:
-			await ctx.respond(embed=discord.Embed(title="Error", description=f"Error while stopping recording: {e}",
-			                                      color=discord.Color.dark_red()))
+			await ctx.respond(
+				embed=discord.Embed(
+					title="Error",
+					description=f"Error while stopping recording: {e}",
+					color=discord.Color.dark_red(),
+				)
+			)
 
 
 def setup(bot: Bot) -> None:

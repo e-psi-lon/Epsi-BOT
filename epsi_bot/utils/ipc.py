@@ -33,15 +33,16 @@ class IPCMessage:
 	Attributes
 	----------
 	type: MessageType
-		The type of the message (event, data, request, response).
+	        The type of the message (event, data, request, response).
 	channel: str
-		The channel the message is sent on.
+	        The channel the message is sent on.
 	payload: dict[str, Any] | Any | None
-		The payload of the message, that can be a dictionary (with string keys) or any other type. May be None.
+	        The payload of the message, that can be a dictionary (with string keys) or any other type. May be None.
 	id: str
-		A unique identifier for the message, generated if not provided.
+	        A unique identifier for the message, generated if not provided.
 
 	"""
+
 	type: MessageType
 	channel: str
 	payload: dict[str, Any] | Any | None
@@ -56,8 +57,9 @@ class IPCMessage:
 			type=MessageType,
 			channel=str,
 			payload=Optional[Any],
-			id=str
+			id=str,
 		)
+
 
 class IPCManager:
 	def __init__(self, side: str, in_queue: Queue, out_queue: Queue):
@@ -88,7 +90,7 @@ class IPCManager:
 		self._processor_task = asyncio.create_task(self._process_queue())
 		self._reader_task = asyncio.create_task(
 			asyncio.to_thread(self._sync_reader, asyncio.get_event_loop()),
-			name=f"IPCManager-{self._side}"
+			name=f"IPCManager-{self._side}",
 		)
 
 	def _sync_reader(self, loop: asyncio.AbstractEventLoop) -> None:
@@ -135,7 +137,9 @@ class IPCManager:
 							else:
 								await self._handlers[msg.channel](msg.id, msg.payload)
 						except Exception as e:
-							self._logger.error(f"Handler error for channel {msg.channel}: {e}")
+							self._logger.error(
+								f"Handler error for channel {msg.channel}: {e}"
+							)
 							if msg.type == MessageType.REQUEST:
 								await self.respond(msg.id, {"error": str(e)})
 				except asyncio.CancelledError:
@@ -151,27 +155,29 @@ class IPCManager:
 		self._logger.debug(f"Sending event: {msg}")
 		self._out_queue.put(msg)
 
-	async def request(self, channel: str, timeout: float = 5.0, **payload: Optional[Any]) -> Any:
+	async def request(
+		self, channel: str, timeout: float = 5.0, **payload: Optional[Any]
+	) -> Any:
 		"""Make a request on a channel and wait for the response
 
 		Parameters
 		----------
 		channel : str
-			The channel to send request to
+		        The channel to send request to
 		payload : Optional[Any]
-			The payload to send
+		        The payload to send
 		timeout : float, default=5.0
-			Maximum time to wait for response in seconds
+		        Maximum time to wait for response in seconds
 
 		Returns
 		-------
 		Any
-			The response payload
+		        The response payload
 
 		Raises
 		------
 		asyncio.TimeoutError
-			If no response is received within the timeout period
+		        If no response is received within the timeout period
 		"""
 		final_payload: dict[str, Any] | Any | None = payload
 		if not payload:
@@ -211,12 +217,12 @@ class IPCManager:
 		Parameters
 		----------
 		channel : str
-			The channel to register the handler for
+		        The channel to register the handler for
 
 		Returns
 		-------
 		Callable
-			The decorator function that will register the handler
+		        The decorator function that will register the handler
 		"""
 		self._logger.debug(f"Registering handler for channel {channel}")
 
@@ -231,7 +237,7 @@ class IPCManager:
 	async def stop(self) -> None:
 		self._logger.info("Stopping IPCManager")
 		self._running = False
-		
+
 		# Cancel all pending requests
 		async with self._pending_lock:
 			for request_id in list(self._pending_requests.keys()):
@@ -243,7 +249,7 @@ class IPCManager:
 				await self._processor_task
 			except asyncio.CancelledError:
 				pass
-		
+
 		if self._reader_task and not self._reader_task.done():
 			self._reader_task.cancel()
 			try:
@@ -259,7 +265,4 @@ class IPCManager:
 	def create_pair(cls) -> tuple["IPCManager", "IPCManager"]:
 		in_queue: Queue[IPCMessage] = Queue()
 		out_queue: Queue[IPCMessage] = Queue()
-		return (
-			cls("panel", in_queue, out_queue),
-			cls("bot", out_queue, in_queue)
-		)
+		return (cls("panel", in_queue, out_queue), cls("bot", out_queue, in_queue))

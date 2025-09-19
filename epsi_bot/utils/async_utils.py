@@ -12,16 +12,16 @@ __all__ = ["run_sync", "run_async", "Event", "set_callback"]
 def run_sync(coro: Coroutine) -> Any:
 	"""
 	Run a coroutine synchronously
-	
+
 	Parameters
 	----------
 	coro : Coroutine
-		The coroutine to run
-		
+	        The coroutine to run
+
 	Returns
 	-------
 	Any
-		The result of the coroutine
+	        The result of the coroutine
 	"""
 	with concurrent.futures.ThreadPoolExecutor() as pool:
 		future = pool.submit(asyncio.run, coro)
@@ -32,16 +32,16 @@ def run_sync(coro: Coroutine) -> Any:
 async def run_async(func: Callable) -> Any:
 	"""
 	Run a synchronous function asynchronously
-	
+
 	Parameters
 	----------
 	func : Callable
-		The function to run
-	
+	        The function to run
+
 	Returns
 	-------
 	Any
-		The result of the function
+	        The result of the function
 	"""
 	return await asyncio.get_event_loop().run_in_executor(None, func)
 
@@ -55,7 +55,9 @@ class Event:
 		if timeout is None:
 			await asyncio.get_event_loop().run_in_executor(None, self._event.wait)
 		else:
-			await asyncio.get_event_loop().run_in_executor(None, self._event.wait, timeout)
+			await asyncio.get_event_loop().run_in_executor(
+				None, self._event.wait, timeout
+			)
 
 	def __await__(self) -> Any:
 		return self.wait().__await__()
@@ -75,19 +77,22 @@ class Event:
 		return f"<Event {'set' if self.is_set() else 'clear'} is_response={self.is_response}>"
 
 
-async def set_callback(event: Event, callback: Callable[..., Coroutine[Any, Any, None]],
-                       event_loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
+async def set_callback(
+	event: Event,
+	callback: Callable[..., Coroutine[Any, Any, None]],
+	event_loop: Optional[asyncio.AbstractEventLoop] = None,
+) -> None:
 	"""
 	Set a callback to be called when the event is set.
 
 	Parameters
 	----------
 	event : Event
-		The event to wait for.
+	        The event to wait for.
 	callback : Callable[[], Coroutine[Any, Any, None]]
-		The callback to call when the event is set.
+	        The callback to call when the event is set.
 	event_loop : Optional[asyncio.AbstractEventLoop]
-		The event loop to run the callback in. Default is None.
+	        The event loop to run the callback in. Default is None.
 
 	Returns
 	-------
@@ -99,7 +104,11 @@ async def set_callback(event: Event, callback: Callable[..., Coroutine[Any, Any,
 			await event.wait()
 			if not event.is_response:
 				await callback()
-				get_logger("Callback").debug(f"The callback for {event} is being called")
+				get_logger("Callback").debug(
+					f"The callback for {event} is being called"
+				)
 				await event.clear()
 
-	asyncio.run_coroutine_threadsafe(_callback(), event_loop or asyncio.get_event_loop())
+	asyncio.run_coroutine_threadsafe(
+		_callback(), event_loop or asyncio.get_event_loop()
+	)

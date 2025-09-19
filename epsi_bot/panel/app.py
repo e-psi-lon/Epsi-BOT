@@ -20,7 +20,7 @@ from epsi_bot.panel.helpers import register_error_handlers
 
 
 class Panel(Quart):
-	def __init__(self, config_name: str = 'default', *args: Any, **kwargs: Any) -> None:
+	def __init__(self, config_name: str = "default", *args: Any, **kwargs: Any) -> None:
 		super().__init__(__name__, *args, **kwargs)
 
 		# Load configuration
@@ -42,9 +42,7 @@ class Panel(Quart):
 		# Session and database setup
 		Session(self)
 		register_tortoise(
-			self,
-			db_url=get_db_url(),
-			modules={'models': ['epsi_bot.utils.models']}
+			self, db_url=get_db_url(), modules={"models": ["epsi_bot.utils.models"]}
 		)
 
 		# Register routes and error handlers
@@ -57,15 +55,13 @@ class Panel(Quart):
 		@self.before_serving
 		async def startup() -> None:
 			await Tortoise.init(
-				db_url=get_db_url(),
-				modules={'models': ['epsi_bot.utils.models']}
+				db_url=get_db_url(), modules={"models": ["epsi_bot.utils.models"]}
 			)
 			await Tortoise.generate_schemas(safe=True)
 			# Start bot process
 			self.bot_process = Process(target=self.start_bot, name="Bot")
 			await self.ipc.start()
 			self.bot_process.start()
-
 
 	@property
 	def logger(self) -> logging.Logger:
@@ -81,18 +77,20 @@ class Panel(Quart):
 		if self.start_time is not None:
 			await start(bot, self.start_time)
 		else:
-			raise RuntimeError("Start time not set") # Should never be reached
+			raise RuntimeError("Start time not set")  # Should never be reached
 
-	def run(self,
-	        host: str | None = None,
-	        port: int | None = None,
-	        debug: bool | None = None,
-	        use_reloader: bool = True,
-	        loop: asyncio.AbstractEventLoop | None = None,
-	        ca_certs: str | None = None,
-	        certfile: str | None = None,
-	        keyfile: str | None = None,
-	        **kwargs: Any) -> None:
+	def run(
+		self,
+		host: str | None = None,
+		port: int | None = None,
+		debug: bool | None = None,
+		use_reloader: bool = True,
+		loop: asyncio.AbstractEventLoop | None = None,
+		ca_certs: str | None = None,
+		certfile: str | None = None,
+		keyfile: str | None = None,
+		**kwargs: Any,
+	) -> None:
 		if debug is None:
 			debug = parse_args().log_level.upper() == "DEBUG"
 		super().run(host=host, port=port, debug=debug, **kwargs)
@@ -107,6 +105,6 @@ class Panel(Quart):
 			exit(0)
 
 
-def create_app(config_name: str = 'default') -> Panel:
+def create_app(config_name: str = "default") -> Panel:
 	"""Application factory."""
 	return Panel(config_name)

@@ -9,23 +9,24 @@ from epsi_bot.utils.models import Queue
 @dataclass
 class ChannelData:
 	"""Dataclass to represent a discord channel in the panel.
-	
+
 	Attributes
 	----------
 	name : str
-		The name of the channel
+	        The name of the channel
 	id : int
-		 The id of the channel
+	         The id of the channel
 	type : str
-		The type of the channel
+	        The type of the channel
 
 	Methods
 	-------
 	from_channel(cls, channel: GuildChannel) -> ChannelData (classmethod)
-		Class method to create a ChannelData instance from a discord.abc.GuildChannel instance.
+	        Class method to create a ChannelData instance from a discord.abc.GuildChannel instance.
 	from_dict(cls, dict_: dict) -> ChannelData (classmethod)
-		Class method to create a ChannelData instance from a dictionary.
+	        Class method to create a ChannelData instance from a dictionary.
 	"""
+
 	name: str
 	id: int
 	type: str
@@ -34,24 +35,20 @@ class ChannelData:
 	def from_channel(cls, channel: GuildChannel) -> "ChannelData":
 		"""
 		Class method to create a ChannelData instance from a discord.abc.GuildChannel instance.
-		
+
 		Parameters
 		----------
 		channel : GuildChannel
-			The discord channel
-			
+		        The discord channel
+
 		Returns
 		-------
 		ChannelData
-			The ChannelData instance
+		        The ChannelData instance
 		"""
 		# `name` in fact exists since type is an enum and enum members have a `name` attribute.
 		# noinspection PyUnresolvedReferences
-		return cls(
-			name=channel.name,
-			id=channel.id,
-			type=channel.type.name
-		)
+		return cls(name=channel.name, id=channel.id, type=channel.type.name)
 
 	@classmethod
 	def from_dict(cls, dict_: dict) -> "ChannelData":
@@ -61,18 +58,14 @@ class ChannelData:
 		Parameters
 		----------
 		dict_ : dict
-			The dictionary containing the channel data
+		        The dictionary containing the channel data
 
 		Returns
 		-------
 		ChannelData
-			The ChannelData instance
+		        The ChannelData instance
 		"""
-		return cls(
-			name=dict_["name"],
-			id=dict_["id"],
-			type=dict_["type"]
-		)
+		return cls(name=dict_["name"], id=dict_["id"], type=dict_["type"])
 
 
 @dataclass
@@ -82,23 +75,24 @@ class UserData:
 	Attributes
 	----------
 	name : str
-		The name of the user
+	        The name of the user
 	global_name : str
-		The global name of the user
+	        The global name of the user
 	id : int
-		The id of the user
+	        The id of the user
 	avatar : str
-		The avatar's url of the user
+	        The avatar's url of the user
 
 	Methods
 	-------
 	from_user(cls, user: User) -> UserData (classmethod)
-		Class method to create a UserData instance from a discord.User instance.
+	        Class method to create a UserData instance from a discord.User instance.
 	from_api_response(cls, response: dict) -> UserData (classmethod)
-		Class method to create a UserData instance from a discord API response.
+	        Class method to create a UserData instance from a discord API response.
 	from_dict(cls, dict_: dict) -> UserData (classmethod)
-		Class method to create a UserData instance from a dictionary.
+	        Class method to create a UserData instance from a dictionary.
 	"""
+
 	name: str
 	global_name: str
 	id: int
@@ -108,22 +102,22 @@ class UserData:
 	def from_user(cls, user: User) -> "UserData":
 		"""
 		Class method to create a UserData instance from a discord.User instance.
-		
+
 		Parameters
 		----------
 		user : User
-			The discord user
-		
+		        The discord user
+
 		Returns
 		-------
 		UserData
-			The UserData instance
+		        The UserData instance
 		"""
 		return cls(
 			name=user.name,
 			global_name=getattr(user, "global_name", user.name),
 			id=user.id,
-			avatar=getattr(user.avatar, "url", "")
+			avatar=getattr(user.avatar, "url", ""),
 		)
 
 	@classmethod
@@ -134,19 +128,20 @@ class UserData:
 		Parameters
 		----------
 		response : dict
-			The API response
+		        The API response
 
 		Returns
 		-------
 		UserData
-			The UserData instance
+		        The UserData instance
 		"""
 		return cls(
 			name=response["username"],
 			global_name=response["global_name"],
 			id=int(response["id"]),
-			avatar=f"https://cdn.discordapp.com/avatars/{response['id']}/{response['avatar']}.png" if response.get(
-				"avatar") else ""
+			avatar=f"https://cdn.discordapp.com/avatars/{response['id']}/{response['avatar']}.png"
+			if response.get("avatar")
+			else "",
 		)
 
 	@classmethod
@@ -157,18 +152,18 @@ class UserData:
 		Parameters
 		----------
 		dict_ : dict
-			The dictionary containing the user data
+		        The dictionary containing the user data
 
 		Returns
 		-------
 		UserData
-			The UserData instance
+		        The UserData instance
 		"""
 		return cls(
 			name=dict_["name"],
 			global_name=dict_["global_name"],
 			id=dict_["id"],
-			avatar=dict_["avatar"]
+			avatar=dict_["avatar"],
 		)
 
 
@@ -179,21 +174,22 @@ class GuildData:
 	Attributes
 	----------
 	name : str
-		The name of the guild
+	        The name of the guild
 	id : int
-		The id of the guild
+	        The id of the guild
 	icon : str
-		The icon's url of the guild
+	        The icon's url of the guild
 	channels : list[ChannelData]
-		The channels of the guild
+	        The channels of the guild
 
 	Methods
 	-------
 	from_guild(cls, guild: Guild) -> GuildData (classmethod)
-		Class method to create a GuildData instance from a discord.Guild instance.
+	        Class method to create a GuildData instance from a discord.Guild instance.
 	from_dict(cls, dict_: dict) -> GuildData (classmethod)
-		Class method to create a GuildData instance from a dictionary.
+	        Class method to create a GuildData instance from a dictionary.
 	"""
+
 	name: str
 	id: int
 	icon: str
@@ -207,17 +203,17 @@ class GuildData:
 		Parameters
 		----------
 		guild : Guild
-			The discord guild.
+		        The discord guild.
 		Returns
 		-------
 		GuildData
-			The GuildData instance.
+		        The GuildData instance.
 		"""
 		return cls(
 			name=guild.name,
 			id=guild.id,
 			icon=getattr(guild.icon, "url", ""),
-			channels=[ChannelData.from_channel(channel) for channel in guild.channels]
+			channels=[ChannelData.from_channel(channel) for channel in guild.channels],
 		)
 
 	@classmethod
@@ -228,18 +224,18 @@ class GuildData:
 		Parameters
 		----------
 		dict_ : dict
-			The dictionary containing the guild data
+		        The dictionary containing the guild data
 
 		Returns
 		-------
 		GuildData
-			The GuildData instance
+		        The GuildData instance
 		"""
 		return cls(
 			name=dict_["name"],
 			id=dict_["id"],
 			icon=dict_["icon"],
-			channels=[ChannelData.from_dict(channel) for channel in dict_["channels"]]
+			channels=[ChannelData.from_dict(channel) for channel in dict_["channels"]],
 		)
 
 
@@ -249,28 +245,37 @@ class ConfigData:
 	Attributes
 	----------
 	guild_id : int
-		The id of the guild.
+	        The id of the guild.
 	loop_song : bool
-		If the player should loop around the song.
+	        If the player should loop around the song.
 	loop_queue : bool
-		If the player should loop around the queue.
+	        If the player should loop around the queue.
 	random : bool
-		If the player should play the songs in the queue in a random order.
+	        If the player should play the songs in the queue in a random order.
 	volume : int
-		The volume of the player.
+	        The volume of the player.
 	position : int
-		The position of the song in the queue.
+	        The position of the song in the queue.
 	queue : list[Song]
-		The queue of the player.
+	        The queue of the player.
 
 	Methods
 	-------
 	to_dict(self) -> dict
-		Method to convert the ConfigData instance to a dictionary.
+	        Method to convert the ConfigData instance to a dictionary.
 	"""
 
-	def __init__(self, loop_song: bool, loop_queue: bool, random: bool, position: int, queue: list[Queue],
-	             server_id: int, name: str, volume: int):
+	def __init__(
+		self,
+		loop_song: bool,
+		loop_queue: bool,
+		random: bool,
+		position: int,
+		queue: list[Queue],
+		server_id: int,
+		name: str,
+		volume: int,
+	):
 		self.loop_song = loop_song
 		self.loop_queue = loop_queue
 		self.random = random
@@ -293,10 +298,10 @@ class ConfigData:
 	def to_dict(self) -> dict:
 		"""
 		Method to convert the ConfigData instance to a dictionary.
-		
+
 		Returns
 		-------
 		dict
-			The dictionary representation of the ConfigData instance.
+		        The dictionary representation of the ConfigData instance.
 		"""
 		return dict(self.__getstate__().__dict__)

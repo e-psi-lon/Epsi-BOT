@@ -1,6 +1,6 @@
 import io
 import sys
-from typing import Iterable, Literal, Any
+from typing import Iterable, Literal
 
 from typing_extensions import Buffer
 
