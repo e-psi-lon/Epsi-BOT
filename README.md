@@ -4,6 +4,8 @@
 [![Python](https://img.shields.io/badge/python-3.13%2B-blue)](https://www.python.org/downloads/)
 [![Pycord Version](https://img.shields.io/badge/py--cord-2.6.1-blue)](https://docs.pycord.dev/en/stable/)
 [![Activity](https://img.shields.io/github/commit-activity/m/e-psi-lon/Epsi-BOT/dev)](https://github.com/e-psi-lon/Epsi-BOT/graphs/commit-activity)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 
 ## Database Schema
 
