@@ -62,7 +62,7 @@ class Listeners(commands.Cog):
 						indented_code = '\n'.join(['\t' + line for line in code.split('\n')])
 						func_code = f"async def __ex():\n{indented_code}"
 						exec(func_code, env)
-						await env['__ex']()
+						await env['__ex']() # type: ignore[operator]
 			
 			value = output.getvalue()
 			if not value:

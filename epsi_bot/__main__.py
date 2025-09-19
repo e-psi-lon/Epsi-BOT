@@ -25,7 +25,7 @@ log_level = getattr(logging, parse_args().log_level.upper(), logging.WARNING)
 handler.setLevel(log_level)
 logging.basicConfig(level=log_level, handlers=[handler])
 
-def main():
+def main() -> None:
 	os.system("clear")
 	app.run(host="0.0.0.0", port=8080, use_reloader=False)
 

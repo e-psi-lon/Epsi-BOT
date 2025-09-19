@@ -609,7 +609,7 @@ def validate_playlist_name(name: str) -> Optional[discord.Embed]:
 	"""
 	if len(name) > 20:
 		return EMBED_ERROR_NAME_TOO_LONG
-	return
+	return None
 
 
 def parse_playlist_name_and_type(name: str) -> tuple[str, Optional[PlaylistType]]:

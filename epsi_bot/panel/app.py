@@ -54,8 +54,8 @@ class Panel(Quart):
 		# Register IPC handlers
 		self._register_ipc_handlers()
 
-		@self.before_serving()
-		async def startup():
+		@self.before_serving
+		async def startup() -> None:
 			await Tortoise.init(
 				db_url=get_db_url(),
 				modules={'models': ['epsi_bot.utils.models']}
