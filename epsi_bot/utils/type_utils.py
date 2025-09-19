@@ -130,7 +130,7 @@ def _type_checking(
 				if origin in (list, tuple, set, frozenset):
 					# For sequences, recursively check all elements match the first type arg
 					if hasattr(val, '__iter__'):
-						for item_i, item in enumerate(val):  # type: ignore[arg-type]
+						for item_i, item in enumerate(val):
 							item_path = f"{path}[{item_i}]"
 							# Recursive call for nested structures
 							if not _type_checking(
@@ -143,7 +143,7 @@ def _type_checking(
 								return False
 				elif origin is dict and len(args) >= 2:
 					# For dicts, recursively check key and value types
-					for k, v in val.items():  # type: ignore[arg-type]
+					for k, v in val.items():
 						key_path = f"{path} key {repr(k)}"
 						value_path = f"{path}[{repr(k)}]"
 
