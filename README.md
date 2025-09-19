@@ -93,7 +93,7 @@ Legend:
 - Libffi-dev (or libffi-devel)
 - MySQL (SQLite if you plan to run unit tests)
 - Memcached
-- (Optional) Uses [`uv`](https://docs.astral.sh/uv) for easy dependency management and build
+- (Optional) Use [uv](https://docs.astral.sh/uv) for easy dependency management and build
 
 ### Environment Setup
 
@@ -141,3 +141,7 @@ python -m epsi_bot
 ## License
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+
+<sub>
+Not a requirement but if you somehow use my project, buy me a coffee *(well hot chocolate, I don't like coffee)* or star the repo on GitHub :p
+</sub>
