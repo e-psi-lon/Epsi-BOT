@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1
-
 # Stage 1: Build Environment
 FROM python:3.13-alpine AS builder
 
@@ -14,8 +12,8 @@ RUN apk add --no-cache \
     libffi-dev \
     python3-dev
 
-# Copy only necessary files for installation
-COPY pyproject.toml README.md .env* ./
+# Copy necessary files for installation
+COPY pyproject.toml README.md ./
 COPY epsi_bot ./epsi_bot
 
 # Install dependencies
@@ -33,18 +31,26 @@ RUN apk add --no-cache \
     mariadb-connector-c \
     libstdc++
 
+
 # Copy only the installed packages
 COPY --from=builder /usr/local/lib/python3.13 /usr/local/lib/python3.13
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy application files
-COPY epsi_bot ./epsi_bot
+# Copy essential environment files
+TODO: Move to docker-compose 
 COPY .env* ./
 
 ENV DOCKER_ENV=1
 
+# Clean up unnecessary files to reduce image size
+RUN find /usr/local -name "*.pyc" -delete && \
+    find /usr/local -name "__pycache__" -delete && \
+    rm -rf /usr/local/lib/python3.13/site-packages/pip* && \
+    rm -rf /tmp/* /var/tmp/*
+
 # Create volume for data
 VOLUME /app/data
 
-# Command to start both memcached and your application
+# Start the application
+# TODO: Change to ASGI server for production
 CMD ["python", "-m", "epsi_bot"]
