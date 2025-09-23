@@ -26,20 +26,6 @@ from epsi_bot.utils.ipc import IPCManager
 from epsi_bot.utils.models import get_db_url
 
 
-@tasks.loop(hours=5)
-async def check_update() -> None:
-	current_hash = os.popen("git rev-parse HEAD").read().strip()
-	origin_hash = (
-		os.popen("git ls-remote origin main | awk '{print $1}'").read().strip()
-	)
-	if current_hash != origin_hash:
-		os.system("git pull")
-		get_logger("Updater").info("Bot updated to the latest version")
-		os.execl(sys.executable, sys.executable, *sys.argv)
-	else:
-		get_logger("Updater").info("Bot is already up to date")
-
-
 @tasks.loop(hours=36)
 async def update_top_songs(self: "Bot") -> None:
 	# Calculate top 5 songs
@@ -72,14 +58,6 @@ async def update_top_songs(self: "Bot") -> None:
 	self.logger.info("Top 5 songs updated and cached.")
 
 
-"""
-,
-             command_prefix: str | Iterable[str] | (Bot | AutoShardedBot, Message) -> str | Iterable[str] | Coroutine[Any, Any, str | Iterable[str]] = when_mentioned,
-             help_command: HelpCommand | None = MISSING,
-             **options: An
-"""
-
-
 class Bot(commands.Bot):
 	def __init__(
 		self,
@@ -109,12 +87,7 @@ class Bot(commands.Bot):
 				name=f"/help | {len(self.guilds)} servers",
 			)
 		)
-		if (
-			os.popen("git branch --show-current").read().strip() == "main"
-			and not check_update.is_running()
-		):
-			check_update.start()
-		if self.memcached is None:
+		if self.memcached is None and os.getenv("DOCKER_ENV") is not None:
 			try:
 				# noinspection PyTypeChecker
 				self.memcached = subprocess.Popen(
