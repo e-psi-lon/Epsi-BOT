@@ -5,6 +5,7 @@ from enum import Enum
 from multiprocessing import Queue
 from queue import Empty
 from typing import Any, Awaitable, Callable, Optional, Concatenate, ParamSpec
+import warnings
 
 from epsi_bot.utils.type_utils import type_checking
 from epsi_bot.utils.loggers import get_logger
@@ -62,16 +63,13 @@ class IPCMessage:
 class IPCManager:
 	def __init__(self, side: str, in_queue: Queue, out_queue: Queue):
 		self._in_queue: Queue[IPCMessage] = in_queue
-		self._async_in_queue: asyncio.Queue[IPCMessage] = asyncio.Queue()
 		self._out_queue: Queue[IPCMessage] = out_queue
-		# noinspection PyTypeHints
 		self._handlers: dict[str, HandlerFunction] = {}
 		self._running = True
 		self._logger = get_logger(f"IPC [{side}]")
 		self._pending_requests: dict[str, asyncio.Future] = {}
 		self._side = side
 		self._reader_task: Optional[asyncio.Task] = None
-		self._processor_task: Optional[asyncio.Task] = None
 		self._pending_lock = asyncio.Lock()
 
 	def _cancel_pending_request(self, request_id: str) -> Optional[asyncio.Future]:
@@ -85,7 +83,6 @@ class IPCManager:
 
 	async def start(self) -> None:
 		self._logger.info(f"Starting IPCManager for {self._side}")
-		self._processor_task = asyncio.create_task(self._process_queue())
 		self._reader_task = asyncio.create_task(
 			asyncio.to_thread(self._sync_reader, asyncio.get_running_loop()),
 			name=f"IPCManager-{self._side}",
@@ -96,7 +93,9 @@ class IPCManager:
 			while self._running:
 				try:
 					msg = self._in_queue.get(timeout=0.5)
-					loop.call_soon_threadsafe(self._async_in_queue.put_nowait, msg)
+					loop.call_soon_threadsafe(
+						loop.create_task, self._handle_message(msg)
+					)
 				except Empty:
 					continue
 				except Exception as e:
@@ -107,46 +106,33 @@ class IPCManager:
 		finally:
 			self._logger.debug("Sync reader task ended")
 
-	async def _process_queue(self) -> None:
-		try:
-			while self._running:
-				try:
-					msg = await self._async_in_queue.get()
-					self._logger.debug(f"Received message: {msg}")
-					if not msg.validate():
-						self._logger.warning(f"Invalid IPCMessage received: {msg}")
-						continue
-					if msg.type == MessageType.RESPONSE:
-						async with self._pending_lock:
-							self._logger.debug(f"Received response for {msg.id}")
-							pending_requests = self._pending_requests
-							if msg.id in pending_requests:
-								self._logger.debug(f"Resolving future for {msg.id}")
-								future = pending_requests.pop(msg.id)
-								if not future.done():
-									future.set_result(msg.payload)
-					elif msg.channel in self._handlers:
-						try:
-							self._logger.debug(f"Handling message for {msg.channel}")
-							if isinstance(msg.payload, dict):
-								await self._handlers[msg.channel](msg.id, **msg.payload)
-							elif msg.payload is None:
-								await self._handlers[msg.channel](msg.id)
-							else:
-								await self._handlers[msg.channel](msg.id, msg.payload)
-						except Exception as e:
-							self._logger.error(
-								f"Handler error for channel {msg.channel}: {e}"
-							)
-							if msg.type == MessageType.REQUEST:
-								await self.respond(msg.id, {"error": str(e)})
-				except asyncio.CancelledError:
-					self._logger.debug("Queue processor cancelled")
-					break
-				except Exception as e:
-					self._logger.error(f"Error processing message: {e}")
-		finally:
-			self._logger.debug("Queue processor ended")
+	async def _handle_message(self, message: IPCMessage) -> None:
+		self._logger.debug(f"Received message: {message}")
+		if not message.validate():
+			self._logger.warning(f"Invalid IPCMessage received: {message}")
+			return
+		if message.type == MessageType.RESPONSE:
+			async with self._pending_lock:
+				self._logger.debug(f"Received response for {message.id}")
+				pending_requests = self._pending_requests
+				if message.id in pending_requests:
+					self._logger.debug(f"Resolving future for {message.id}")
+					future = pending_requests.pop(message.id)
+					if not future.done():
+						future.set_result(message.payload)
+		elif message.channel in self._handlers:
+			try:
+				self._logger.debug(f"Handling message for {message.channel}")
+				if isinstance(message.payload, dict):
+					await self._handlers[message.channel](message.id, **message.payload)
+				elif message.payload is None:
+					await self._handlers[message.channel](message.id)
+				else:
+					await self._handlers[message.channel](message.id, message.payload)
+			except Exception as e:
+				self._logger.error(f"Handler error for channel {message.channel}: {e}")
+				if message.type == MessageType.REQUEST:
+					await self.respond(message.id, {"error": str(e)})
 
 	async def send(self, channel: str, payload: Any | None = None) -> None:
 		msg = IPCMessage(MessageType.EVENT, channel, payload)
@@ -226,7 +212,11 @@ class IPCManager:
 
 		def decorator(func: HandlerFunction) -> HandlerFunction:
 			if channel in self._handlers:
-				self._logger.warning(f"Overwriting handler for channel {channel}")
+				# Raise a warning if a handler is already registered for the channel
+				warnings.warn(
+					f"Handler for channel '{channel}' is already registered. Be aware that this will overwrite the previous handler.",
+					UserWarning,
+				)
 			self._handlers[channel] = func
 			return func
 
@@ -241,12 +231,6 @@ class IPCManager:
 			for request_id in list(self._pending_requests.keys()):
 				self._cancel_pending_request(request_id)
 			self._pending_requests.clear()
-		if self._processor_task and not self._processor_task.done():
-			self._processor_task.cancel()
-			try:
-				await self._processor_task
-			except asyncio.CancelledError:
-				pass
 
 		if self._reader_task and not self._reader_task.done():
 			self._reader_task.cancel()

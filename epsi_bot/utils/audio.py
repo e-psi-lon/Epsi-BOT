@@ -203,7 +203,7 @@ async def play_song(
 		return
 	if ctx.guild.voice_client.is_playing():
 		ctx.guild.voice_client.stop()
-	loop = asyncio.get_event_loop()
+	loop = asyncio.get_running_loop()
 	async with database_context():
 		server = await Server.get(server_id=ctx.guild.id)
 		song = await Song.get(url=url)
