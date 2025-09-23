@@ -22,7 +22,7 @@ class AudioCache(MemcachedCache):
 
 	def __init__(self, pool_size: int = 5):
 		super().__init__(
-			serializer=AudioCache.Base64Serializer(),
+			serializer=Base64Serializer(),
 			namespace="audio",
 			endpoint="127.0.0.1",
 			port=11211,
@@ -31,27 +31,27 @@ class AudioCache(MemcachedCache):
 		)
 		self.logger = get_logger("Memcached Audio Cache")
 
-	async def get(self, key: str, **_: Any) -> io.BytesIO | None:
+	async def get_audio(self, key: str, **_: Any) -> io.BytesIO | None:
 		"""Get a value from the cache"""
 		return (await super().get(key)) or None
 
-	async def set(self, key: str, value: io.BytesIO, ttl: int = 3600, **_: Any) -> None:
+	async def set_audio(self, key: str, value: io.BytesIO, ttl: int = 3600, **_: Any) -> None:
 		"""Set a value in the cache"""
 		await super().set(key, value, ttl=ttl)
 		self.logger.debug(f"Set {key} in cache")
 
-	async def exists(self, key: str, **_: Any) -> bool:
+	async def exists(self, key: str, namespace: Any | None = None, _conn: Any | None = None) -> Any:
 		"""Check if a key exists in the cache"""
-		return await super().exists(key)
+		return await super().exists(key, namespace=namespace, _conn=_conn)
 
-	def update_ttl(self, key: str, new_ttl: int) -> None:
+	async def update_ttl(self, key: str, new_ttl: int) -> None:
 		"""Update the ttl of a key in the cache"""
 		key = self.build_key(key, namespace=self.namespace)
-		self.client.touch(key.encode(), new_ttl)
+		await self.client.touch(key.encode(), new_ttl)
 
-	async def clear(self, **_: Any) -> None:
+	async def clear(self, namespace: Any | None = None, _conn: Any | None = None) -> None:
 		"""Clear the cache"""
-		await super().clear()
+		await super().clear(namespace=namespace, _conn=_conn)
 
 	def __aenter__(self) -> Coroutine[Any, Any, "AudioCache"]:
 		return super().__aenter__()
@@ -59,31 +59,10 @@ class AudioCache(MemcachedCache):
 	def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> Any:
 		return super().__aexit__(exc_type, exc_val, exc_tb)
 
-	class Base64Serializer(JsonSerializer):
-		def dumps(self, value: Any) -> str:
-			if isinstance(value, io.BytesIO):
-				logger = get_logger("Memcached")
-				logger.debug(f"Audio size: {len(value.getvalue())} bytes")
-				compressed = zlib.compress(value.getvalue())
-				logger.debug(f"Compressed audio size: {len(compressed)} bytes")
-				return binascii.hexlify(compressed).decode()
-			return super().dumps(value)
-
-		def loads(self, value: str) -> io.BytesIO | Any:
-			try:
-				val = io.BytesIO(
-					base64.b64decode(
-						zlib.decompress(binascii.unhexlify(value.encode()))
-					)
-				)
-				val.seek(0)
-				return val
-			except (TypeError, binascii.Error, zlib.error, AttributeError):
-				return super().loads(value)
 
 
 async def to_cache(url: str, cache: AudioCache) -> io.BytesIO:
-	data = await cache.get(url)
+	data = await cache.get_audio(url)
 	if data is not None:
 		return data
 	buffer = io.BytesIO()
@@ -98,8 +77,30 @@ async def to_cache(url: str, cache: AudioCache) -> io.BytesIO:
 		stream = await asyncio.to_thread(yt_video.streams.get_audio_only)
 		await asyncio.to_thread(stream.stream_to_buffer, buffer)
 	buffer.seek(0)
-	await cache.set(url, buffer, ttl=3600)
+	await cache.set_audio(url, buffer, ttl=3600)
 	return buffer
+
+class Base64Serializer(JsonSerializer):
+	def dumps(self, value: Any) -> str:
+		if isinstance(value, io.BytesIO):
+			logger = get_logger("Memcached")
+			logger.debug(f"Audio size: {len(value.getvalue())} bytes")
+			compressed = zlib.compress(value.getvalue())
+			logger.debug(f"Compressed audio size: {len(compressed)} bytes")
+			return binascii.hexlify(compressed).decode()
+		return super().dumps(value)
+
+	def loads(self, value: str) -> io.BytesIO | Any:
+		try:
+			val = io.BytesIO(
+				base64.b64decode(
+					zlib.decompress(binascii.unhexlify(value.encode()))
+				)
+			)
+			val.seek(0)
+			return val
+		except (TypeError, binascii.Error, zlib.error, AttributeError):
+			return super().loads(value)
 
 
 async def download(
