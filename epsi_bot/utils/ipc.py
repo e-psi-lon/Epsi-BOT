@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from multiprocessing import Queue
 from queue import Empty
-from typing import Any, Callable, Coroutine, Optional, Concatenate
+from typing import Any, Awaitable, Callable, Optional, Concatenate, ParamSpec
 
 from epsi_bot.utils.type_utils import type_checking
 from epsi_bot.utils.loggers import get_logger
@@ -18,11 +18,8 @@ class MessageType(Enum):
 	REQUEST = "request"
 	RESPONSE = "response"
 
-
-_UnusedCoroutine = Coroutine[Any, Any, None]
-
-# noinspection PyTypeHints
-HandlerFunction = Callable[Concatenate[str, ...], _UnusedCoroutine]
+P = ParamSpec("P")
+HandlerFunction = Callable[Concatenate[str, P], Awaitable[None]]
 
 
 @dataclass(slots=True, frozen=True)
