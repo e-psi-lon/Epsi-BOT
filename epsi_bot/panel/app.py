@@ -82,8 +82,6 @@ class Panel(Quart):
 			await start(bot, self.start_time)
 		else:
 			raise RuntimeError("Start time not set")  # Should never be reached
-		
-		
 
 	def run(
 		self,

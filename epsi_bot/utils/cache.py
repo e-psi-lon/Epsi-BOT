@@ -35,12 +35,16 @@ class AudioCache(MemcachedCache):
 		"""Get a value from the cache"""
 		return (await super().get(key)) or None
 
-	async def set_audio(self, key: str, value: io.BytesIO, ttl: int = 3600, **_: Any) -> None:
+	async def set_audio(
+		self, key: str, value: io.BytesIO, ttl: int = 3600, **_: Any
+	) -> None:
 		"""Set a value in the cache"""
 		await super().set(key, value, ttl=ttl)
 		self.logger.debug(f"Set {key} in cache")
 
-	async def exists(self, key: str, namespace: Any | None = None, _conn: Any | None = None) -> Any:
+	async def exists(
+		self, key: str, namespace: Any | None = None, _conn: Any | None = None
+	) -> Any:
 		"""Check if a key exists in the cache"""
 		return await super().exists(key, namespace=namespace, _conn=_conn)
 
@@ -49,7 +53,9 @@ class AudioCache(MemcachedCache):
 		key = self.build_key(key, namespace=self.namespace)
 		await self.client.touch(key.encode(), new_ttl)
 
-	async def clear(self, namespace: Any | None = None, _conn: Any | None = None) -> None:
+	async def clear(
+		self, namespace: Any | None = None, _conn: Any | None = None
+	) -> None:
 		"""Clear the cache"""
 		await super().clear(namespace=namespace, _conn=_conn)
 
@@ -58,7 +64,6 @@ class AudioCache(MemcachedCache):
 
 	def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> Any:
 		return super().__aexit__(exc_type, exc_val, exc_tb)
-
 
 
 async def to_cache(url: str, cache: AudioCache) -> io.BytesIO:
@@ -80,6 +85,7 @@ async def to_cache(url: str, cache: AudioCache) -> io.BytesIO:
 	await cache.set_audio(url, buffer, ttl=3600)
 	return buffer
 
+
 class Base64Serializer(JsonSerializer):
 	def dumps(self, value: Any) -> str:
 		if isinstance(value, io.BytesIO):
@@ -92,11 +98,7 @@ class Base64Serializer(JsonSerializer):
 
 	def loads(self, value: str) -> io.BytesIO | Any:
 		try:
-			val = io.BytesIO(
-				base64.b64decode(
-					zlib.decompress(binascii.unhexlify(value.encode()))
-				)
-			)
+			val = io.BytesIO(zlib.decompress(binascii.unhexlify(value.encode())))
 			val.seek(0)
 			return val
 		except (TypeError, binascii.Error, zlib.error, AttributeError):

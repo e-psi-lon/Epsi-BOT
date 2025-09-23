@@ -18,6 +18,7 @@ class MessageType(Enum):
 	REQUEST = "request"
 	RESPONSE = "response"
 
+
 P = ParamSpec("P")
 HandlerFunction = Callable[Concatenate[str, P], Awaitable[None]]
 
