@@ -1,7 +1,7 @@
 import asyncio
-import base64
 import io
 import logging
+from math import log
 from typing import Any, Coroutine
 
 import binascii
@@ -20,13 +20,15 @@ __all__ = ["AudioCache", "download", "download_bulk"]
 class AudioCache(MemcachedCache):
 	"""Class to manage the audio cache"""
 
-	def __init__(self, pool_size: int = 5):
+	def __init__(self, scale_factor: int = 5):
+		if scale_factor < 1:
+			scale_factor = 1
 		super().__init__(
 			serializer=Base64Serializer(),
 			namespace="audio",
 			endpoint="127.0.0.1",
 			port=11211,
-			pool_size=pool_size,
+			pool_size=max(1, min(int(scale_factor ** 0.5), 10)),
 			timeout=15,
 		)
 		self.logger = get_logger("Memcached Audio Cache")
@@ -66,21 +68,25 @@ class AudioCache(MemcachedCache):
 		return super().__aexit__(exc_type, exc_val, exc_tb)
 
 
-async def to_cache(url: str, cache: AudioCache) -> io.BytesIO:
+async def get_or_download_audio(url: str, cache: AudioCache) -> io.BytesIO:
 	data = await cache.get_audio(url)
 	if data is not None:
 		return data
 	buffer = io.BytesIO()
 	buffer.seek(0)
 	if not YOUTUBE_REGEX.match(url):
-		r = await requests.get(url, return_type="content")
-		if not isinstance(r, bytes):
-			raise TypeError(f"Expected bytes, got {type(r)} for url {url}")
-		buffer.write(r)
+		result = await requests.get(url, return_type="content")
+		if not isinstance(result, bytes):
+			raise TypeError(f"Expected bytes, got {type(result)} for url {url}")
+		buffer.write(result)
 	else:
-		yt_video = pytubefix.YouTube(url, client=YOUTUBE_CLIENT)
-		stream = await asyncio.to_thread(yt_video.streams.get_audio_only)
-		await asyncio.to_thread(stream.stream_to_buffer, buffer)
+		try:
+			yt_video = pytubefix.YouTube(url, client=YOUTUBE_CLIENT)
+			stream = await asyncio.to_thread(yt_video.streams.get_audio_only)
+			await asyncio.to_thread(stream.stream_to_buffer, buffer)
+		except Exception as e:
+			buffer.close()
+			raise e
 	buffer.seek(0)
 	await cache.set_audio(url, buffer, ttl=3600)
 	return buffer
@@ -124,7 +130,7 @@ async def download(
 	        The downloaded video
 	"""
 	async with AudioCache() as cache:
-		value = await to_cache(url, cache)
+		value = await get_or_download_audio(url, cache)
 	download_logger.info(f"Successfully downloaded {url}")
 	return value
 
@@ -147,11 +153,15 @@ async def download_bulk(
 	list[io.BytesIO]
 	        The downloaded videos
 	"""
+	semaphore_size = max(2, min(int(2 * log(len(urls) + 1, 2)), 8))
+	semaphore = asyncio.Semaphore(semaphore_size)
+
 
 	async def download_worker(url: str, cache_: AudioCache) -> io.BytesIO:
-		result = await to_cache(url, cache_)
-		download_logger.info(f"Downloaded {url}")
-		return result
+		async with semaphore:
+			result = await get_or_download_audio(url, cache_)
+			download_logger.info(f"Downloaded {url}")
+			return result
 
 	async with AudioCache(len(urls)) as cache:
 		tasks = [download_worker(url, cache) for url in urls]
