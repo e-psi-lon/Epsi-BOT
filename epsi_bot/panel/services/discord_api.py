@@ -62,9 +62,9 @@ async def refresh_token(token: str) -> dict:
 	user_id = session["user"].id
 	session["user_id"] = user_id
 
-	timer = asyncio.get_event_loop().call_later(
+	timer = asyncio.get_running_loop().call_later(
 		session["token"]["expires_in"],
-		asyncio.get_event_loop().create_task,
+		asyncio.get_running_loop().create_task,
 		refresh_token(session["token"]["refresh_token"]),
 	)
 	panel_app = cast(PanelProtocol, current_app)

@@ -36,9 +36,9 @@ async def callback() -> Response:
 		return redirect(url_for("main.index"))
 	try:
 		token = await token_from_code(code)
-		timer = asyncio.get_event_loop().call_later(
+		timer = asyncio.get_running_loop().call_later(
 			token["expires_in"],
-			asyncio.get_event_loop().create_task,
+			asyncio.get_running_loop().create_task,
 			refresh_token(token["refresh_token"]),
 		)
 		session["token"] = token

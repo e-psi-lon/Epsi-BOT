@@ -87,7 +87,7 @@ class IPCManager:
 		self._logger.info(f"Starting IPCManager for {self._side}")
 		self._processor_task = asyncio.create_task(self._process_queue())
 		self._reader_task = asyncio.create_task(
-			asyncio.to_thread(self._sync_reader, asyncio.get_event_loop()),
+			asyncio.to_thread(self._sync_reader, asyncio.get_running_loop()),
 			name=f"IPCManager-{self._side}",
 		)
 
