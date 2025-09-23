@@ -3,7 +3,6 @@ This module is the main module of the package utils. It contains all the classes
 functions and constants that are used by the other modules.
 """
 
-from epsi_bot.utils.async_utils import Event, run_async, run_sync, set_callback
 from epsi_bot.utils.audio import (
 	convert,
 	disconnect_from_channel,
@@ -60,11 +59,6 @@ import epsi_bot.utils.requests as requests
 
 
 __all__ = [
-	# async_utils
-	"Event",
-	"run_async",
-	"run_sync",
-	"set_callback",
 	# audio
 	"convert",
 	"disconnect_from_channel",
