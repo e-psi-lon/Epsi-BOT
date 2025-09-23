@@ -29,16 +29,23 @@ RUN apk add --no-cache \
     ffmpeg \
     memcached \
     mariadb-connector-c \
-    libstdc++
+    libstdc++ \
+    curl
 
+# Create dedicated user
+RUN addgroup -g 1001 -S appgroup && \
+    adduser -u 1001 -S appuser -G appgroup
 
 # Copy only the installed packages
 COPY --from=builder /usr/local/lib/python3.13 /usr/local/lib/python3.13
 COPY --from=builder /usr/local/bin /usr/local/bin
 
+
+RUN mkdir -p /app/data && chown -R appuser:appgroup /app
+
 # Copy essential environment files
-TODO: Move to docker-compose 
-COPY .env* ./
+# TODO: Move secrets to docker-compose
+COPY --chown=appuser:appgroup .env* ./
 
 ENV DOCKER_ENV=1
 
@@ -48,8 +55,15 @@ RUN find /usr/local -name "*.pyc" -delete && \
     rm -rf /usr/local/lib/python3.13/site-packages/pip* && \
     rm -rf /tmp/* /var/tmp/*
 
+# Switch to non-root user
+USER 1001:1001
+
 # Create volume for data
 VOLUME /app/data
+
+# Health check 
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
 
 # Start the application
 # TODO: Change to ASGI server for production

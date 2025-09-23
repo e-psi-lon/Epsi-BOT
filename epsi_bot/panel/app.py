@@ -63,6 +63,10 @@ class Panel(Quart):
 			await self.ipc.start()
 			self.bot_process.start()
 
+		@self.route("health")
+		async def health_check() -> tuple[dict[str, str], int]:
+			return {"status": "healthy"}, 200
+
 	@property
 	def logger(self) -> logging.Logger:
 		if self._logger is None:
