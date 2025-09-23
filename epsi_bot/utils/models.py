@@ -1,6 +1,8 @@
+from abc import abstractmethod
 from os import getenv
 from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator, Iterable, Type
+from urllib.parse import quote_plus
 
 from aiosqlite import OperationalError
 from tortoise import (
@@ -19,6 +21,7 @@ from tortoise.validators import MinValueValidator, MaxValueValidator
 
 import epsi_bot.utils
 from epsi_bot.utils.loggers import get_logger
+from __future__ import annotations
 
 __all__ = [
 	"BaseModel",
@@ -180,8 +183,8 @@ class Server(BaseModel):
 	volume = fields.IntField(
 		default=100, validators=[MinValueValidator(0), MaxValueValidator(100)]
 	)
-	queue: fields.ReverseRelation["Queue"]
-	playlists: fields.ReverseRelation["ServerPlaylist"]
+	queue: fields.ReverseRelation[Queue]
+	playlists: fields.ReverseRelation[ServerPlaylist]
 
 
 class User(BaseModel):
@@ -219,7 +222,7 @@ class Playlist(BaseModel):
 
 	playlist_id = fields.IntField(primary_key=True)
 	name = fields.CharField(100)
-	songs: fields.ReverseRelation["PlaylistSong"]
+	songs: fields.ReverseRelation[PlaylistSong]
 
 
 class Song(BaseModel):
@@ -256,6 +259,20 @@ class AudioReference(BaseModel):
 	class Meta:
 		abstract = True
 
+	@abstractmethod
+	def _get_scope_field(self) -> dict[str, Any]:
+		"""
+		Abstract method to get the scope field for position calculation.
+		Must be implemented by subclasses to return the appropriate field
+		for filtering when calculating the next position.
+
+		Returns
+		-------
+		dict[str, Any]
+		        A dictionary representing the scope field for filtering
+		"""
+		pass
+
 	async def save(
 		self,
 		using_db: BaseDBAsyncClient | None = None,
@@ -266,12 +283,7 @@ class AudioReference(BaseModel):
 		async with in_transaction():
 			if self.position is None:
 				# Use the correct filter depending on subclass
-				if hasattr(self, "playlist"):
-					values = await self.__class__.filter(playlist=self.playlist)
-				elif hasattr(self, "server"):
-					values = await self.__class__.filter(server=self.server)
-				else:
-					values = []
+				values = await self.__class__.filter(**self._get_scope_field())
 				max_position = max([value.position for value in values], default=0)
 				self.position = max_position + 1
 			return await super().save(
@@ -323,8 +335,11 @@ class PlaylistSong(AudioReference):
 		"models.Playlist", related_name="songs"
 	)
 
+	def _get_scope_field(self) -> dict[str, Any]:
+		return {"playlist_id": self.playlist_id}
+
 	class Meta:
-		unique_together = (("playlist", "song", "position"),)
+		unique_together = (("playlist", "song"),)
 		indexes = [("playlist_id", "position"), ("song_id",)]
 
 
@@ -349,8 +364,11 @@ class Queue(AudioReference):
 		"models.Server", related_name="queue"
 	)
 
+	def _get_scope_field(self) -> dict[str, Any]:
+		return {"server_id": self.server_id}
+
 	class Meta:
-		unique_together = (("server", "song", "position"),)
+		unique_together = (("server", "song"),)
 		indexes = [("server_id", "position")]
 
 
@@ -439,4 +457,10 @@ def get_db_url() -> str:
 	        The database URL for the Tortoise-ORM configuration
 	"""
 	# Load everything from the environment variables
-	return f"mysql://{getenv('DB_USER')}:{getenv('DB_PASSWORD')}@{getenv('DB_HOST')}:{getenv('DB_PORT')}/{getenv('DB_NAME')}"
+	return (
+		f"mysql://{getenv('DB_USER')}:"
+		+ f"{quote_plus(getenv('DB_PASSWORD'))}@"
+		+ f"{getenv('DB_HOST')}:"
+		+ f"{getenv('DB_PORT')}/"
+		+ f"{getenv('DB_NAME')}"
+	)
