@@ -63,7 +63,7 @@ class Panel(Quart):
 			await self.ipc.start()
 			self.bot_process.start()
 
-		@self.route("health")
+		@self.route("/health")
 		async def health_check() -> tuple[dict[str, str], int]:
 			return {"status": "healthy"}, 200
 
@@ -82,6 +82,8 @@ class Panel(Quart):
 			await start(bot, self.start_time)
 		else:
 			raise RuntimeError("Start time not set")  # Should never be reached
+		
+		
 
 	def run(
 		self,
