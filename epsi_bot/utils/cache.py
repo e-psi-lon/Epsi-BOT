@@ -11,7 +11,7 @@ import zlib
 from aiocache import MemcachedCache  # type: ignore[import-untyped]
 from aiocache.serializers import JsonSerializer, PickleSerializer  # type: ignore[import-untyped]
 
-from epsi_bot.utils.protocols import PanelProtocol
+from epsi_bot.utils.protocols import CacheProtocol, PanelProtocol
 import epsi_bot.utils.requests as requests
 from epsi_bot.utils.constants import YOUTUBE_REGEX, YOUTUBE_CLIENT
 from epsi_bot.utils.loggers import get_logger
@@ -19,7 +19,7 @@ from epsi_bot.utils.loggers import get_logger
 __all__ = ["AudioCache", "download", "download_bulk", "get_cache_stats", "get_from_bot_cached"]
 
 
-class AudioCache(MemcachedCache):
+class AudioCache(MemcachedCache, CacheProtocol):
 	"""Class to manage the audio cache"""
 
 	def __init__(self, scale_factor: int = 5):
