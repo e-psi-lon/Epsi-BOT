@@ -336,11 +336,11 @@ class PlaylistSong(AudioReference):
 	)
 
 	def _get_scope_field(self) -> dict[str, Any]:
-		return {"playlist_id": self.playlist_id}
+		return {"playlistd": self.playlist}
 
 	class Meta:
 		unique_together = (("playlist", "song"),)
-		indexes = [("playlist_id", "position"), ("song_id",)]
+		indexes = [("playlist", "position"), ("song_id",)]
 
 
 class Queue(AudioReference):
@@ -365,11 +365,11 @@ class Queue(AudioReference):
 	)
 
 	def _get_scope_field(self) -> dict[str, Any]:
-		return {"server_id": self.server_id}
+		return {"server": self.server}
 
 	class Meta:
 		unique_together = (("server", "song"),)
-		indexes = [("server_id", "position")]
+		indexes = [("server", "position")]
 
 
 class ServerPlaylist(PlaylistReference):
