@@ -96,6 +96,7 @@ class Bot(commands.Bot):
 					executable="/usr/bin/memcached",
 					stdout=MemcachedStd(),
 					stderr=MemcachedStd("stderr"),
+					text=True,
 				)  # type: ignore[call-overload]
 			except FileNotFoundError:
 				self.logger.error("Memcached not found, please install it")

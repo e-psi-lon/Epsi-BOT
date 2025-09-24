@@ -1,8 +1,6 @@
 import io
 import sys
-from typing import Iterable, Literal
-
-from typing_extensions import Buffer
+from typing import Literal
 
 from epsi_bot.utils import get_logger
 
@@ -13,10 +11,10 @@ class MemcachedStd(io.TextIOBase):
 		self.logger = get_logger("Memcached")
 		super().__init__()
 
-	def write(self, string: str | Buffer) -> int:
+	def write(self, string: str | bytes) -> int:
 		content: str
-		if isinstance(string, Buffer):
-			content = str(string, "utf-8")
+		if isinstance(string, bytes):
+			content = string.decode("utf-8", errors="replace")
 		else:
 			content = string
 		match self.type:
@@ -25,10 +23,6 @@ class MemcachedStd(io.TextIOBase):
 			case "stderr":
 				self.logger.error(content)
 		return len(content)
-
-	def writelines(self, lines: Iterable[str | Buffer]) -> None:
-		for line in lines:
-			self.write(line)
 
 	def fileno(self) -> int:
 		if self.type == "stdout":
