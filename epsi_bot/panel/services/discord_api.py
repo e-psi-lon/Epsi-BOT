@@ -4,7 +4,7 @@ from typing import cast
 import aiohttp
 
 from epsi_bot.utils import requests, UserData
-from epsi_bot.panel.PanelProtocol import PanelProtocol
+from epsi_bot.utils.protocols import PanelProtocol
 
 
 async def get_user_data(access_token: str) -> UserData:

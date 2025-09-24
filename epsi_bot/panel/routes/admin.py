@@ -6,9 +6,9 @@ from quart import Blueprint, render_template, request, websocket, current_app
 
 from epsi_bot.utils import models, admin_required
 from epsi_bot.utils.models import BaseModel
-from epsi_bot.panel.services.cache import get_cache_stats
+from epsi_bot.utils.cache import get_cache_stats
 from epsi_bot.panel.helpers import format_table_info
-from epsi_bot.panel.PanelProtocol import PanelProtocol
+from epsi_bot.utils.protocols import PanelProtocol
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 

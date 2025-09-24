@@ -12,7 +12,7 @@ from epsi_bot.panel.services.discord_api import (
 )
 from epsi_bot.panel.helpers import to_url
 from epsi_bot.panel.services.discord_api import get_user_data
-from epsi_bot.panel.PanelProtocol import PanelProtocol
+from epsi_bot.utils.protocols import PanelProtocol
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 

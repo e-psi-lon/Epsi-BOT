@@ -12,7 +12,7 @@ from typing import cast
 
 from epsi_bot.utils import models, ConfigData, get_youtube, YOUTUBE_REGEX
 from epsi_bot.utils.decorators import login_required
-from epsi_bot.panel.PanelProtocol import PanelProtocol
+from epsi_bot.utils.protocols import PanelProtocol
 
 server_bp = Blueprint("server", __name__, url_prefix="/server")
 

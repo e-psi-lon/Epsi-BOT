@@ -5,7 +5,7 @@ from werkzeug import Response
 
 from epsi_bot.panel.services.discord_api import get_user_data
 from epsi_bot.utils.decorators import login_required
-from epsi_bot.panel.PanelProtocol import PanelProtocol
+from epsi_bot.utils.protocols import PanelProtocol
 
 main_bp = Blueprint("main", __name__)
 
