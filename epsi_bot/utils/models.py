@@ -1,3 +1,4 @@
+from __future__ import annotations
 from abc import abstractmethod
 from os import getenv
 from contextlib import asynccontextmanager
@@ -21,7 +22,6 @@ from tortoise.validators import MinValueValidator, MaxValueValidator
 
 import epsi_bot.utils
 from epsi_bot.utils.loggers import get_logger
-from __future__ import annotations
 
 __all__ = [
 	"BaseModel",
