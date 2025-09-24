@@ -1,5 +1,7 @@
 import asyncio
+import hashlib
 import io
+import json
 import logging
 from math import log
 from typing import Any, Coroutine, Optional, cast
@@ -16,7 +18,20 @@ import epsi_bot.utils.requests as requests
 from epsi_bot.utils.constants import YOUTUBE_REGEX, YOUTUBE_CLIENT
 from epsi_bot.utils.loggers import get_logger
 
-__all__ = ["AudioCache", "download", "download_bulk", "get_cache_stats", "get_from_bot_cached"]
+__all__ = [
+	"AudioCache",
+	"download",
+	"download_bulk",
+	"get_cache_stats",
+	"get_from_bot_cached",
+]
+
+
+def hash_key(*parts: str, digest_size: int = 32, separator: str = "") -> str:
+	"""Hash a key using Blake2b and return the hexadecimal representation."""
+	return hashlib.blake2b(
+		separator.join(parts).encode("utf-8"), digest_size=digest_size
+	).hexdigest()
 
 
 class AudioCache(MemcachedCache, CacheProtocol):
@@ -30,7 +45,7 @@ class AudioCache(MemcachedCache, CacheProtocol):
 			namespace="audio",
 			endpoint="127.0.0.1",
 			port=11211,
-			pool_size=max(1, min(int(scale_factor ** 0.5), 10)),
+			pool_size=max(1, min(int(scale_factor**0.5), 10)),
 			timeout=15,
 		)
 		self.logger = get_logger("Memcached Audio Cache")
@@ -70,8 +85,27 @@ class AudioCache(MemcachedCache, CacheProtocol):
 		return super().__aexit__(exc_type, exc_val, exc_tb)
 
 
+class Base64Serializer(JsonSerializer):
+	def dumps(self, value: Any) -> str:
+		if isinstance(value, io.BytesIO):
+			logger = get_logger("Memcached")
+			logger.debug(f"Audio size: {len(value.getvalue())} bytes")
+			compressed = zlib.compress(value.getvalue())
+			logger.debug(f"Compressed audio size: {len(compressed)} bytes")
+			return binascii.hexlify(compressed).decode()
+		return super().dumps(value)
+
+	def loads(self, value: str) -> io.BytesIO | Any:
+		try:
+			val = io.BytesIO(zlib.decompress(binascii.unhexlify(value.encode())))
+			val.seek(0)
+			return val
+		except (TypeError, binascii.Error, zlib.error, AttributeError):
+			return super().loads(value)
+
+
 async def get_or_download_audio(url: str, cache: AudioCache) -> io.BytesIO:
-	data = await cache.get_audio(url)
+	data = await cache.get_audio(hash_key(url))
 	if data is not None:
 		return data
 	buffer = io.BytesIO()
@@ -90,27 +124,8 @@ async def get_or_download_audio(url: str, cache: AudioCache) -> io.BytesIO:
 			buffer.close()
 			raise e
 	buffer.seek(0)
-	await cache.set_audio(url, buffer, ttl=3600)
+	await cache.set_audio(hash_key(url), buffer, ttl=3600)
 	return buffer
-
-
-class Base64Serializer(JsonSerializer):
-	def dumps(self, value: Any) -> str:
-		if isinstance(value, io.BytesIO):
-			logger = get_logger("Memcached")
-			logger.debug(f"Audio size: {len(value.getvalue())} bytes")
-			compressed = zlib.compress(value.getvalue())
-			logger.debug(f"Compressed audio size: {len(compressed)} bytes")
-			return binascii.hexlify(compressed).decode()
-		return super().dumps(value)
-
-	def loads(self, value: str) -> io.BytesIO | Any:
-		try:
-			val = io.BytesIO(zlib.decompress(binascii.unhexlify(value.encode())))
-			val.seek(0)
-			return val
-		except (TypeError, binascii.Error, zlib.error, AttributeError):
-			return super().loads(value)
 
 
 async def download(
@@ -158,7 +173,6 @@ async def download_bulk(
 	semaphore_size = max(2, min(int(2 * log(len(urls) + 1, 2)), 8))
 	semaphore = asyncio.Semaphore(semaphore_size)
 
-
 	async def download_worker(url: str, cache_: AudioCache) -> io.BytesIO:
 		async with semaphore:
 			result = await get_or_download_audio(url, cache_)
@@ -188,7 +202,8 @@ async def get_from_bot_cached(
 	async with MemcachedCache(
 		serializer=PickleSerializer(), namespace="ipc_cache"
 	) as cache:
-		cache_key = f"{channel}_{payload}"
+		safe_payload = json.dumps(payload, sort_keys=True)
+		cache_key = hash_key(channel, safe_payload, separator="_")
 		if await cache.exists(cache_key):
 			return await cache.get(cache_key)
 		else:
