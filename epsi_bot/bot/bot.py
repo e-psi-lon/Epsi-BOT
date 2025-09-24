@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os
 import subprocess
 import sys
@@ -27,7 +28,7 @@ from epsi_bot.utils.models import get_db_url
 
 
 @tasks.loop(hours=36)
-async def update_top_songs(self: "Bot") -> None:
+async def update_top_songs(self: Bot) -> None:
 	# Calculate top 5 songs
 	await Tortoise.init(db_url=get_db_url(), modules={"models": [models]})
 	top_songs = (

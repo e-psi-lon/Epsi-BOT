@@ -203,7 +203,7 @@ class User(BaseModel):
 
 	user_id = fields.IntField(primary_key=True)
 	discord_id = fields.BigIntField(unique=True)
-	playlists: fields.ReverseRelation["UserPlaylist"]
+	playlists: fields.ReverseRelation[UserPlaylist]
 
 
 class Playlist(BaseModel):
@@ -250,9 +250,9 @@ class AudioReference(BaseModel):
 	Used by PlaylistSong and Queue.
 	"""
 
-	asker: fields.ForeignKeyRelation["User"] = fields.ForeignKeyField("models.User")
+	asker: fields.ForeignKeyRelation[User] = fields.ForeignKeyField("models.User")
 	position = fields.IntField()
-	song: fields.ForeignKeyRelation["Song"] = fields.ForeignKeyField(
+	song: fields.ForeignKeyRelation[Song] = fields.ForeignKeyField(
 		"models.Song", on_delete=fields.CASCADE
 	)
 
@@ -306,7 +306,7 @@ class PlaylistReference(BaseModel):
 	        A foreign key reference to the Playlist model
 	"""
 
-	playlist: fields.ForeignKeyRelation["Playlist"] = fields.ForeignKeyField(
+	playlist: fields.ForeignKeyRelation[Playlist] = fields.ForeignKeyField(
 		"models.Playlist"
 	)
 
