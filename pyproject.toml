@@ -9,21 +9,21 @@ authors = [
 ]
 dependencies = [
     "aiocache[memcached]>=0.12.3",
-    "aiodns>=3.5.0",
+    "aiodns>=4.0.4",
     "aiomultiprocess>=0.9.1",
-    "aiomysql>=0.2.0",
-    "audioop-lts>=0.2.1",
-    "brotlipy>=0.7.0",
-    "charset-normalizer>=3.4.2",
-    "psutil>=7.0.0",
-    "py-cord>=2.6.1",
-    "pynacl>=1.5.0",
-    "python-dotenv>=1.1.1",
+    "aiomysql>=0.3.2",
+    "audioop-lts>=0.2.2",
+    "charset-normalizer>=3.4.9",
+    "psutil>=7.2.2",
+    "py-cord>=2.8.1",
+    "pydantic>=2.13.4",
+    "pynacl>=1.6.2",
+    "python-dotenv>=1.2.2",
     "python-ffmpeg>=2.0.12",
-    "pytubefix>=9.2.1",
-    "quart>=0.20.0",
+    "pytubefix>=10.10.1",
+    "quart>=0.21.0",
     "quart-session>=3.0.0",
-    "tortoise-orm>=0.25.1",
+    "tortoise-orm==1.1.7",
 ]
 
 
@@ -34,20 +34,23 @@ epsi-bot = "epsi_bot.__main__:main"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.uv.extra-build-dependencies]
+"quart-session" = ["setuptools"]
+
 [tool.hatch.build]
 include = ["epsi_bot/**"]
 
 [dependency-groups]
 dev = [
-    "aiosqlite>=0.21.0",
-    "mypy>=1.16.1",
-    "types-psutil>=7.0.0",
-    "pytest>=8.4.1",
-    "pytest-aio>=1.9.0",
-    "pytest-cov>=6.2.0",
-    "pytest-mock>=3.14.1",
-    "ruff>=0.13.1",
-    "pre-commit>=4.3.0",
+    "aiosqlite>=0.22.1",
+    "mypy>=2.3.0",
+    "types-psutil>=7.2.2.20260518",
+    "pytest>=9.1.1",
+    "pytest-aio>=2.1.7",
+    "pytest-cov>=7.1.0",
+    "pytest-mock>=3.15.1",
+    "ruff>=0.16.0",
+    "pre-commit>=4.6.1",
 ]
 
 
