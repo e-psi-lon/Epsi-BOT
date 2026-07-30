@@ -177,7 +177,7 @@ class Server(BaseModel):
 	        Associated playlists for the server
 	"""
 
-	server_id = fields.BigIntField(primary_key=True)
+	server_id = fields.BigIntField(primary_key=True, generated=False)
 	loop_queue = fields.BooleanField(default=False)
 	loop_song = fields.BooleanField(default=False)
 	position = fields.IntField(default=0)
@@ -284,8 +284,11 @@ class AudioReference(BaseModel):
 		async with in_transaction():
 			if self.position is None:
 				# Use the correct filter depending on subclass
-				values = await self.__class__.filter(**self._get_scope_field())
-				max_position = max([value.position for value in values], default=0)
+				values = await (
+					self.__class__.filter(**self._get_scope_field())
+					.select_for_update()
+				)
+				max_position = max((v.position for v in values), default=0)
 				self.position = max_position + 1
 			return await super().save(
 				using_db=using_db,
@@ -337,7 +340,7 @@ class PlaylistSong(AudioReference):
 	)
 
 	def _get_scope_field(self) -> dict[str, Any]:
-		return {"playlist_id": self.playlist}
+		return {"playlist": self.playlist}
 
 	class Meta:
 		unique_together = (("playlist", "song"),)
@@ -441,8 +444,9 @@ async def database_context() -> AsyncGenerator[None]:
 		)
 		await Tortoise.generate_schemas(safe=True)
 		yield
-	except exceptions.BaseORMException as e:
-		logger.error(f"Error while accessing database: {e}")
+	except exceptions.BaseORMException:
+		logger.exception("Error while accessing database: ")
+		raise
 	finally:
 		await connections.close_all()
 		logger.debug("Tortoise-ORM shutdown")
@@ -457,9 +461,13 @@ def get_db_url() -> str:
 	str
 	        The database URL for the Tortoise-ORM configuration
 	"""
+	required = ("DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT", "DB_NAME")
+	for var in required:
+		if not getenv(var):
+			raise ValueError(f"Environment variable '{var}' is not set")
 	# Load everything from the environment variables
 	return (
-		f"mysql://{getenv('DB_USER')}:"
+		f"asyncpg://{getenv('DB_USER')}:"
 		+ f"{quote_plus(getenv('DB_PASSWORD'))}@"
 		+ f"{getenv('DB_HOST')}:"
 		+ f"{getenv('DB_PORT')}/"
