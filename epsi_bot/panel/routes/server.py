@@ -1,16 +1,17 @@
-from quart import (
-	Blueprint,
-	session,
-	redirect,
-	url_for,
-	render_template,
-	request,
-	current_app,
-)
-from werkzeug.wrappers.response import Response
 from typing import cast
 
-from epsi_bot.utils import models, ConfigData, get_youtube, YOUTUBE_REGEX
+from quart import (
+	Blueprint,
+	current_app,
+	redirect,
+	render_template,
+	request,
+	session,
+	url_for,
+)
+from werkzeug.wrappers.response import Response
+
+from epsi_bot.utils import YOUTUBE_REGEX, ConfigData, get_youtube, models
 from epsi_bot.utils.decorators import login_required
 from epsi_bot.utils.protocols import PanelProtocol
 

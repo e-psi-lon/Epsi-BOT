@@ -1,41 +1,42 @@
 from __future__ import annotations
+
 from abc import abstractmethod
-from os import getenv
+from collections.abc import AsyncGenerator, Iterable
 from contextlib import asynccontextmanager
-from typing import Any, AsyncGenerator, Iterable, Type
+from os import getenv
+from typing import Any
 from urllib.parse import quote_plus
 
-from aiosqlite import OperationalError
 from tortoise import (
 	BaseDBAsyncClient,
-	connections,
-	fields,
 	Model,
 	Tortoise,
-	models,
+	connections,
 	exceptions,
+	fields,
+	models,
 )
-from tortoise.exceptions import NoValuesFetched
+from tortoise.exceptions import IntegrityError, NoValuesFetched, OperationalError
 from tortoise.fields.relational import ReverseRelation
 from tortoise.transactions import in_transaction
-from tortoise.validators import MinValueValidator, MaxValueValidator
+from tortoise.validators import MaxValueValidator, MinValueValidator
 
 import epsi_bot.utils
 from epsi_bot.utils.loggers import get_logger
 
 __all__ = [
-	"BaseModel",
-	"User",
-	"Song",
-	"Playlist",
-	"Server",
 	"AudioReference",
+	"BaseModel",
+	"Playlist",
 	"PlaylistReference",
 	"PlaylistSong",
 	"Queue",
+	"Server",
 	"ServerPlaylist",
-	"UserPlaylist",
+	"Song",
 	"SongListenCount",
+	"User",
+	"UserPlaylist",
 	"database_context",
 	"get_db_url",
 ]
@@ -76,12 +77,13 @@ class BaseModel(Model):
 				force_update=force_update,
 			)
 			logger.debug(f"Saved {self}")
-		except Exception as e:
-			logger.error(f"Error while saving {self}: {e}")
+		except (IntegrityError, OperationalError):
+			logger.exception(f"Error while saving {self}: ")
+			raise
 
 	@classmethod
 	async def get_or_create_important(
-		cls: Type[models.MODEL], important_fields: list[str], **kwargs: Any
+		cls: type[models.MODEL], important_fields: list[str], **kwargs: Any
 	) -> tuple[models.MODEL, bool]:
 		"""
 		Class method to retrieve an existing object or create a new one based on specified important fields.
@@ -271,7 +273,6 @@ class AudioReference(BaseModel):
 		dict[str, Any]
 		        A dictionary representing the scope field for filtering
 		"""
-		pass
 
 	async def save(
 		self,
@@ -336,11 +337,11 @@ class PlaylistSong(AudioReference):
 	)
 
 	def _get_scope_field(self) -> dict[str, Any]:
-		return {"playlistd": self.playlist}
+		return {"playlist_id": self.playlist}
 
 	class Meta:
 		unique_together = (("playlist", "song"),)
-		indexes = [("playlist", "position"), ("song_id",)]
+		indexes = [("playlist", "position"), ("song_id",)]  # noqa: RUF012
 
 
 class Queue(AudioReference):
@@ -369,7 +370,7 @@ class Queue(AudioReference):
 
 	class Meta:
 		unique_together = (("server", "song"),)
-		indexes = [("server", "position")]
+		indexes = [("server", "position")]  # noqa: RUF012
 
 
 class ServerPlaylist(PlaylistReference):
@@ -429,7 +430,7 @@ class SongListenCount(BaseModel):
 
 
 @asynccontextmanager
-async def database_context() -> AsyncGenerator[None, None]:
+async def database_context() -> AsyncGenerator[None]:
 	"""
 	Provides an asynchronous context manager for interacting with the Tortoise-ORM database.
 	"""

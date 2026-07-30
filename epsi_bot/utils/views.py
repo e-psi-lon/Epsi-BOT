@@ -3,9 +3,9 @@ import io
 import discord
 import pytubefix  # type: ignore[import-untyped]
 
-from epsi_bot.utils.audio import play_song, get_youtube
+from epsi_bot.utils.audio import get_youtube, play_song
 from epsi_bot.utils.constants import EMBED_ERROR_BOT_NOT_CONNECTED, MAX_TRACK_LENGTH
-from epsi_bot.utils.models import User, Queue, Server, Song, database_context
+from epsi_bot.utils.models import Queue, Server, Song, User, database_context
 
 
 class SelectVideo(discord.ui.Select):

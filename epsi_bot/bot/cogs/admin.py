@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 
 from epsi_bot.bot.bot import Bot
-from epsi_bot.utils import OWNER_ID, EMBED_ERROR_NOT_BOT_OWNER, Server, AudioCache
+from epsi_bot.utils import EMBED_ERROR_NOT_BOT_OWNER, OWNER_ID, AudioCache, Server
 
 
 def cogs_autocomplete(ctx: discord.AutocompleteContext) -> list[str]:
@@ -100,14 +100,14 @@ class Admin(commands.Cog):
 				await ctx.respond(embed=EMBED_ERROR_NOT_BOT_OWNER, delete_after=30)
 				return
 			reloaded_cogs = []
-			for cog in self.bot.cogs:
-				if cog.lower() == "admin":
+			for bot_cog in self.bot.cogs:
+				if bot_cog.lower() == "admin":
 					continue
 				try:
-					self.bot.reload_extension(f"epsi_bot.bot.cogs.{cog}")
-					reloaded_cogs.append(cog)
+					self.bot.reload_extension(f"epsi_bot.bot.cogs.{bot_cog}")
+					reloaded_cogs.append(bot_cog)
 				except Exception:
-					pass
+					self.bot.logger.exception(f"Failed to reload the {bot_cog} cog")
 			if len(reloaded_cogs) < len(self.bot.cogs) - 1:
 				embed = discord.Embed(
 					title="Reload",
@@ -116,7 +116,7 @@ class Admin(commands.Cog):
 				embed.add_field(
 					name="Failed Cogs",
 					value="\n- ".join(
-						cog for cog in self.bot.cogs if cog not in reloaded_cogs
+						bot_cog for bot_cog in self.bot.cogs if bot_cog not in reloaded_cogs
 					),
 					inline=False,
 				)
@@ -139,7 +139,7 @@ class Admin(commands.Cog):
 					description=f"Reloaded the {cog} cog.",
 					color=discord.Color.green(),
 				)
-			except Exception as e:
+			except Exception as e:  # noqa: BLE001 reloading extension is unpredictable
 				embed = discord.Embed(
 					title="Reload",
 					description=f"Failed to reload the {cog} cog: {e}",

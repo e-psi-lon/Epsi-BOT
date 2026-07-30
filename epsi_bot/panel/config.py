@@ -18,7 +18,6 @@ class Config:
 	@staticmethod
 	def init_app(app: Quart) -> None:
 		"""Initialize app with this config."""
-		pass
 
 
 class DevelopmentConfig(Config):

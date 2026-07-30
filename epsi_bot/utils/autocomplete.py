@@ -1,6 +1,6 @@
 import discord
 
-from epsi_bot.utils.models import User, Server, database_context
+from epsi_bot.utils.models import Server, User, database_context
 
 __all__ = ["get_playlists", "get_playlists_songs", "get_queue_songs"]
 

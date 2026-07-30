@@ -1,10 +1,11 @@
 import datetime
 import logging
 from asyncio import TimerHandle
-from typing import Protocol, Any, TypeVar
+from typing import Any, Protocol, TypeVar
+
 from aiomultiprocess import Process  # type: ignore[import-untyped]
 
-from epsi_bot.utils import IPCManager
+from epsi_bot.utils.ipc import IPCManager
 
 
 class PanelProtocol(Protocol):

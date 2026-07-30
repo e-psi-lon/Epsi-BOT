@@ -1,9 +1,10 @@
 import asyncio
-from quart import current_app, session
 from typing import cast
-import aiohttp
 
-from epsi_bot.utils import requests, UserData
+import aiohttp
+from quart import current_app, session
+
+from epsi_bot.utils import UserData, requests
 from epsi_bot.utils.protocols import PanelProtocol
 
 
@@ -14,7 +15,7 @@ async def get_user_data(access_token: str) -> UserData:
 		headers={"Authorization": f"Bearer {access_token}"},
 	)
 	if not isinstance(user, dict):
-		raise ValueError("Invalid user data received from Discord API")
+		raise TypeError("Invalid user data received from Discord API")
 	return UserData.from_api_response(user)
 
 
@@ -37,7 +38,7 @@ async def token_from_code(code: str) -> dict:
 		),
 	)
 	if not isinstance(r, dict):
-		raise ValueError("Invalid token data received from Discord API")
+		raise TypeError("Invalid token data received from Discord API")
 	return r
 
 
@@ -56,7 +57,7 @@ async def refresh_token(token: str) -> dict:
 		),
 	)
 	if not isinstance(r, dict):
-		raise ValueError("Invalid token data received from Discord API")
+		raise TypeError("Invalid token data received from Discord API")
 
 	session["token"] = r
 	user_id = session["user"].id

@@ -51,7 +51,7 @@ def get_subcommands(
 			)
 		)
 	else:
-		raise ValueError(f"Unknown command type {type(cmd)}")
+		raise TypeError(f"Unknown command type {type(cmd)}")
 	return command_list
 
 

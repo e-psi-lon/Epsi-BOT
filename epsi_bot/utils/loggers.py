@@ -1,9 +1,9 @@
 import argparse
-import queue
 import logging
 import logging.handlers
 import os
-from typing import Optional, Any, Literal
+import queue
+from typing import Any, ClassVar, Literal
 
 
 class CustomFormatter(logging.Formatter):
@@ -17,7 +17,7 @@ class CustomFormatter(logging.Formatter):
 		style: Literal["%", "{", "$"] = "%",
 		validate: bool = True,
 		*,
-		defaults: Optional[dict[str, Any]] = None,
+		defaults: dict[str, Any] | None = None,
 	) -> None:
 		super().__init__(
 			fmt=fmt, datefmt=datefmt, style=style, validate=validate, defaults=defaults
@@ -28,7 +28,7 @@ class CustomFormatter(logging.Formatter):
 		"[{asctime}] {source} — {color}{levelname}\033[0m : {message} ({path}:{lineno})"
 	)
 
-	FORMATS = {
+	FORMATS: ClassVar[dict[int, str]] = {
 		logging.DEBUG: "\033[34m",  # Blue
 		logging.INFO: "\033[32m",  # Green
 		logging.WARNING: "\033[33m",  # Yellow
@@ -36,7 +36,7 @@ class CustomFormatter(logging.Formatter):
 		logging.CRITICAL: "\033[41m",  # Red
 	}
 
-	_path_cache: dict[str, str] = {}
+	_path_cache: ClassVar[dict[str, str]] = {}
 
 	def format(self, record: logging.LogRecord) -> str:
 		log_color = self.FORMATS.get(record.levelno)
@@ -49,8 +49,7 @@ class CustomFormatter(logging.Formatter):
 				.replace(os.sep, ".")
 				.lower()
 			)
-			if path.endswith(".py"):
-				path = path[:-3]
+			path = path.removesuffix(".py")
 			path = path.replace(".venv.lib.python3.13.site-packages.", "libs.").replace(
 				".venv.lib.site-packages.", "libs."
 			)
@@ -87,7 +86,7 @@ def parse_args() -> argparse.Namespace:
 		"ERROR",
 		"CRITICAL",
 	]:
-		setattr(parsed, "log_level", "INFO")
+		parsed.log_level = "INFO"
 	return parsed
 
 
@@ -97,7 +96,7 @@ _queue_listeners: dict[str, logging.handlers.QueueListener] = {}
 
 
 def get_logger(
-	name: str, level: Optional[int] = parse_args().log_level.upper()
+	name: str, level: int | None = parse_args().log_level.upper()
 ) -> logging.Logger:
 	"""Get a logger with the specified name and level"""
 	logger = logging.getLogger(name)

@@ -1,15 +1,13 @@
+from collections.abc import Awaitable, Callable
 from functools import wraps
-from typing import Any, TypeVar, Callable, Awaitable
+from typing import Any
 
-from quart import session, redirect, url_for, request, websocket
+from quart import redirect, request, session, url_for, websocket
 
-
-__all__ = ["login_required", "admin_required"]
-
-T = TypeVar("T")
+__all__ = ["admin_required", "login_required"]
 
 
-def login_required(f: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
+def login_required[T](f: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
 	"""Decorator to require user authentication."""
 
 	@wraps(f)
@@ -21,7 +19,7 @@ def login_required(f: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]
 	return decorated_function
 
 
-def admin_required(f: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
+def admin_required[T](f: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
 	"""Decorator to require admin access (local network only)."""
 
 	@wraps(f)

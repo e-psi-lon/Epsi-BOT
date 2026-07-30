@@ -1,8 +1,9 @@
 import asyncio
 import datetime
 import logging
+import sys
 from asyncio import TimerHandle
-from typing import Any, Optional
+from typing import Any
 
 import discord
 from aiomultiprocess import Process  # type: ignore[import-untyped]
@@ -11,12 +12,12 @@ from quart_session import Session  # type: ignore[import-untyped]
 from tortoise import Tortoise
 from tortoise.contrib.quart import register_tortoise
 
-from epsi_bot.bot.bot import start, Bot
-from epsi_bot.utils import get_logger, parse_args, IPCManager
-from epsi_bot.utils.models import get_db_url
+from epsi_bot.bot.bot import Bot, start
 from epsi_bot.panel.config import config
-from epsi_bot.panel.routes import register_blueprints
 from epsi_bot.panel.helpers import register_error_handlers
+from epsi_bot.panel.routes import register_blueprints
+from epsi_bot.utils import IPCManager, get_logger, parse_args
+from epsi_bot.utils.models import get_db_url
 
 
 class Panel(Quart):
@@ -28,8 +29,8 @@ class Panel(Quart):
 		config[config_name].init_app(self)
 
 		# Initialize components
-		self.bot_process: Optional[Process] = None
-		self.start_time: Optional[datetime.datetime] = None
+		self.bot_process: Process | None = None
+		self.start_time: datetime.datetime | None = None
 		self.timers: dict[int, TimerHandle] = {}
 
 		# IPC setup
@@ -106,7 +107,7 @@ class Panel(Quart):
 				await self.bot_process.join()
 			await Tortoise.close_connections()
 			await self.shutdown()
-			exit(0)
+			sys.exit(0)
 
 
 def create_app(config_name: str = "default") -> Panel:

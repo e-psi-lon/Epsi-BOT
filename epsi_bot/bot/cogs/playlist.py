@@ -1,34 +1,37 @@
 import asyncio
 from enum import Enum
-from typing import Optional, cast
+from typing import cast
+
 import discord
 import pytubefix  # type: ignore[import-untyped]
 from discord.commands import SlashCommandGroup
 from discord.ext import commands
-from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError  # type: ignore[import-untyped]
+from pytubefix.exceptions import (
+	RegexMatchError as PytubeRegexMatchError,  # type: ignore[import-untyped]
+)
 
 from epsi_bot.bot.bot import Bot
 from epsi_bot.utils import (
-	Playlist,
-	Song,
-	User,
-	play_song,
-	get_playlists,
-	get_playlists_songs,
-	EMBED_ERROR_QUEUE_EMPTY,
 	EMBED_ERROR_BOT_NOT_CONNECTED,
-	EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST,
 	EMBED_ERROR_NAME_TOO_LONG,
 	EMBED_ERROR_PLAYLIST_EXISTS,
-	Server,
+	EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST,
+	EMBED_ERROR_QUEUE_EMPTY,
+	YOUTUBE_CLIENT,
+	Playlist,
 	PlaylistReference,
 	PlaylistSong,
-	ServerPlaylist,
-	UserPlaylist,
 	Queue,
+	Server,
+	ServerPlaylist,
+	Song,
+	User,
+	UserPlaylist,
 	download_bulk,
+	get_playlists,
+	get_playlists_songs,
 	get_youtube,
-	YOUTUBE_CLIENT,
+	play_song,
 )
 
 
@@ -848,8 +851,8 @@ async def get_common_data(
 
 
 def validate_and_parse_playlist(
-	name: str, playlist_type: Optional[str] = None
-) -> tuple[Optional[str], Optional[PlaylistType], Optional[discord.Embed]]:
+	name: str, playlist_type: str | None = None
+) -> tuple[str | None, PlaylistType | None, discord.Embed | None]:
 	"""
 	Validate and parse playlist name and type.
 
@@ -918,7 +921,7 @@ def check_playlist_exists(
 		return name in [p.playlist.name for p in user_playlists]
 
 
-def validate_playlist_name(name: str) -> Optional[discord.Embed]:
+def validate_playlist_name(name: str) -> discord.Embed | None:
 	"""
 	Validate playlist name length.
 
@@ -937,7 +940,7 @@ def validate_playlist_name(name: str) -> Optional[discord.Embed]:
 	return None
 
 
-def parse_playlist_name_and_type(name: str) -> tuple[str, Optional[PlaylistType]]:
+def parse_playlist_name_and_type(name: str) -> tuple[str, PlaylistType | None]:
 	"""
 	Parse playlist name and extract type suffix if present.
 

@@ -1,6 +1,6 @@
 import asyncio
+from collections.abc import AsyncGenerator, Generator
 from unittest.mock import AsyncMock, MagicMock
-from typing import Generator, AsyncGenerator
 
 import discord
 import discord.ext.commands
@@ -8,11 +8,11 @@ import pytest
 from pytest_mock.plugin import MockerFixture
 from tortoise import Tortoise
 
-from epsi_bot.utils.models import Server, User, Song, Queue, Playlist
+from epsi_bot.utils.models import Playlist, Queue, Server, Song, User
 
 
 @pytest.fixture(scope="session")
-def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
+def event_loop() -> Generator[asyncio.AbstractEventLoop]:
 	"""Create an instance of the default event loop for the test session."""
 	loop = asyncio.new_event_loop()
 	yield loop
@@ -20,7 +20,7 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
 
 
 @pytest.fixture(scope="session")
-async def db_fixture() -> AsyncGenerator[None, None]:
+async def db_fixture() -> AsyncGenerator[None]:
 	"""Initialize test database with in-memory SQLite."""
 	await Tortoise.init(
 		db_url="sqlite://:memory:", modules={"models": ["epsi_bot.utils.models"]}
@@ -31,7 +31,7 @@ async def db_fixture() -> AsyncGenerator[None, None]:
 
 
 @pytest.fixture
-async def clean_db(db_fixture) -> AsyncGenerator[None, None]:
+async def clean_db(db_fixture) -> AsyncGenerator[None]:
 	"""Clean database before each test."""
 	# Delete all records in reverse dependency order
 	await Queue.all().delete()
@@ -268,7 +268,7 @@ class DiscordAssertions:
 
 	@staticmethod
 	def assert_embed_contains(
-		embed: discord.Embed, title: str = None, description: str = None
+		embed: discord.Embed, title: str | None = None, description: str | None = None
 	):
 		"""Assert that embed contains expected content."""
 		if title:
@@ -277,7 +277,7 @@ class DiscordAssertions:
 			assert description in embed.description
 
 	@staticmethod
-	def assert_response_sent(mock_ctx: MagicMock, content: str = None):
+	def assert_response_sent(mock_ctx: MagicMock, content: str | None = None):
 		"""Assert that a response was sent to the context."""
 		if hasattr(mock_ctx, "respond"):
 			mock_ctx.respond.assert_called()

@@ -1,16 +1,18 @@
 import asyncio
 import uuid
-from dataclasses import dataclass, field
+import warnings
+from collections.abc import Awaitable, Callable
 from enum import Enum
 from multiprocessing import Queue
 from queue import Empty
-from typing import Any, Awaitable, Callable, Optional, Concatenate, ParamSpec
-import warnings
+from typing import Any, Concatenate, ParamSpec
 
-from epsi_bot.utils.type_utils import type_checking
+from pydantic import BaseModel, Field
+
 from epsi_bot.utils.loggers import get_logger
+from epsi_bot.utils.type_utils import type_checking
 
-__all__ = ["IPCMessage", "IPCManager", "MessageType", "HandlerFunction"]
+__all__ = ["HandlerFunction", "IPCManager", "IPCMessage", "MessageType"]
 
 
 class MessageType(Enum):
@@ -23,9 +25,7 @@ class MessageType(Enum):
 P = ParamSpec("P")
 HandlerFunction = Callable[Concatenate[str, P], Awaitable[None]]
 
-
-@dataclass(slots=True, frozen=True)
-class IPCMessage:
+class IPCMessage(BaseModel):
 	"""
 	Represents a message in the IPC system.
 
@@ -45,7 +45,7 @@ class IPCMessage:
 	type: MessageType
 	channel: str
 	payload: dict[str, Any] | Any | None
-	id: str = field(default_factory=lambda: str(uuid.uuid4()))
+	id: str = Field(default_factory=lambda: str(uuid.uuid4()))
 
 	def validate(self) -> bool:
 		"""Validate the IPCMessage structure"""
@@ -55,7 +55,7 @@ class IPCMessage:
 			use_attrs=True,
 			type=MessageType,
 			channel=str,
-			payload=Optional[Any],
+			payload=Any | None,
 			id=str,
 		)
 
@@ -69,10 +69,10 @@ class IPCManager:
 		self._logger = get_logger(f"IPC [{side}]")
 		self._pending_requests: dict[str, asyncio.Future] = {}
 		self._side = side
-		self._reader_task: Optional[asyncio.Task] = None
+		self._reader_task: asyncio.Task | None = None
 		self._pending_lock = asyncio.Lock()
 
-	def _cancel_pending_request(self, request_id: str) -> Optional[asyncio.Future]:
+	def _cancel_pending_request(self, request_id: str) -> asyncio.Future | None:
 		"""Cancel a pending request and return the future if it was cancelled"""
 		future = self._pending_requests.pop(request_id, None)
 		if future and not future.done():
@@ -98,10 +98,10 @@ class IPCManager:
 					)
 				except Empty:
 					continue
-				except Exception as e:
-					self._logger.error(f"Error in sync reader: {e}")
+				except RuntimeError as e:
+					self._logger.error(f"Event loop unavailable, stopping reader: {e}")
 					break
-		except Exception as e:
+		except Exception as e:  # noqa: BLE001
 			self._logger.error(f"Fatal error in sync reader: {e}")
 		finally:
 			self._logger.debug("Sync reader task ended")
@@ -123,13 +123,14 @@ class IPCManager:
 		elif message.channel in self._handlers:
 			try:
 				self._logger.debug(f"Handling message for {message.channel}")
+				handler = self._handlers[message.channel]
 				if isinstance(message.payload, dict):
-					await self._handlers[message.channel](message.id, **message.payload)
+					await handler(message.id, **message.payload)
 				elif message.payload is None:
-					await self._handlers[message.channel](message.id)
+					await handler(message.id)
 				else:
-					await self._handlers[message.channel](message.id, message.payload)
-			except Exception as e:
+					await handler(message.id, message.payload)
+			except Exception as e:  # noqa: BLE001 
 				self._logger.error(f"Handler error for channel {message.channel}: {e}")
 				if message.type == MessageType.REQUEST:
 					await self.respond(message.id, {"error": str(e)})
@@ -140,7 +141,7 @@ class IPCManager:
 		self._out_queue.put(msg)
 
 	async def request(
-		self, channel: str, timeout: float = 5.0, **payload: Optional[Any]
+		self, channel: str, timeout: float = 5.0, **payload: Any | None
 	) -> Any:
 		"""Make a request on a channel and wait for the response
 
@@ -177,7 +178,7 @@ class IPCManager:
 		self._out_queue.put(msg)
 		try:
 			return await asyncio.wait_for(future, timeout)
-		except asyncio.TimeoutError:
+		except TimeoutError:
 			self._logger.warning(f"Request {request_id} timed out after {timeout}s")
 			async with self._pending_lock:
 				self._cancel_pending_request(request_id)

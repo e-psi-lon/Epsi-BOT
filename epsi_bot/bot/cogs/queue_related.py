@@ -7,12 +7,14 @@ from tortoise.exceptions import NoValuesFetched
 
 from epsi_bot.bot.bot import Bot
 from epsi_bot.utils import (
-	Server,
-	EMBED_ERROR_QUEUE_EMPTY,
 	EMBED_ERROR_BOT_NOT_CONNECTED,
-	get_queue_songs,
-	get_index_from_title,
+	EMBED_ERROR_QUEUE_EMPTY,
+	Server,
 	Song,
+	get_index_from_title,
+	get_queue_songs,
+)
+from epsi_bot.utils import (
 	Queue as ModelQueue,
 )
 

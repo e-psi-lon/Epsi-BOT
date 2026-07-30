@@ -1,17 +1,17 @@
 import asyncio
-from quart import Blueprint, request, session, redirect, url_for, current_app
-import aiohttp
 from typing import cast
 
+import aiohttp
+from quart import Blueprint, current_app, redirect, request, session, url_for
 from werkzeug import Response
 
+from epsi_bot.panel.helpers import to_url
 from epsi_bot.panel.services.discord_api import (
-	token_from_code,
+	get_user_data,
 	refresh_token,
 	revoke_access_token,
+	token_from_code,
 )
-from epsi_bot.panel.helpers import to_url
-from epsi_bot.panel.services.discord_api import get_user_data
 from epsi_bot.utils.protocols import PanelProtocol
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")

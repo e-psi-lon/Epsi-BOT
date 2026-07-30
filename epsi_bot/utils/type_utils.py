@@ -1,10 +1,10 @@
 from enum import Enum
 from functools import lru_cache
-from typing import Any, Optional, Union, get_args, get_origin, TypeVar, Literal, cast
+from typing import Any, Literal, Union, cast, get_args, get_origin
 
 import discord
 
-__all__ = ["type_checking", "Sinks", "FfmpegFormats"]
+__all__ = ["FfmpegFormats", "Sinks", "type_checking"]
 
 
 class Sinks(Enum):
@@ -23,10 +23,6 @@ class FfmpegFormats(Enum):
 	OPUS = ("-codec:a", "libopus")
 	M4A = ("-codec:a", "aac")
 	WAV = ("-codec:a", "pcm_s16le")
-
-
-# TypeVar for better type hinting
-T = TypeVar("T")
 
 
 @lru_cache(maxsize=128)
@@ -63,7 +59,7 @@ def _type_checking(
 	*indexed: type,
 	raise_error: bool = False,
 	label: str = "value",
-	keys: Optional[dict[Any, type]] = None,
+	keys: dict[Any, type] | None = None,
 	use_attrs: bool = False,
 	_parent_path: str = "",
 	_depth: int = 0,
@@ -152,8 +148,8 @@ def _type_checking(
 				elif origin is dict and len(args) >= 2:
 					# For dicts, recursively check key and value types
 					for k, v in val.items():
-						key_path = f"{path} key {repr(k)}"
-						value_path = f"{path}[{repr(k)}]"
+						key_path = f"{path} key {k!r}"
+						value_path = f"{path}[{k!r}]"
 
 						# Recursive validation for dict keys and values
 						if not _type_checking(
@@ -237,18 +233,18 @@ def _type_checking(
 	if not use_attrs:
 		# Process **kwargs for dictionary keys
 		nested_keys: dict[str, dict[str, type]] = {}
-		for key, expected_type in key_or_attrs.items():
+		for key, attr_expected_type in key_or_attrs.items():
 			path_parts = _parse_nested_key(key)
 			if len(path_parts) == 1:
 				# Simple key
-				all_keys[key] = expected_type
+				all_keys[key] = attr_expected_type
 			else:
 				# Nested key: parent__child__attr
 				# Store for recursive processing
 				if path_parts[0] not in nested_keys:
 					nested_keys[path_parts[0]] = {}
 				nested_path = "__".join(path_parts[1:])
-				nested_keys[path_parts[0]][nested_path] = expected_type
+				nested_keys[path_parts[0]][nested_path] = attr_expected_type
 
 		# Check direct keys
 		if all_keys:
@@ -268,7 +264,7 @@ def _type_checking(
 						key_value,
 						expected_key_type,
 						raise_error=raise_error,
-						label=f"[{repr(key)}]",
+						label=f"[{key!r}]",
 						_parent_path=current_path,
 						_depth=_depth + 1,
 					):
@@ -276,7 +272,7 @@ def _type_checking(
 				except (KeyError, TypeError, IndexError) as e:
 					if raise_error:
 						raise TypeError(
-							f"Missing or invalid key {repr(key)} in {current_path}"
+							f"Missing or invalid key {key!r} in {current_path}"
 						) from e
 					return False
 
@@ -290,7 +286,7 @@ def _type_checking(
 					parent_value,
 					type(parent_value),  # Accept whatever type it is
 					raise_error=raise_error,
-					label=f"[{repr(parent_key)}]",
+					label=f"[{parent_key!r}]",
 					_parent_path=current_path,
 					use_attrs=False,
 					_depth=_depth + 1,
@@ -300,7 +296,7 @@ def _type_checking(
 			except (KeyError, TypeError, IndexError) as e:
 				if raise_error:
 					raise TypeError(
-						f"Missing or invalid key {repr(parent_key)} in {current_path}"
+						f"Missing or invalid key {parent_key!r} in {current_path}"
 					) from e
 				return False
 
@@ -310,17 +306,17 @@ def _type_checking(
 		nested_attrs: dict[str, dict[str, type]] = {}
 		direct_attrs: dict[str, type] = {}
 
-		for attr_key, expected_type in key_or_attrs.items():
+		for attr_key, attr_expected_type in key_or_attrs.items():
 			path_parts = _parse_nested_key(attr_key)
 			if len(path_parts) == 1:
 				# Simple attribute
-				direct_attrs[attr_key] = expected_type
+				direct_attrs[attr_key] = attr_expected_type
 			else:
 				# Nested attribute: parent__child__attr
 				if path_parts[0] not in nested_attrs:
 					nested_attrs[path_parts[0]] = {}
 				nested_path = "__".join(path_parts[1:])
-				nested_attrs[path_parts[0]][nested_path] = expected_type
+				nested_attrs[path_parts[0]][nested_path] = attr_expected_type
 
 		# Check direct attributes
 		for attr_name, expected_attr_type in direct_attrs.items():
@@ -377,7 +373,7 @@ def type_checking(
 	*indexed: Any,
 	raise_error: bool = False,
 	label: str = "value",
-	keys: Optional[dict[Any, Any]] = None,
+	keys: dict[Any, Any] | None = None,
 	use_attrs: bool = False,
 	**key_or_attrs: Any,
 ) -> bool:

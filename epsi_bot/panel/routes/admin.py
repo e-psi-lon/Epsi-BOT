@@ -1,13 +1,14 @@
 import datetime
 import os
-import psutil
-from typing import cast, Any
-from quart import Blueprint, render_template, request, websocket, current_app
+from typing import Any, cast
 
-from epsi_bot.utils import models, admin_required
-from epsi_bot.utils.models import BaseModel
-from epsi_bot.utils.cache import get_cache_stats
+import psutil
+from quart import Blueprint, current_app, render_template, request, websocket
+
 from epsi_bot.panel.helpers import format_table_info
+from epsi_bot.utils import admin_required, models
+from epsi_bot.utils.cache import get_cache_stats
+from epsi_bot.utils.models import BaseModel
 from epsi_bot.utils.protocols import PanelProtocol
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -35,8 +36,8 @@ async def admin_websocket() -> None:
 				if message == "refresh":
 					data = await _get_admin_data()
 					await websocket.send_json(data)
-		except Exception as e:
-			panel_app.logger.exception(e)
+		except Exception:
+			panel_app.logger.exception("Error in admin websocket:")
 			await websocket.close(code=1001)
 
 	return await _admin_websocket()
@@ -56,7 +57,7 @@ async def _get_admin_data() -> dict[str, Any]:
 	bot_process = psutil.Process(panel_app.bot_process.pid)
 	start_time: datetime.datetime
 	if panel_app.start_time is None:
-		start_time = datetime.datetime.now()
+		start_time = datetime.datetime.now(datetime.UTC)
 	else:
 		start_time = panel_app.start_time
 	process_info = {
@@ -66,7 +67,7 @@ async def _get_admin_data() -> dict[str, Any]:
 			"memory_percent": current_process.memory_percent(),
 			"memory_usage": current_process.memory_info().rss,
 			"threads": len(current_process.threads()),
-			"uptime": (datetime.datetime.now() - start_time).total_seconds(),
+			"uptime": (datetime.datetime.now(datetime.UTC) - start_time).total_seconds(),
 		},
 		"bot": {
 			"pid": bot_process.pid,
@@ -126,7 +127,7 @@ async def _get_database_info() -> dict[str, Any]:
 		table_data = {
 			k: v
 			for k, v in table_data.items()
-			if not (k.endswith("_id") and k[:-3] in table_data.keys())
+			if not (k.endswith("_id") and k[:-3] in table_data)
 		}
 
 		database[table.__name__] = table_data

@@ -1,4 +1,4 @@
-from epsi_bot.utils.protocols.PanelProtocol import PanelProtocol
-from epsi_bot.utils.protocols.CacheProtocol import CacheProtocol
+from epsi_bot.utils.protocols.cache_protocol import CacheProtocol
+from epsi_bot.utils.protocols.panel_protocol import PanelProtocol
 
-__all__ = ["PanelProtocol", "CacheProtocol"]
+__all__ = ["CacheProtocol", "PanelProtocol"]

@@ -6,7 +6,7 @@ import discord
 from discord.ext import commands
 
 from epsi_bot.bot.bot import Bot
-from epsi_bot.utils import disconnect_from_channel, Server
+from epsi_bot.utils import Server, disconnect_from_channel
 
 
 class Listeners(commands.Cog):
@@ -18,7 +18,7 @@ class Listeners(commands.Cog):
 	async def on_message(self, message: discord.Message) -> None:
 		if (
 			not message.content.startswith("e!eval")
-			or message.author.id != self.bot.owner_id
+			or message.author.id != self.bot.owner_id and self.bot.owner_id is not None
 		):
 			return
 
@@ -50,30 +50,30 @@ class Listeners(commands.Cog):
 
 			output = io.StringIO()
 
-			with contextlib.redirect_stdout(output):
-				with contextlib.redirect_stderr(output):
-					if "\n" not in code.strip():
-						try:
-							result = eval(code, env)
-							if hasattr(result, "__await__"):
-								result = await result
-							if result is not None:
-								output.write(repr(result))
-						except SyntaxError:
-							exec(code, env)
-					else:
-						indented_code = "\n".join(
-							["\t" + line for line in code.split("\n")]
-						)
-						func_code = f"async def __ex():\n{indented_code}"
-						exec(func_code, env)
-						await env["__ex"]()  # type: ignore[operator]
+			with contextlib.redirect_stdout(output), contextlib.redirect_stderr(output):
+				if "\n" not in code.strip():
+					try:
+						result = eval(code, env)
+						if hasattr(result, "__await__"):
+							result = await result
+						if result is not None:
+							output.write(repr(result))
+					except SyntaxError:
+						exec(code, env)   # noqa: S102 intentional
+				else:
+					indented_code = "\n".join(
+						["\t" + line for line in code.split("\n")]
+					)
+					func_code = f"async def __ex():\n{indented_code}"
+					exec(func_code, env)  # noqa: S102 intentional
+					await env["__ex"]()  # type: ignore[operator]
+					
 
 			value = output.getvalue()
 			if not value:
 				value = "No output"
 
-		except Exception as e:
+		except Exception as e:  # noqa: BLE001
 			value = f"{type(e).__name__}: {e}\n{traceback.format_exc()}"
 
 		# Split output if too long

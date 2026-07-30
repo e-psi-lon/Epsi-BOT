@@ -1,26 +1,28 @@
 from __future__ import annotations
+
+import asyncio
 import os
 import subprocess
 import sys
 import traceback
+from collections.abc import Callable, Coroutine, Iterable
 from datetime import datetime
-from typing import Optional, Any, Iterable, Callable, Coroutine
+from typing import Any
 
 import discord
-from discord.ext import commands
-from discord.ext import tasks
+from discord.ext import commands, tasks
 from discord.ext.commands import when_mentioned
 from tortoise import Tortoise, connections
 
 from epsi_bot.bot.memcached_std import MemcachedStd
 from epsi_bot.utils import (
-	GuildData,
-	UserData,
-	get_logger,
-	Server,
-	download_bulk,
 	AudioCache,
+	GuildData,
+	Server,
 	SongListenCount,
+	UserData,
+	download_bulk,
+	get_logger,
 	models,
 )
 from epsi_bot.utils.ipc import IPCManager
@@ -69,13 +71,13 @@ class Bot(commands.Bot):
 			[commands.Bot | commands.AutoShardedBot, discord.Message],
 			str | Iterable[str] | Coroutine[Any, Any, str | Iterable[str]],
 		] = when_mentioned,
-		help_command: Optional[commands.HelpCommand] = discord.MISSING,
+		help_command: commands.HelpCommand | None = discord.MISSING,
 		**options: Any,
 	) -> None:
 		super().__init__(command_prefix, help_command, **options)
 		self.start_time: datetime | None = None
 		self.ipc: IPCManager = manager
-		self.memcached: Optional[subprocess.Popen] = None
+		self.memcached: subprocess.Popen | None = None
 		self.logger = get_logger("Bot")
 		self.handle = self.ipc.handle
 		self.post_to_panel = self.ipc.send
@@ -91,8 +93,8 @@ class Bot(commands.Bot):
 		if self.memcached is None and os.getenv("DOCKER_ENV") is not None:
 			try:
 				# noinspection PyTypeChecker
-				self.memcached = subprocess.Popen(
-					args=["-d", "-p", "11211", "-I", "500m", "-m", "1024"],
+				self.memcached = await asyncio.create_subprocess_exec(
+					args=["-p", "11211", "-I", "500m", "-m", "1024"],
 					executable="/usr/bin/memcached",
 					stdout=MemcachedStd(),
 					stderr=MemcachedStd("stderr"),
@@ -101,9 +103,9 @@ class Bot(commands.Bot):
 			except FileNotFoundError:
 				self.logger.error("Memcached not found, please install it")
 				self.memcached = None
-				exit(1)
+				sys.exit(1)
 		if self.start_time is not None:
-			self.logger.info(f"Bot ready in {datetime.now() - self.start_time}")
+			self.logger.info(f"Bot ready in {datetime.now(datetime.timezone.utc) - self.start_time}")
 		await Tortoise.init(db_url=get_db_url(), modules={"models": [models]})
 		await Tortoise.generate_schemas(safe=True)
 		for guild in self.guilds:
@@ -242,7 +244,7 @@ async def start(instance: Bot, start_time: datetime) -> None:
 		db_logger.info("Tortoise-ORM shutdown")
 
 	@instance.handle("guilds")
-	async def handle_guilds(request_id: str, user_id: Optional[int] = None) -> None:
+	async def handle_guilds(request_id: str, user_id: int | None = None) -> None:
 		if user_id is None or user_id == 708006478807695450:
 			guilds = [GuildData.from_guild(guild) for guild in instance.guilds]
 		else:
@@ -293,8 +295,8 @@ async def start(instance: Bot, start_time: datetime) -> None:
 		instance.logger.debug("Got a request for active voice channels count")
 		await instance.ipc.respond(request_id, active_voice)
 
-	# Charger les cogs
-	instance.logger.info(
+	# Load the cogs
+	instance.l.info(
 		f"Bot started at {start_time.strftime('%d/%m/%Y %H:%M:%S')} "
 		f"using python executable {sys.executable}"
 	)
@@ -302,19 +304,18 @@ async def start(instance: Bot, start_time: datetime) -> None:
 		if file.endswith(".py") and not file.startswith("__"):
 			try:
 				instance.load_extension(f"epsi_bot.bot.cogs.{file[:-3]}")
-			except Exception as e:
-				instance.logger.error(f"Failed to load extension {file}")
-				instance.logger.error(e)
+			except Exception:
+				instance.logger.exception(f"Failed to load extension {file}")
 
 	await instance.ipc.start()
-	# Lancer l'instance du bot
+	# Start bot instance
 	try:
 		token = os.getenv("TOKEN")
 		if token is None:
 			instance.logger.error(
 				"No token found, please set the environment variable TOKEN"
 			)
-			exit(1)
+			sys.exit(1)
 		await instance.start(token)
 	except KeyboardInterrupt:
 		pass

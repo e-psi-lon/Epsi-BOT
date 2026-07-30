@@ -1,31 +1,32 @@
 import asyncio
 from datetime import datetime
-from typing import Optional
 
 import discord
 import pytubefix  # type: ignore[import-untyped]
 from discord.commands import SlashCommandGroup
 from discord.ext import commands
 from discord.sinks import RecordingException
-from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError  # type: ignore[import-untyped]
+from pytubefix.exceptions import (
+	RegexMatchError as PytubeRegexMatchError,  # type: ignore[import-untyped]
+)
 
 from epsi_bot.bot.bot import Bot
 from epsi_bot.utils import (
-	Sinks,
 	EMBED_ERROR_BOT_NOT_CONNECTED,
-	Song,
-	User,
-	Server,
-	Queue,
-	Research,
-	play_song,
-	download,
-	finished_record_callback,
-	YOUTUBE_REGEX,
 	GET_FILE_HTTP_URL,
 	MAX_TRACK_LENGTH,
 	YOUTUBE_CLIENT,
+	YOUTUBE_REGEX,
+	Queue,
+	Research,
+	Server,
+	Sinks,
+	Song,
+	User,
+	download,
+	finished_record_callback,
 	get_youtube,
+	play_song,
 )
 
 
@@ -235,8 +236,7 @@ class State(commands.Cog):
 						)
 					)
 			except Exception as e:
-				self.bot.logger.error(f"Error while adding song to queue: {e}")
-				self.bot.logger.exception(e)
+				self.bot.logger.exception("Error while adding song to queue")
 				await ctx.respond(
 					embed=discord.Embed(
 						title="Error",
@@ -358,7 +358,7 @@ class State(commands.Cog):
 		max_value=100,
 	)
 	async def volume(
-		self, ctx: discord.ApplicationContext, volume: Optional[int] = None
+		self, ctx: discord.ApplicationContext, volume: int | None = None
 	) -> None:
 		await ctx.response.defer()
 		if ctx.guild.voice_client is None:
@@ -409,24 +409,14 @@ class State(commands.Cog):
 				)
 			)
 		except AttributeError:
-			# noinspection PyBroadException
-			try:
-				server = await Server.get(server_id=ctx.guild.id)
-				await ctx.respond(
-					embed=discord.Embed(
-						title="Volume",
-						description=f"Volume is {server.volume}%",
-						color=discord.Color.green(),
-					)
+			server = await Server.get(server_id=ctx.guild.id)
+			await ctx.respond(
+				embed=discord.Embed(
+					title="Volume",
+					description=f"Volume is {server.volume}%",
+					color=discord.Color.green(),
 				)
-			except Exception:
-				await ctx.respond(
-					embed=discord.Embed(
-						title="Error",
-						description="Error while getting volume.",
-						color=discord.Color.dark_red(),
-					)
-				)
+			)
 
 	@commands.slash_command(
 		name="record",
@@ -470,7 +460,7 @@ class State(commands.Cog):
 			)
 			return
 		vc = ctx.guild.voice_client
-		if ctx.guild.id in self.connections.keys():
+		if ctx.guild.id in self.connections:
 			await ctx.respond(
 				embed=discord.Embed(
 					title="Error",
@@ -511,7 +501,7 @@ class State(commands.Cog):
 			embed=discord.Embed(
 				title="Record",
 				description=f"Recording for {time} seconds. The record will stop at "
-				f"<t:{int(time + datetime.now().timestamp())}:R>.",
+				f"<t:{int(time + datetime.now(datetime.timezone.utc).timestamp())}:R>.",
 				color=discord.Color.green(),
 			),
 		)
@@ -533,7 +523,7 @@ class State(commands.Cog):
 					color=discord.Color.green(),
 				)
 			)
-		except RecordingException:
+		except (RecordingException, KeyError):
 			await ctx.respond(
 				embed=discord.Embed(
 					title="Error",
@@ -541,7 +531,7 @@ class State(commands.Cog):
 					color=discord.Color.dark_red(),
 				)
 			)
-		except Exception as e:
+		except Exception as e:  # noqa: BLE001
 			await ctx.respond(
 				embed=discord.Embed(
 					title="Error",

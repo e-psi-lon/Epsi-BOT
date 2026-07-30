@@ -4,31 +4,31 @@ import logging
 import random
 
 import discord
-import discord.ext.pages
 import pytubefix  # type: ignore[import-untyped]
 from discord.ext import commands
 from ffmpeg.asyncio import FFmpeg  # type: ignore[import-untyped]
-from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError  # type: ignore[import-untyped]
+from pytubefix.exceptions import (
+	RegexMatchError as PytubeRegexMatchError,  # type: ignore[import-untyped]
+)
 
 from epsi_bot.utils.cache import download
 from epsi_bot.utils.constants import (
-	YOUTUBE_CLIENT,
-	MAX_TRACK_LENGTH,
 	EMBED_ERROR_VIDEO_TOO_LONG,
+	MAX_TRACK_LENGTH,
+	YOUTUBE_CLIENT,
 )
 from epsi_bot.utils.loggers import get_logger
 from epsi_bot.utils.models import Server, Song, SongListenCount, database_context
 from epsi_bot.utils.type_utils import FfmpegFormats
 
-
 __all__ = [
-	"finished_record_callback",
-	"disconnect_from_channel",
-	"get_index_from_title",
-	"play_song",
 	"convert",
-	"get_youtube",
+	"disconnect_from_channel",
+	"finished_record_callback",
+	"get_index_from_title",
 	"get_lyrics",
+	"get_youtube",
+	"play_song",
 ]
 
 
@@ -41,7 +41,7 @@ async def finished_record_callback(
 	files: list[discord.File] = []
 
 	# Collect user mentions
-	for user_id in sink.audio_data.keys():
+	for user_id in sink.audio_data:
 		mention_strs.append(f"<@{user_id}>")
 
 	message = await channel.send(
@@ -175,13 +175,13 @@ async def change_song(ctx: discord.ApplicationContext) -> None:
 			return
 		if server.random and len(server.queue) > 1:
 			server.position = random.sample(
-				list(set(range(0, len(server.queue))) - {server.position}), 1
+				list(set(range(len(server.queue))) - {server.position}), 1
 			)[0]
 			await server.save()
 		try:
 			await play_song(ctx, server.queue[server.position].song.url)
-		except Exception as e:
-			get_logger("Bot").error(f"Error while playing song: {e}")
+		except Exception:  # noqa: BLE001 the operations spans too many subsystems
+			get_logger("Bot").exception("Error while playing song: ")
 
 
 async def play_song(
@@ -285,10 +285,11 @@ async def on_play_song_finished(
 async def convert(
 	audio: io.BytesIO,
 	file_format: FfmpegFormats,
-	log: logging.Logger = get_logger("Audio-Converter"),
+	logger: logging.Logger | None = None,
 	executable: str = "ffmpeg",
 ) -> io.BytesIO:
 	"""Convert an audio file to another format"""
+	log = logger or get_logger("Audio-Converter")
 	ffmpeg = (
 		FFmpeg(executable)
 		.input("pipe:0")

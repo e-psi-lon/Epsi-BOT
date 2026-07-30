@@ -6,15 +6,15 @@ from discord.ext import commands
 
 from epsi_bot.bot.bot import Bot
 from epsi_bot.utils import (
-	Server,
 	EMBED_ERROR_BOT_NOT_CONNECTED,
-	convert,
-	Research,
-	get_lyrics,
-	FfmpegFormats,
-	get_youtube,
 	YOUTUBE_CLIENT,
 	YOUTUBE_REGEX,
+	FfmpegFormats,
+	Research,
+	Server,
+	convert,
+	get_lyrics,
+	get_youtube,
 )
 
 

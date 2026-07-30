@@ -1,14 +1,16 @@
 import asyncio
+
 import discord
 import pytubefix.exceptions  # type: ignore[import-untyped]
 from discord.ext import commands
+
 from epsi_bot.bot.bot import Bot
 from epsi_bot.utils import (
 	EMBED_ERROR_BOT_NOT_CONNECTED,
-	play_song,
 	Server,
 	download_bulk,
 	get_youtube,
+	play_song,
 )
 
 

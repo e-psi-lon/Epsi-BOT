@@ -1,8 +1,8 @@
 from typing import Any
 
 from quart import Quart, render_template
-import tortoise.fields.relational as relational
 from tortoise import fields
+from tortoise.fields import relational
 
 from epsi_bot.utils.models import BaseModel
 
@@ -48,9 +48,8 @@ def register_error_handlers(app: Quart) -> None:
 	"""Register error handlers for the application."""
 	for code in range(400, 500):
 		try:
-
 			@app.errorhandler(code)
-			async def _error_page(e: Any) -> tuple[str, int]:
+			async def _error_page(e: Any, code=code) -> tuple[str, int]:
 				if hasattr(e, "name") and e.name == "NotFound":
 					return await render_template("error.html", code=404), 404
 				return await render_template("error.html", code=code), code

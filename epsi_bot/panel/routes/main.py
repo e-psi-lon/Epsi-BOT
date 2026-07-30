@@ -1,6 +1,6 @@
-from quart import Blueprint, session, redirect, url_for, render_template, current_app
 from typing import cast
 
+from quart import Blueprint, current_app, redirect, render_template, session, url_for
 from werkzeug import Response
 
 from epsi_bot.panel.services.discord_api import get_user_data

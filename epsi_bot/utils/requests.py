@@ -1,4 +1,4 @@
-from typing import Optional, Any, Literal, Union
+from typing import Any, Literal
 
 import aiohttp
 
@@ -6,16 +6,16 @@ import aiohttp
 # noinspection PyProtectedMember
 async def get(
 	url: str,
-	params: Optional[dict] = None,
+	params: dict | None = None,
 	data: Any = None,
-	headers: Optional[dict] = None,
-	cookies: Optional[dict] = None,
-	auth: Optional[aiohttp.BasicAuth] = None,
+	headers: dict | None = None,
+	cookies: dict | None = None,
+	auth: aiohttp.BasicAuth | None = None,
 	allow_redirects: bool = True,
 	timeout: aiohttp.ClientTimeout | aiohttp.helpers._SENTINEL | None = None,
 	json: Any = None,
 	return_type: Literal["json", "text", "content"] = "json",
-) -> Union[dict, str, bytes]:
+) -> dict | str | bytes:
 	"""
 	Make a GET request
 
@@ -47,26 +47,25 @@ async def get(
 	Union[dict, str, bytes]
 	        The response of the request
 	"""
-	async with aiohttp.ClientSession() as session:
-		async with session.get(
-			url,
-			params=params,
-			data=data,
-			headers=headers,
-			cookies=cookies,
-			auth=auth,
-			allow_redirects=allow_redirects,
-			timeout=timeout,
-			json=json,
-		) as response:
-			response.raise_for_status()
-			match return_type:
-				case "json":
-					return await response.json()
-				case "content":
-					return await response.content.read()
-				case _:
-					return await response.text()
+	async with aiohttp.ClientSession() as session, session.get(
+		url,
+		params=params,
+		data=data,
+		headers=headers,
+		cookies=cookies,
+		auth=auth,
+		allow_redirects=allow_redirects,
+		timeout=timeout,
+		json=json,
+	) as response:
+		response.raise_for_status()
+		match return_type:
+			case "json":
+				return await response.json()
+			case "content":
+				return await response.content.read()
+			case _:
+				return await response.text()
 
 
 # noinspection PyProtectedMember
@@ -74,14 +73,14 @@ async def post(
 	url: str,
 	data: Any = None,
 	json: Any = None,
-	params: Optional[dict] = None,
-	headers: Optional[dict] = None,
-	cookies: Optional[dict] = None,
-	auth: Optional[aiohttp.BasicAuth] = None,
+	params: dict | None = None,
+	headers: dict | None = None,
+	cookies: dict | None = None,
+	auth: aiohttp.BasicAuth | None = None,
 	allow_redirects: bool = True,
 	timeout: aiohttp.ClientTimeout | aiohttp.helpers._SENTINEL | None = None,
 	return_type: Literal["json", "text", "content"] = "json",
-) -> Union[dict, str, bytes]:
+) -> dict | str | bytes:
 	"""
 	Make a POST request
 
@@ -108,35 +107,34 @@ async def post(
 	return_type : Literal["json", "text", "content"]
 	        The type of the return value. The default is "json".
 	"""
-	async with aiohttp.ClientSession() as session:
-		async with session.post(
-			url,
-			data=data,
-			json=json,
-			params=params,
-			headers=headers,
-			cookies=cookies,
-			auth=auth,
-			allow_redirects=allow_redirects,
-			timeout=timeout,
-		) as response:
-			response.raise_for_status()
-			match return_type:
-				case "json":
-					return await response.json()
-				case "content":
-					return await response.content.read()
-				case _:
-					return await response.text()
+	async with aiohttp.ClientSession() as session, session.post(
+		url,
+		data=data,
+		json=json,
+		params=params,
+		headers=headers,
+		cookies=cookies,
+		auth=auth,
+		allow_redirects=allow_redirects,
+		timeout=timeout,
+	) as response:
+		response.raise_for_status()
+		match return_type:
+			case "json":
+				return await response.json()
+			case "content":
+				return await response.content.read()
+			case _:
+				return await response.text()
 
 
 # noinspection PyProtectedMember
 async def head(
 	url: str,
-	params: Optional[dict] = None,
-	headers: Optional[dict] = None,
-	cookies: Optional[dict] = None,
-	auth: Optional[aiohttp.BasicAuth] = None,
+	params: dict | None = None,
+	headers: dict | None = None,
+	cookies: dict | None = None,
+	auth: aiohttp.BasicAuth | None = None,
 	allow_redirects: bool = True,
 	timeout: aiohttp.ClientTimeout | aiohttp.helpers._SENTINEL | None = None,
 ) -> dict:
@@ -165,15 +163,14 @@ async def head(
 	dict
 	        The response headers of the request
 	"""
-	async with aiohttp.ClientSession() as session:
-		async with session.head(
-			url,
-			params=params,
-			headers=headers,
-			cookies=cookies,
-			auth=auth,
-			allow_redirects=allow_redirects,
-			timeout=timeout,
-		) as response:
-			response.raise_for_status()
-			return dict(response.headers)
+	async with aiohttp.ClientSession() as session, session.head(
+		url,
+		params=params,
+		headers=headers,
+		cookies=cookies,
+		auth=auth,
+		allow_redirects=allow_redirects,
+		timeout=timeout,
+	) as response:
+		response.raise_for_status()
+		return dict(response.headers)

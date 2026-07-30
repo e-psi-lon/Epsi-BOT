@@ -94,8 +94,8 @@ class Todo(commands.Cog):
 			)
 			await ctx.respond(embed=embed, delete_after=30)
 			return
-		for index, line in enumerate(lines):
-			line.name = f"**`{index + 1}.`**"
+		for idx, line in enumerate(lines):
+			line.name = f"**`{idx + 1}.`**"
 		await message.edit(
 			embed=discord.Embed(
 				title="To-Do List",

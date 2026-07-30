@@ -2,12 +2,12 @@ import pytest
 from tortoise.exceptions import DoesNotExist
 
 from epsi_bot.utils.models import (
-	Server,
-	User,
-	Song,
-	Queue,
 	Playlist,
 	PlaylistSong,
+	Queue,
+	Server,
+	Song,
+	User,
 	UserPlaylist,
 )
 
