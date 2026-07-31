@@ -29,6 +29,8 @@ from epsi_bot.utils.ipc import IPCManager
 from epsi_bot.utils.models import get_db_url
 
 
+COGS_DIR = os.path.join(os.path.dirname(__file__), "cogs")
+
 @tasks.loop(hours=36)
 async def update_top_songs(self: Bot) -> None:
 	# Calculate top 5 songs
@@ -300,7 +302,7 @@ async def start(instance: Bot, start_time: datetime) -> None:
 		f"Bot started at {start_time.strftime('%d/%m/%Y %H:%M:%S')} "
 		f"using python executable {sys.executable}"
 	)
-	for file in os.listdir("./epsi_bot/bot/cogs"):
+	for file in os.listdir(COGS_DIR):
 		if file.endswith(".py") and not file.startswith("__"):
 			try:
 				instance.load_extension(f"epsi_bot.bot.cogs.{file[:-3]}")
