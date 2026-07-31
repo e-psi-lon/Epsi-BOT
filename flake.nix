@@ -75,9 +75,19 @@
             image = pkgs.dockerTools.streamLayeredImage {
               name = "epsi-bot";
               tag = "latest";
-              contents = [ venv ];
+              contents = with pkgs; [ venv cacert ];
               config = {
                 Entrypoint = [ "${venv}/bin/epsi-bot" ];
+                Env = [
+                  "TOKEN=token"
+                  "PANEL_SECRET_KEY=5161151"
+                  "CLIENT_SECRET=48449815616515"
+                  "DB_HOST=localhost"
+                  "DB_PORT=5432"
+                  "DB_USER=epsi_bot"
+                  "DB_PASSWORD=password"
+                  "DB_NAME=epsi_bot"
+                ];
               };
             };
           };
