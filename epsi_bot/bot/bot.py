@@ -27,7 +27,7 @@ from epsi_bot.utils import (
 )
 from epsi_bot.utils.ipc import IPCManager
 from epsi_bot.utils.models import get_db_url
-
+from epsi_bot.utils.secrets import get_secret
 
 COGS_DIR = os.path.join(os.path.dirname(__file__), "cogs")
 
@@ -312,7 +312,7 @@ async def start(instance: Bot, start_time: datetime) -> None:
 	await instance.ipc.start()
 	# Start bot instance
 	try:
-		token = os.getenv("TOKEN")
+		token = get_secret("TOKEN")
 		if token is None:
 			instance.logger.error(
 				"No token found, please set the environment variable TOKEN"

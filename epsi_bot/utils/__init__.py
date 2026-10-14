@@ -53,6 +53,7 @@ from epsi_bot.utils.models import (
 	get_db_url,
 )
 from epsi_bot.utils.panel_data import ChannelData, ConfigData, GuildData, UserData
+from epsi_bot.utils.secrets import get_secret
 from epsi_bot.utils.type_utils import FfmpegFormats, Sinks, type_checking
 from epsi_bot.utils.views import Research
 
@@ -118,6 +119,8 @@ __all__ = [
 	"get_playlists",
 	"get_playlists_songs",
 	"get_queue_songs",
+	# secrets
+	"get_secret",
 	"get_youtube",
 	"login_required",
 	"parse_args",

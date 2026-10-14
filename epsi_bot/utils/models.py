@@ -3,7 +3,6 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import AsyncGenerator, Iterable
 from contextlib import asynccontextmanager
-from os import getenv
 from typing import Any
 from urllib.parse import quote_plus
 
@@ -23,6 +22,7 @@ from tortoise.validators import MaxValueValidator, MinValueValidator
 
 import epsi_bot.utils
 from epsi_bot.utils.loggers import get_logger
+from epsi_bot.utils.secrets import get_secret
 
 __all__ = [
 	"AudioReference",
@@ -463,13 +463,13 @@ def get_db_url() -> str:
 	"""
 	required = ("DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT", "DB_NAME")
 	for var in required:
-		if not getenv(var):
+		if not get_secret(var):
 			raise ValueError(f"Environment variable '{var}' is not set")
 	# Load everything from the environment variables
 	return (
-		f"asyncpg://{getenv('DB_USER')}:"
-		+ f"{quote_plus(getenv('DB_PASSWORD'))}@"
-		+ f"{getenv('DB_HOST')}:"
-		+ f"{getenv('DB_PORT')}/"
-		+ f"{getenv('DB_NAME')}"
+		f"asyncpg://{get_secret('DB_USER')}:"
+		+ f"{quote_plus(get_secret('DB_PASSWORD'))}@"
+		+ f"{get_secret('DB_HOST')}:"
+		+ f"{get_secret('DB_PORT')}/"
+		+ f"{get_secret('DB_NAME')}"
 	)

@@ -1,16 +1,17 @@
-import os
 from typing import Any
 
 from quart import Quart
+
+from epsi_bot.utils.secrets import get_secret
 
 
 class Config:
 	"""Base configuration."""
 
-	SECRET_KEY = os.environ.get("PANEL_SECRET_KEY")
+	SECRET_KEY = get_secret("PANEL_SECRET_KEY")
 	API_ENDPOINT = "https://discord.com/api/v10"
 	CLIENT_ID = 1167171085343666216
-	CLIENT_SECRET = os.environ.get("CLIENT_SECRET")
+	CLIENT_SECRET = get_secret("CLIENT_SECRET")
 	REDIRECT_URI = "http://86.196.98.254/auth/discord/callback"
 	SESSION_TYPE = "memcached"
 	DEBUG: bool
