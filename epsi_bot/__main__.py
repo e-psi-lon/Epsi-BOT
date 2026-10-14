@@ -11,7 +11,7 @@ from epsi_bot.utils.loggers import CustomFormatter, parse_args
 
 aiomultiprocess.set_start_method("fork")
 
-if os.environ.get("DOCKER_ENV") is not None:
+if os.getenv("DOCKER_ENV") is not None:
 	load_dotenv()
 
 start_time = datetime.datetime.now(datetime.UTC)

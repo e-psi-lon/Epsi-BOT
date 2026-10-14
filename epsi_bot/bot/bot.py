@@ -53,7 +53,7 @@ async def update_top_songs(self: Bot) -> None:
 				self.logger.warning(f"Invalid URL for song {song['name']}, skipping.")
 				continue
 			if await cache.exists(song["url"]):
-				cache.update_ttl(song["url"], 60 * 60 * 24 * 3)
+				await cache.update_ttl(song["url"], 60 * 60 * 24 * 3)
 			else:
 				to_download.append(song["url"])
 
@@ -200,7 +200,7 @@ async def start(instance: Bot, start_time: datetime) -> None:
 
 	@instance.slash_command(name="send", description="Envoie un message dans un salon")
 	@discord.option(
-		"channel", discord.TextChannel, descritpion="Le salon où envoyer le message"
+		"channel", discord.TextChannel, description="Le salon où envoyer le message"
 	)
 	@discord.option("message", str, description="Le message à envoyer")
 	async def send_message(
@@ -298,7 +298,7 @@ async def start(instance: Bot, start_time: datetime) -> None:
 		await instance.ipc.respond(request_id, active_voice)
 
 	# Load the cogs
-	instance.l.info(
+	instance.logger.info(
 		f"Bot started at {start_time.strftime('%d/%m/%Y %H:%M:%S')} "
 		f"using python executable {sys.executable}"
 	)

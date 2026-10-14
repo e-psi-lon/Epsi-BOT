@@ -3,6 +3,8 @@ import logging
 import logging.handlers
 import os
 import queue
+import re
+import sys
 from typing import Any, ClassVar, Literal
 
 
@@ -37,23 +39,47 @@ class CustomFormatter(logging.Formatter):
 	}
 
 	_path_cache: ClassVar[dict[str, str]] = {}
+	_NIX_STORE_RE: ClassVar[re.Pattern] = re.compile(r"^/nix/store/[a-z0-9]+-[^/]+/")
+
+
+	def _calculate_path(self, cache_key: str) -> None:
+		if cache_key not in self._path_cache:
+			path = cache_key
+			nix_match = self._NIX_STORE_RE.match(path)
+			if nix_match:
+				path = path[nix_match.end():]
+				path = re.sub(r"^lib/python\d+\.\d+/site-packages/", "libs.", path)
+				path = re.sub(r"^lib/python\d+\.\d+/", "stdlib.", path)
+				path = path.replace(os.sep, ".")
+			else:
+				best_root = None
+				for root in sys.path:
+					if not root:
+						continue
+					root_abs = os.path.abspath(root)
+					if path.startswith(root_abs + os.sep) and (
+						best_root is None or len(root_abs) > len(best_root)
+					):
+						best_root = root_abs
+				if best_root:
+					rel = os.path.relpath(path, best_root)
+					path = rel.replace(os.sep, ".")
+					if os.path.basename(best_root) == "site-packages":
+						path = f"libs.{path}"
+				else:
+					path = os.path.relpath(path, os.getcwd()).replace(os.sep, ".")
+
+			path = path.removesuffix(".py").lower()
+			self._path_cache[cache_key] = path
+
 
 	def format(self, record: logging.LogRecord) -> str:
 		log_color = self.FORMATS.get(record.levelno)
 
 		# Cache key based on pathname
 		cache_key = record.pathname
-		if cache_key not in self._path_cache:
-			path = (
-				os.path.relpath(record.pathname, os.getcwd())
-				.replace(os.sep, ".")
-				.lower()
-			)
-			path = path.removesuffix(".py")
-			path = path.replace(".venv.lib.python3.13.site-packages.", "libs.").replace(
-				".venv.lib.site-packages.", "libs."
-			)
-			self._path_cache[cache_key] = path
+		self._calculate_path(cache_key)
+		
 
 		formatter = logging.Formatter(
 			self.FORMAT,
