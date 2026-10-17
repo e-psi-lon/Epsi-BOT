@@ -17,8 +17,8 @@ wheels = [
 ]
 
 [package.optional-dependencies]
-memcached = [
-    { name = "aiomcache" },
+redis = [
+    { name = "redis" },
 ]
 
 [[package]]
@@ -172,15 +172,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/a4/78/49b0299da6d54de19fc6fdc6889d50233ac47d192a461624f4fc010fde83/aiohttp-3.14.5-cp315-cp315t-win_amd64.whl", hash = "sha256:0e6f16f5e49c4b8267988c05ab07760d7064cea57d077c3d068d04b0fbb992cb", size = 530957, upload-time = "2026-10-11T01:05:02.23Z" },
     { url = "https://files.pythonhosted.org/packages/21/d4/b0afc936aeb6d2f93157e3408b069ec5d7934429ae7d023de5e0953b1887/aiohttp-3.14.5-cp315-cp315t-win_arm64.whl", hash = "sha256:1aead151c3abbac6b32942e452020cb66d7efc099d253cc6c20f748e926c858b", size = 510408, upload-time = "2026-10-11T01:05:05.362Z" },
     { url = "https://files.pythonhosted.org/packages/68/30/173960c42b05a6c59f7558e4b12a4b0d9ba376cf6aa9bde7f9e08a30ca8d/aiohttp-3.14.5-py3-none-any.whl", hash = "sha256:efc21a454892828368b11c2c780de0ff8bc991f73f6b99c6b66e56205470929b", size = 279517, upload-time = "2026-10-11T01:05:08.523Z" },
-]
-
-[[package]]
-name = "aiomcache"
-version = "0.8.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/8b/0a/914d8df1002d88ca70679d192f6e16d113e6b5cbcc13c51008db9230025f/aiomcache-0.8.2.tar.gz", hash = "sha256:43b220d7f499a32a71871c4f457116eb23460fa216e69c1d32b81e3209e51359", size = 10640, upload-time = "2024-05-07T15:03:14.434Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a1/f8/78455f6377cbe85f335f4dbd40a807dafb72bd5fa05eb946f2ad0cec3d40/aiomcache-0.8.2-py3-none-any.whl", hash = "sha256:9d78d6b6e74e775df18b350b1cddfa96bd2f0a44d49ad27fa87759a3469cef5e", size = 10145, upload-time = "2024-05-07T15:03:12.003Z" },
 ]
 
 [[package]]
@@ -626,7 +617,7 @@ name = "epsi-bot"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "aiocache", extra = ["memcached"] },
+    { name = "aiocache", extra = ["redis"] },
     { name = "aiodns" },
     { name = "aiomultiprocess" },
     { name = "davey" },
@@ -656,7 +647,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aiocache", extras = ["memcached"], specifier = ">=0.12.3" },
+    { name = "aiocache", extras = ["redis"], specifier = ">=0.12.3" },
     { name = "aiodns", specifier = ">=4.0.4" },
     { name = "aiomultiprocess", specifier = ">=0.9.1" },
     { name = "davey", specifier = ">=0.1.7" },
@@ -1897,6 +1888,15 @@ dependencies = [
     { name = "quart" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/1c/15/87047bb2139166cd8ee7f18148b7d7cf58f60b71d27e978fd47f7db6fd2b/Quart-Session-3.0.0.tar.gz", hash = "sha256:b9c466c705773f13141b210ac6b20381b667c6a518e7aa49bb134cdde80f3bb6", size = 14123, upload-time = "2023-11-24T02:13:05.505Z" }
+
+[[package]]
+name = "redis"
+version = "8.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a8/99/604f0b666d4c616d891cf77ebb9db6bb21601344c051aebf1b72b9ff915f/redis-8.1.0.tar.gz", hash = "sha256:6e1a19beef9225c83efd689c7e6b7da2d5215b1f42cd13b7fc3714d0a09c7b25", size = 5254356, upload-time = "2026-07-30T08:51:00.269Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/66/9d/c5731f6e3608663d4d3656fd8d3aecee8b509c3082818f5a13eae925baea/redis-8.1.0-py3-none-any.whl", hash = "sha256:a4fe1aac3d3b3cc791d4b3d5931c5a956045dc951ee74d1c913ee3ac4d2ee9fb", size = 560618, upload-time = "2026-07-30T08:50:58.497Z" },
+]
 
 [[package]]
 name = "ruff"

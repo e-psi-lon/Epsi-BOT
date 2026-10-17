@@ -9,9 +9,9 @@ from collections.abc import Coroutine
 from math import log2
 from typing import Any, cast
 
-import aiomcache
 import pytubefix  # type: ignore[import-untyped]
-from aiocache import MemcachedCache  # type: ignore[import-untyped]
+import redis.asyncio as redis
+from aiocache import RedisCache  # type: ignore[import-untyped]
 from aiocache.serializers import (  # type: ignore[import-untyped]
 	JsonSerializer,
 	PickleSerializer,
@@ -38,7 +38,7 @@ def hash_key(*parts: str, digest_size: int = 32, separator: str = "") -> str:
 	).hexdigest()
 
 
-class AudioCache(MemcachedCache, CacheProtocol):
+class AudioCache(RedisCache, CacheProtocol):
 	"""Class to manage the audio cache"""
 
 	def __init__(self, scale_factor: int = 5):
@@ -51,7 +51,7 @@ class AudioCache(MemcachedCache, CacheProtocol):
 			pool_size=max(1, min(int(scale_factor**0.5), 10)),
 			timeout=15,
 		)
-		self.logger = get_logger("Memcached Audio Cache")
+		self.logger = get_logger("Redis Audio Cache")
 
 	async def get_audio(self, key: str, **_: Any) -> io.BytesIO | None:
 		"""Get a value from the cache"""
@@ -91,7 +91,7 @@ class AudioCache(MemcachedCache, CacheProtocol):
 class Base64Serializer(JsonSerializer):
 	def dumps(self, value: Any) -> str:
 		if isinstance(value, io.BytesIO):
-			logger = get_logger("Memcached")
+			logger = get_logger("Redis")
 			logger.debug(f"Audio size: {len(value.getvalue())} bytes")
 			compressed = zlib.compress(value.getvalue())
 			logger.debug(f"Compressed audio size: {len(compressed)} bytes")
@@ -190,20 +190,20 @@ async def download_bulk(
 
 
 async def get_cache_stats() -> dict[bytes, bytes] | None:
-	"""Get memcached statistics."""
-	mc = aiomcache.Client("127.0.0.1", 11211)
+	"""Get redis statistics."""
+	rc = redis.Redis(host="127.0.0.1", port=6379)
 	try:
-		stats = await mc.stats()
+		stats = await rc.info()
 		return {key: value for key, value in stats.items() if value is not None}
 	finally:
-		await mc.close()
+		await rc.close()
 
 
 async def get_from_bot_cached(
 	channel: str, **payload: dict[str, Any] | Any | None
 ) -> Any:
 	"""Get data from bot with caching."""
-	async with MemcachedCache(
+	async with RedisCache(
 		serializer=PickleSerializer(), namespace="ipc_cache"
 	) as cache:
 		safe_payload = json.dumps(payload, sort_keys=True)

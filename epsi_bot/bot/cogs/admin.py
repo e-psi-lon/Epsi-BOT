@@ -71,7 +71,7 @@ class Admin(commands.Cog):
 				m.author.id == self.bot.user.id
 				and m.id != 1128641774789861488
 				and removed_count < count
-			):  # type: ignore[union-attr]
+			):
 				removed_count += 1
 				return True
 			return False

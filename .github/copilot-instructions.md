@@ -11,7 +11,7 @@ Epsi-BOT is a Discord music bot written in Python 3.13+ with a sophisticated dua
 - **Shared Utilities** (`epsi_bot/utils/`): Common components for audio, IPC, database, caching, and data models
 
 ### External Dependencies
-- **Memcached**: Session storage, audio caching, and IPC result caching
+- **Redis**: Session storage, audio caching, and IPC result caching
 - **MySQL**: Primary database via Tortoise ORM (async operations)
 - **FFmpeg**: Audio format conversion and processing
 - **Docker**: Optional containerized deployment
@@ -22,7 +22,6 @@ Epsi-BOT is a Discord music bot written in Python 3.13+ with a sophisticated dua
 1. `__main__.py` creates Panel app and sets start time
 2. Panel app initializes during `startup()` event:
    - Creates SQLite database if missing
-   - Starts Memcached subprocess with custom stdout/stderr handling (`MemcachedStd`)
    - Spawns Bot process via `aiomultiprocess.Process`
    - Establishes bidirectional IPC channels
 
@@ -33,7 +32,7 @@ Epsi-BOT is a Discord music bot written in Python 3.13+ with a sophisticated dua
 - **Error Handling**: Automatic future cancellation, timeout management, reconnection logic
 - **Key IPC Channels**: `guilds`, `guild`, `user`, `connected_servers`, `voice_channels`
 
-### Memcached Integration
+### Redis Integration
 - **Audio Cache**: Compressed audio files with TTL management and bulk operations
 - **Session Storage**: Discord OAuth2 tokens and user data
 - **IPC Caching**: Bot responses cached for 60 seconds to reduce latency
@@ -127,7 +126,7 @@ BaseModel (abstract)
 
 ### Web Framework
 - **Quart**: Async web framework with WebSocket support
-- **Session Management**: Memcached-backed sessions with automatic token refresh
+- **Session Management**: Redis-backed sessions with automatic token refresh
 - **Template Engine**: Jinja2 with Bootstrap-based responsive design
 - **Error Handling**: Comprehensive error pages and graceful degradation
 
@@ -198,7 +197,7 @@ cp .env.example .env
 - **Port Configuration**: Default web panel on port 8080
 
 ### Dependencies
-- **System**: FFmpeg, Memcached, MySQL/MariaDB
+- **System**: FFmpeg, Redis, MySQL/MariaDB
 - **Python**: 3.13+ with modern async/await patterns
 - **Libraries**: See `pyproject.toml` for complete dependency list
 

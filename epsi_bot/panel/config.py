@@ -13,7 +13,7 @@ class Config:
 	CLIENT_ID = 1167171085343666216
 	CLIENT_SECRET = get_secret("CLIENT_SECRET")
 	REDIRECT_URI = "http://86.196.98.254/auth/discord/callback"
-	SESSION_TYPE = "memcached"
+	SESSION_TYPE = "redis"
 	DEBUG: bool
 
 	@staticmethod

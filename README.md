@@ -92,7 +92,7 @@ Legend:
 - FFmpeg
 - Libffi-dev (or libffi-devel)
 - MySQL (SQLite if you plan to run unit tests)
-- Memcached
+- Redis
 - (Optional) Use [uv](https://docs.astral.sh/uv) for easy dependency management and build
 
 ### Environment Setup

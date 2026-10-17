@@ -3,12 +3,10 @@ from enum import Enum
 from typing import cast
 
 import discord
-import pytubefix  # type: ignore[import-untyped]
+import pytubefix
 from discord.commands import SlashCommandGroup
 from discord.ext import commands
-from pytubefix.exceptions import (
-	RegexMatchError as PytubeRegexMatchError,  # type: ignore[import-untyped]
-)
+from pytubefix.exceptions import RegexMatchError as PytubeRegexMatchError
 
 from epsi_bot.bot.bot import Bot
 from epsi_bot.utils.audio import get_youtube, play_song

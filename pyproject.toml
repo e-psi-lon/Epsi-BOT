@@ -8,7 +8,7 @@ authors = [
     { name = "e-psi-lon" }
 ]
 dependencies = [
-    "aiocache[memcached]>=0.12.3",
+    "aiocache[redis]>=0.12.3",
     "aiodns>=4.0.4",
     "aiomultiprocess>=0.9.1",
     "davey>=0.1.7",

@@ -1,13 +1,13 @@
 import asyncio
 from datetime import datetime
 
-import discord
+import discord.voice
 import pytubefix  # type: ignore[import-untyped]
 from discord.commands import SlashCommandGroup
 from discord.ext import commands
 from discord.sinks import RecordingException
 from pytubefix.exceptions import (
-	RegexMatchError as PytubeRegexMatchError,  # type: ignore[import-untyped]
+	RegexMatchError as PytubeRegexMatchError,
 )
 
 from epsi_bot.bot.bot import Bot
@@ -30,7 +30,7 @@ class State(commands.Cog):
 		self.bot = bot
 		self.description = "Commands related to the playing state of the bot"
 		self.connections: dict[
-			int, discord.VoiceClient
+			int, discord.voice.VoiceClient
 		] = {}  # Guild ID to VoiceClient mapping
 
 	play = SlashCommandGroup(

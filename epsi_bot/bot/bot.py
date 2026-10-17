@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import asyncio
 import os
-import subprocess
 import sys
 import traceback
 from collections.abc import Callable, Coroutine, Iterable
@@ -14,7 +12,6 @@ from discord.ext import commands, tasks
 from discord.ext.commands import when_mentioned
 from tortoise import Tortoise, connections
 
-from epsi_bot.bot.memcached_std import MemcachedStd
 from epsi_bot.utils import models
 from epsi_bot.utils.cache import AudioCache, download_bulk
 from epsi_bot.utils.ipc import IPCManager
@@ -73,7 +70,6 @@ class Bot(commands.Bot):
 		super().__init__(command_prefix, help_command, **options)
 		self.start_time: datetime | None = None
 		self.ipc: IPCManager = manager
-		self.memcached: subprocess.Popen | None = None
 		self.logger = get_logger("Bot")
 		self.handle = self.ipc.handle
 		self.post_to_panel = self.ipc.send
@@ -86,20 +82,6 @@ class Bot(commands.Bot):
 				name=f"/help | {len(self.guilds)} servers",
 			)
 		)
-		if self.memcached is None and os.getenv("DOCKER_ENV") is not None:
-			try:
-				# noinspection PyTypeChecker
-				self.memcached = await asyncio.create_subprocess_exec(
-					args=["-p", "11211", "-I", "500m", "-m", "1024"],
-					executable="/usr/bin/memcached",
-					stdout=MemcachedStd(),
-					stderr=MemcachedStd("stderr"),
-					text=True,
-				)  # type: ignore[call-overload]
-			except FileNotFoundError:
-				self.logger.error("Memcached not found, please install it")
-				self.memcached = None
-				sys.exit(1)
 		if self.start_time is not None:
 			self.logger.info(f"Bot ready in {datetime.now(datetime.timezone.utc) - self.start_time}")
 		await Tortoise.init(db_url=get_db_url(), modules={"models": [models]})
@@ -213,8 +195,6 @@ async def start(instance: Bot, start_time: datetime) -> None:
 		await ctx.response.defer()
 		await ctx.respond(content="Arrêt en cours...", ephemeral=True)
 		await instance.close()
-		if instance.memcached is not None:
-			instance.memcached.terminate()
 		await instance.post_to_panel("stop")
 
 	@send_message.error
@@ -317,5 +297,3 @@ async def start(instance: Bot, start_time: datetime) -> None:
 		pass
 	finally:
 		await instance.close()
-		if instance.memcached is not None:
-			instance.memcached.terminate()
