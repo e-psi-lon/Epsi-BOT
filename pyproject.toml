@@ -12,17 +12,18 @@ dependencies = [
     "aiodns>=4.0.4",
     "aiomultiprocess>=0.9.1",
     "audioop-lts>=0.2.2",
-    "charset-normalizer>=3.4.9",
+    "charset-normalizer>=3.5.2",
+    "davey>=0.1.7",
     "psutil>=7.2.2",
     "py-cord>=2.8.1",
-    "pydantic>=2.13.4",
+    "pydantic>=2.14.1",
     "pynacl>=1.6.2",
-    "python-dotenv>=1.2.2",
+    "python-dotenv>=1.2.4",
     "python-ffmpeg>=2.0.12",
-    "pytubefix>=10.10.1",
-    "quart>=0.21.0",
+    "pytubefix>=11.2.0",
+    "quart>=0.23.1",
     "quart-session>=3.0.0",
-    "tortoise-orm[asyncpg]>=1.1.7",
+    "tortoise-orm[asyncpg]>=1.1.9",
 ]
 
 
@@ -41,14 +42,14 @@ include = ["epsi_bot/**"]
 
 [dependency-groups]
 dev = [
-    "mypy>=2.3.0",
-    "types-psutil>=7.2.2.20260518",
+    "mypy>=2.4.0",
+    "types-psutil>=7.2.2.20260906",
     "pytest>=9.1.1",
     "pytest-aio>=2.1.7",
     "pytest-cov>=7.1.0",
-    "pytest-mock>=3.15.1",
-    "ruff>=0.16.0",
-    "pre-commit>=4.6.1",
+    "pytest-mock>=3.16.0",
+    "ruff>=0.17.0",
+    "pre-commit>=4.7.0",
 ]
 
 
