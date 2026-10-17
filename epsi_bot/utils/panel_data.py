@@ -32,7 +32,7 @@ class ChannelData:
 	type: str
 
 	@classmethod
-	def from_channel(cls, channel: GuildChannel) -> "ChannelData":
+	def from_channel(cls, channel: GuildChannel) -> ChannelData:
 		"""
 		Class method to create a ChannelData instance from a discord.abc.GuildChannel instance.
 
@@ -51,7 +51,7 @@ class ChannelData:
 		return cls(name=channel.name, id=channel.id, type=channel.type.name)
 
 	@classmethod
-	def from_dict(cls, dict_: dict) -> "ChannelData":
+	def from_dict(cls, dict_: dict) -> ChannelData:
 		"""
 		Class method to create a ChannelData instance from a dictionary.
 
@@ -99,7 +99,7 @@ class UserData:
 	avatar: str
 
 	@classmethod
-	def from_user(cls, user: User) -> "UserData":
+	def from_user(cls, user: User) -> UserData:
 		"""
 		Class method to create a UserData instance from a discord.User instance.
 
@@ -121,7 +121,7 @@ class UserData:
 		)
 
 	@classmethod
-	def from_api_response(cls, response: dict) -> "UserData":
+	def from_api_response(cls, response: dict) -> UserData:
 		"""
 		Class method to create a UserData instance from a discord API response.
 
@@ -145,7 +145,7 @@ class UserData:
 		)
 
 	@classmethod
-	def from_dict(cls, dict_: dict) -> "UserData":
+	def from_dict(cls, dict_: dict) -> UserData:
 		"""
 		Class method to create a UserData instance from a dictionary.
 
@@ -196,7 +196,7 @@ class GuildData:
 	channels: list[ChannelData] = field(default_factory=list)
 
 	@classmethod
-	def from_guild(cls, guild: Guild) -> "GuildData":
+	def from_guild(cls, guild: Guild) -> GuildData:
 		"""
 		Class method to create a GuildData instance from a discord.Guild instance.
 
@@ -217,7 +217,7 @@ class GuildData:
 		)
 
 	@classmethod
-	def from_dict(cls, dict_: dict) -> "GuildData":
+	def from_dict(cls, dict_: dict) -> GuildData:
 		"""
 		Class method to create a GuildData instance from a dictionary.
 

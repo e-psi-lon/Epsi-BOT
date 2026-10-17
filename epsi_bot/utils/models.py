@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from abc import abstractmethod
 from collections.abc import AsyncGenerator, Iterable
 from contextlib import asynccontextmanager

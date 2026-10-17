@@ -81,7 +81,7 @@ class AudioCache(RedisCache, CacheProtocol):
 		"""Clear the cache"""
 		await super().clear(namespace=namespace, _conn=_conn)
 
-	def __aenter__(self) -> Coroutine[Any, Any, "AudioCache"]:
+	def __aenter__(self) -> Coroutine[Any, Any, AudioCache]:
 		return super().__aenter__()
 
 	def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> Any:
