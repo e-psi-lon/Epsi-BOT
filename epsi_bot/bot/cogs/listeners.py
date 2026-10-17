@@ -6,7 +6,8 @@ import discord
 from discord.ext import commands
 
 from epsi_bot.bot.bot import Bot
-from epsi_bot.utils import Server, disconnect_from_channel
+from epsi_bot.utils.audio import disconnect_from_channel
+from epsi_bot.utils.models import Server
 
 
 class Listeners(commands.Cog):

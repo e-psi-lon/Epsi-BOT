@@ -2,7 +2,7 @@ import io
 import sys
 from typing import Literal
 
-from epsi_bot.utils import get_logger
+from epsi_bot.utils.loggers import get_logger
 
 
 class MemcachedStd(io.TextIOBase):

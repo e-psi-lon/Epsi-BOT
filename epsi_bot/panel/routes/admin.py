@@ -6,8 +6,9 @@ import psutil
 from quart import Blueprint, current_app, render_template, request, websocket
 
 from epsi_bot.panel.helpers import format_table_info
-from epsi_bot.utils import admin_required, models
+from epsi_bot.utils import models
 from epsi_bot.utils.cache import get_cache_stats
+from epsi_bot.utils.decorators import admin_required
 from epsi_bot.utils.models import BaseModel
 from epsi_bot.utils.protocols import PanelProtocol
 

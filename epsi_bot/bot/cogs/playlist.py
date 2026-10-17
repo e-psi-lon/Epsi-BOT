@@ -11,13 +11,18 @@ from pytubefix.exceptions import (
 )
 
 from epsi_bot.bot.bot import Bot
-from epsi_bot.utils import (
+from epsi_bot.utils.audio import get_youtube, play_song
+from epsi_bot.utils.autocomplete import get_playlists, get_playlists_songs
+from epsi_bot.utils.cache import download_bulk
+from epsi_bot.utils.constants import (
 	EMBED_ERROR_BOT_NOT_CONNECTED,
 	EMBED_ERROR_NAME_TOO_LONG,
 	EMBED_ERROR_PLAYLIST_EXISTS,
 	EMBED_ERROR_PLAYLIST_NAME_DOESNT_EXIST,
 	EMBED_ERROR_QUEUE_EMPTY,
 	YOUTUBE_CLIENT,
+)
+from epsi_bot.utils.models import (
 	Playlist,
 	PlaylistReference,
 	PlaylistSong,
@@ -27,11 +32,6 @@ from epsi_bot.utils import (
 	Song,
 	User,
 	UserPlaylist,
-	download_bulk,
-	get_playlists,
-	get_playlists_songs,
-	get_youtube,
-	play_song,
 )
 
 

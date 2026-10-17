@@ -16,7 +16,8 @@ from epsi_bot.bot.bot import Bot, start
 from epsi_bot.panel.config import config
 from epsi_bot.panel.helpers import register_error_handlers
 from epsi_bot.panel.routes import register_blueprints
-from epsi_bot.utils import IPCManager, get_logger, parse_args
+from epsi_bot.utils.ipc import IPCManager
+from epsi_bot.utils.loggers import get_logger, parse_args
 from epsi_bot.utils.models import get_db_url
 
 

@@ -11,23 +11,18 @@ from pytubefix.exceptions import (
 )
 
 from epsi_bot.bot.bot import Bot
-from epsi_bot.utils import (
+from epsi_bot.utils.audio import finished_record_callback, get_youtube, play_song
+from epsi_bot.utils.cache import download
+from epsi_bot.utils.constants import (
 	EMBED_ERROR_BOT_NOT_CONNECTED,
 	GET_FILE_HTTP_URL,
 	MAX_TRACK_LENGTH,
 	YOUTUBE_CLIENT,
 	YOUTUBE_REGEX,
-	Queue,
-	Research,
-	Server,
-	Sinks,
-	Song,
-	User,
-	download,
-	finished_record_callback,
-	get_youtube,
-	play_song,
 )
+from epsi_bot.utils.models import Queue, Server, Song, User
+from epsi_bot.utils.type_utils import Sinks
+from epsi_bot.utils.views import Research
 
 
 class State(commands.Cog):

@@ -5,17 +5,15 @@ import pytubefix.exceptions  # type: ignore[import-untyped]
 from discord.ext import commands
 
 from epsi_bot.bot.bot import Bot
-from epsi_bot.utils import (
+from epsi_bot.utils.audio import convert, get_lyrics, get_youtube
+from epsi_bot.utils.constants import (
 	EMBED_ERROR_BOT_NOT_CONNECTED,
 	YOUTUBE_CLIENT,
 	YOUTUBE_REGEX,
-	FfmpegFormats,
-	Research,
-	Server,
-	convert,
-	get_lyrics,
-	get_youtube,
 )
+from epsi_bot.utils.models import Server
+from epsi_bot.utils.type_utils import FfmpegFormats
+from epsi_bot.utils.views import Research
 
 
 class Others(commands.Cog):

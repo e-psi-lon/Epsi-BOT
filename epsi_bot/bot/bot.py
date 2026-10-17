@@ -15,18 +15,12 @@ from discord.ext.commands import when_mentioned
 from tortoise import Tortoise, connections
 
 from epsi_bot.bot.memcached_std import MemcachedStd
-from epsi_bot.utils import (
-	AudioCache,
-	GuildData,
-	Server,
-	SongListenCount,
-	UserData,
-	download_bulk,
-	get_logger,
-	models,
-)
+from epsi_bot.utils import models
+from epsi_bot.utils.cache import AudioCache, download_bulk
 from epsi_bot.utils.ipc import IPCManager
-from epsi_bot.utils.models import get_db_url
+from epsi_bot.utils.loggers import get_logger
+from epsi_bot.utils.models import Server, SongListenCount, get_db_url
+from epsi_bot.utils.panel_data import GuildData, UserData
 from epsi_bot.utils.secrets import get_secret
 
 COGS_DIR = os.path.join(os.path.dirname(__file__), "cogs")

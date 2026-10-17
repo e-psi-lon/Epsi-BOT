@@ -55,3 +55,6 @@ dev = [
 
 [tool.ruff.format]
 indent-style = "tab"
+
+[tool.ruff.lint.isort]
+combine-as-imports = true

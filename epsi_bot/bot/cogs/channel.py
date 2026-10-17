@@ -5,13 +5,10 @@ import pytubefix.exceptions  # type: ignore[import-untyped]
 from discord.ext import commands
 
 from epsi_bot.bot.bot import Bot
-from epsi_bot.utils import (
-	EMBED_ERROR_BOT_NOT_CONNECTED,
-	Server,
-	download_bulk,
-	get_youtube,
-	play_song,
-)
+from epsi_bot.utils.audio import get_youtube, play_song
+from epsi_bot.utils.cache import download_bulk
+from epsi_bot.utils.constants import EMBED_ERROR_BOT_NOT_CONNECTED
+from epsi_bot.utils.models import Server
 
 
 class Channel(commands.Cog):

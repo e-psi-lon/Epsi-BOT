@@ -4,7 +4,8 @@ from typing import cast
 import aiohttp
 from quart import current_app, session
 
-from epsi_bot.utils import UserData, requests
+from epsi_bot.utils import requests
+from epsi_bot.utils.panel_data import UserData
 from epsi_bot.utils.protocols import PanelProtocol
 
 

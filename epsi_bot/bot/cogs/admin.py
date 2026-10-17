@@ -2,7 +2,9 @@ import discord
 from discord.ext import commands
 
 from epsi_bot.bot.bot import Bot
-from epsi_bot.utils import EMBED_ERROR_NOT_BOT_OWNER, OWNER_ID, AudioCache, Server
+from epsi_bot.utils.cache import AudioCache
+from epsi_bot.utils.constants import EMBED_ERROR_NOT_BOT_OWNER, OWNER_ID
+from epsi_bot.utils.models import Server
 
 
 def cogs_autocomplete(ctx: discord.AutocompleteContext) -> list[str]:

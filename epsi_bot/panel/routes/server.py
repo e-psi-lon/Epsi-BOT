@@ -11,8 +11,11 @@ from quart import (
 )
 from werkzeug.wrappers.response import Response
 
-from epsi_bot.utils import YOUTUBE_REGEX, ConfigData, get_youtube, models
+from epsi_bot.utils import models
+from epsi_bot.utils.audio import get_youtube
+from epsi_bot.utils.constants import YOUTUBE_REGEX
 from epsi_bot.utils.decorators import login_required
+from epsi_bot.utils.panel_data import ConfigData
 from epsi_bot.utils.protocols import PanelProtocol
 
 server_bp = Blueprint("server", __name__, url_prefix="/server")
