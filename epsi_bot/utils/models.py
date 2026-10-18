@@ -35,7 +35,6 @@ __all__ = [
 	"SongListenCount",
 	"User",
 	"UserPlaylist",
-	"database_context",
 	"get_db_url",
 ]
 
@@ -428,26 +427,6 @@ class SongListenCount(BaseModel):
 		"models.Song", related_name="listen_count", unique=True
 	)
 	count = fields.IntField(default=0, validators=[MinValueValidator(0)])
-
-
-@asynccontextmanager
-async def database_context() -> AsyncGenerator[None]:
-	"""
-	Provides an asynchronous context manager for interacting with the Tortoise-ORM database.
-	"""
-	logger = get_logger("Database")
-	try:
-		await Tortoise.init(
-			db_url=get_db_url(), modules={"models": [epsi_bot.utils.models]}
-		)
-		await Tortoise.generate_schemas(safe=True)
-		yield
-	except exceptions.BaseORMException:
-		logger.exception("Error while accessing database: ")
-		raise
-	finally:
-		await connections.close_all()
-		logger.debug("Tortoise-ORM shutdown")
 
 
 def get_db_url() -> str:

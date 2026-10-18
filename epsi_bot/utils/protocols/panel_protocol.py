@@ -1,26 +1,18 @@
 import datetime
 import logging
 from asyncio import TimerHandle
-from typing import Any, Protocol, TypeVar
+from typing import TYPE_CHECKING, Protocol
 
-from aiomultiprocess import Process  # type: ignore[import-untyped]
+if TYPE_CHECKING:
+	from epsi_bot.bot.bot import Bot
 
-from epsi_bot.utils.ipc import IPCManager
 
 
 class PanelProtocol(Protocol):
-	bot_process: Process
 	start_time: datetime.datetime | None
 	timers: dict[int, TimerHandle]
 
-	ipc: IPCManager
-	bot_ipc: IPCManager
+	bot: Bot
 	logger: logging.Logger
+	async def shutdown(self) -> None: ...
 
-	async def start_bot(self) -> None: ...
-	async def stop_bot(self) -> None: ...
-	async def get_from_bot(self, command: str, **kwargs: Any) -> Any: ...
-	async def post_to_bot(self, command: str, **kwargs: Any) -> None: ...
-
-
-PanelApp = TypeVar("PanelApp", bound=PanelProtocol)

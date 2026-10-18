@@ -18,7 +18,7 @@ from epsi_bot.utils.constants import (
 	YOUTUBE_CLIENT,
 )
 from epsi_bot.utils.loggers import get_logger
-from epsi_bot.utils.models import Server, Song, SongListenCount, database_context
+from epsi_bot.utils.models import Server, Song, SongListenCount
 from epsi_bot.utils.type_utils import FfmpegFormats
 
 __all__ = [
@@ -136,11 +136,10 @@ async def disconnect_from_channel(state: discord.VoiceState, bot: commands.Bot) 
 				return await client.disconnect(force=True)
 			if guild.id == state.channel.guild.id:
 				await client.disconnect(force=True)
-				async with database_context():
-					server = await Server.get(server_id=guild.id)
-					await server.queue.all().delete()
-					server.position = 0
-					await server.save()
+				server = await Server.get(server_id=guild.id)
+				await server.queue.all().delete()
+				server.position = 0
+				await server.save()
 				ok = True
 			if ok:
 				break
@@ -160,28 +159,27 @@ def get_index_from_title(title: str, list_to_check: list[Song]) -> int:
 async def change_song(ctx: discord.ApplicationContext) -> None:
 	"""Callback function to execute when a song is finished to change the song taking into account the server's
 	configuration"""
-	async with database_context():
-		server = await Server.get(server_id=ctx.guild.id).prefetch_related(
-			"queue", "queue__song"
-		)
-		if not await server.queue.all():
-			return
-		if server.loop_song:
-			pass
-		elif server.loop_queue or server.position < len(server.queue) - 1:
-			server.position = (server.position + 1) % len(server.queue)
-			await server.save()
-		else:
-			return
-		if server.random and len(server.queue) > 1:
-			server.position = random.sample(
-				list(set(range(len(server.queue))) - {server.position}), 1
-			)[0]
-			await server.save()
-		try:
-			await play_song(ctx, server.queue[server.position].song.url)
-		except Exception:  # noqa: BLE001 the operations spans too many subsystems
-			get_logger("Bot").exception("Error while playing song: ")
+	server = await Server.get(server_id=ctx.guild.id).prefetch_related(
+		"queue", "queue__song"
+	)
+	if not await server.queue.all():
+		return
+	if server.loop_song:
+		pass
+	elif server.loop_queue or server.position < len(server.queue) - 1:
+		server.position = (server.position + 1) % len(server.queue)
+		await server.save()
+	else:
+		return
+	if server.random and len(server.queue) > 1:
+		server.position = random.sample(
+			list(set(range(len(server.queue))) - {server.position}), 1
+		)[0]
+		await server.save()
+	try:
+		await play_song(ctx, server.queue[server.position].song.url)
+	except Exception:  # noqa: BLE001 the operations spans too many subsystems
+		get_logger("Bot").exception("Error while playing song: ")
 
 
 async def play_song(
@@ -204,15 +202,14 @@ async def play_song(
 	if ctx.guild.voice_client.is_playing():
 		ctx.guild.voice_client.stop()
 	loop = asyncio.get_running_loop()
-	async with database_context():
-		server = await Server.get(server_id=ctx.guild.id)
-		song = await Song.get(url=url)
-		song_listen_count = await SongListenCount.get_or_none(song=song)
-		if song_listen_count is not None:
-			song_listen_count.count += 1
-			await song_listen_count.save()
-		else:
-			await SongListenCount.create(song=song, count=1)
+	server = await Server.get(server_id=ctx.guild.id)
+	song = await Song.get(url=url)
+	song_listen_count = await SongListenCount.get_or_none(song=song)
+	if song_listen_count is not None:
+		song_listen_count.count += 1
+		await song_listen_count.save()
+	else:
+		await SongListenCount.create(song=song, count=1)
 	to_play: str | io.BytesIO
 	pipe = direct_play
 	before_options = None

@@ -75,8 +75,13 @@ async def _get_admin_data() -> dict[str, Any]:
 			"cpu_percent": bot_process.cpu_percent(interval=0.1),
 			"memory_percent": bot_process.memory_percent(),
 			"memory_usage": bot_process.memory_info().rss,
-			"voice_channels": await panel_app.get_from_bot("voice_channels"),
-			"connected_servers": await panel_app.get_from_bot("connected_servers"),
+			"voice_channels": sum(
+				1
+				for guild in panel_app.bot.guilds
+				for vc in guild.voice_channels
+				if len(vc.members) > 0
+			),
+			"connected_servers": len(panel_app.bot.guilds),
 		},
 	}
 

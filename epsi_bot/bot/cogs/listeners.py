@@ -7,6 +7,7 @@ from discord.ext import commands
 
 from epsi_bot.bot.bot import Bot
 from epsi_bot.utils.audio import disconnect_from_channel
+from epsi_bot.utils.constants import OWNER_ID
 from epsi_bot.utils.models import Server
 
 
@@ -111,7 +112,7 @@ class Listeners(commands.Cog):
 		channel = guild.system_channel
 		text = (
 			"Hey, I'm a music bot in development made by "
-			"<@!708006478807695450>, I can play music from YouTube in a voice "
+			f"<@!{OWNER_ID}>, I can play music from YouTube in a voice "
 			"channel. For now, I'm not ready to use, which mean I'm still under "
 			"test phase"
 		)

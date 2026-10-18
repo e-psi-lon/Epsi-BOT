@@ -1,24 +1,18 @@
 import asyncio
 import datetime
 import logging
-import sys
 from asyncio import TimerHandle
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import discord
-from aiomultiprocess import Process  # type: ignore[import-untyped]
 from quart import Quart
 from quart_session import Session  # type: ignore[import-untyped]
-from tortoise import Tortoise
-from tortoise.contrib.quart import register_tortoise
 
-from epsi_bot.bot.bot import Bot, start
+if TYPE_CHECKING:
+	from epsi_bot.bot.bot import Bot
 from epsi_bot.panel.config import config
 from epsi_bot.panel.helpers import register_error_handlers
 from epsi_bot.panel.routes import register_blueprints
-from epsi_bot.utils.ipc import IPCManager
 from epsi_bot.utils.loggers import get_logger, parse_args
-from epsi_bot.utils.models import get_db_url
 
 
 class Panel(Quart):
@@ -30,40 +24,17 @@ class Panel(Quart):
 		config[config_name].init_app(self)
 
 		# Initialize components
-		self.bot_process: Process | None = None
+		self.bot: Bot | None = None
 		self.start_time: datetime.datetime | None = None
 		self.timers: dict[int, TimerHandle] = {}
 
-		# IPC setup
-		self.ipc, self.bot_ipc = IPCManager.create_pair()
-		self.handle = self.ipc.handle
-		self.get_from_bot = self.ipc.request
-		self.post_to_bot = self.ipc.send
 		self._logger: logging.Logger | None = None
 
 		# Session and database setup
 		Session(self)
-		register_tortoise(
-			self, db_url=get_db_url(), modules={"models": ["epsi_bot.utils.models"]}
-		)
-
 		# Register routes and error handlers
 		register_blueprints(self)
 		register_error_handlers(self)
-
-		# Register IPC handlers
-		self._register_ipc_handlers()
-
-		@self.before_serving
-		async def startup() -> None:
-			await Tortoise.init(
-				db_url=get_db_url(), modules={"models": ["epsi_bot.utils.models"]}
-			)
-			await Tortoise.generate_schemas(safe=True)
-			# Start bot process
-			self.bot_process = Process(target=self.start_bot, name="Bot")
-			await self.ipc.start()
-			self.bot_process.start()
 
 		@self.route("/health")
 		async def health_check() -> tuple[dict[str, str], int]:
@@ -77,13 +48,6 @@ class Panel(Quart):
 
 	def set_start_time(self, start_time: datetime.datetime) -> None:
 		self.start_time = start_time
-
-	async def start_bot(self) -> None:
-		bot = Bot(self.bot_ipc, intents=discord.Intents.all())
-		if self.start_time is not None:
-			await start(bot, self.start_time)
-		else:
-			raise RuntimeError("Start time not set")  # Should never be reached
 
 	def run(
 		self,
@@ -100,15 +64,6 @@ class Panel(Quart):
 		if debug is None:
 			debug = parse_args().log_level.upper() == "DEBUG"
 		super().run(host=host, port=port, debug=debug, **kwargs)
-
-	def _register_ipc_handlers(self) -> None:
-		@self.ipc.handle("stop")
-		async def shutdown(_: str) -> None:
-			if self.bot_process:
-				await self.bot_process.join()
-			await Tortoise.close_connections()
-			await self.shutdown()
-			sys.exit(0)
 
 
 def create_app(config_name: str = "default") -> Panel:

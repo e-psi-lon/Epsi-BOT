@@ -25,15 +25,11 @@ async def panel() -> Response | str:
 		token = session["token"]
 		if "user" not in session:
 			user = await get_user_data(token["access_token"])
-			session["guilds"] = await panel_app.ipc.request(
-				"guilds", user_id=session["user_id"]
-			)
+			session["guilds"] = panel_app.bot.get_guilds_for(session["user_id"])
 			session["user"] = user
 
 		if session.get("guilds", None) is None:
-			session["guilds"] = await panel_app.ipc.request(
-				"guilds", user_id=session["user_id"]
-			)
+			session["guilds"] = panel_app.bot.get_guilds_for(session["user_id"])
 
 		panel_app.logger.debug(
 			f"Showing panel with user:\n- {session['user']}\nwho has guilds:\n- {session['guilds']}"

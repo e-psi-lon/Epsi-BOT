@@ -10,7 +10,6 @@ authors = [
 dependencies = [
     "aiocache[redis]>=0.12.3",
     "aiodns>=4.0.4",
-    "aiomultiprocess>=0.9.1",
     "davey>=0.1.7",
     "psutil>=7.2.2",
     "py-cord>=2.8.1",
@@ -26,7 +25,7 @@ dependencies = [
 
 
 [project.scripts]
-epsi-bot = "epsi_bot.__main__:main"
+epsi-bot = "epsi_bot.__main__:run"
 
 [build-system]
 requires = ["hatchling"]

@@ -2,32 +2,30 @@ import asyncio
 import binascii
 import hashlib
 import io
-import json
 import logging
 import zlib
 from collections.abc import Coroutine
 from math import log2
-from typing import Any, cast
+from typing import Any
 
 import pytubefix  # type: ignore[import-untyped]
 import redis.asyncio as redis
 from aiocache import RedisCache  # type: ignore[import-untyped]
 from aiocache.serializers import (  # type: ignore[import-untyped]
 	JsonSerializer,
-	PickleSerializer,
 )
 
 from epsi_bot.utils import requests
 from epsi_bot.utils.constants import YOUTUBE_CLIENT, YOUTUBE_REGEX
 from epsi_bot.utils.loggers import get_logger
-from epsi_bot.utils.protocols import CacheProtocol, PanelProtocol
+from epsi_bot.utils.protocols import CacheProtocol
+from epsi_bot.utils.secrets import get_secret
 
 __all__ = [
 	"AudioCache",
 	"download",
 	"download_bulk",
 	"get_cache_stats",
-	"get_from_bot_cached",
 ]
 
 
@@ -191,29 +189,9 @@ async def download_bulk(
 
 async def get_cache_stats() -> dict[bytes, bytes] | None:
 	"""Get redis statistics."""
-	rc = redis.Redis(host="127.0.0.1", port=6379)
+	rc = redis.Redis(host="host.containers.internal", port=6379)
 	try:
 		stats = await rc.info()
 		return {key: value for key, value in stats.items() if value is not None}
 	finally:
 		await rc.close()
-
-
-async def get_from_bot_cached(
-	channel: str, **payload: dict[str, Any] | Any | None
-) -> Any:
-	"""Get data from bot with caching."""
-	async with RedisCache(
-		serializer=PickleSerializer(), namespace="ipc_cache"
-	) as cache:
-		safe_payload = json.dumps(payload, sort_keys=True)
-		cache_key = hash_key(channel, safe_payload, separator="_")
-		if await cache.exists(cache_key):
-			return await cache.get(cache_key)
-		else:
-			from quart import current_app
-
-			panel_app = cast(PanelProtocol, current_app)
-			response = await panel_app.bot_ipc.request(channel, timeout=5.0, **payload)
-			await cache.set(cache_key, response, ttl=60)
-			return response

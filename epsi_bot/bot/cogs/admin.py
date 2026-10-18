@@ -149,6 +149,35 @@ class Admin(commands.Cog):
 				)
 			await ctx.respond(embed=embed, delete_after=30)
 
+	@commands.slash_command(name="send", description="Envoie un message dans un salon")
+	@discord.option(
+		"channel", discord.TextChannel, description="Le salon où envoyer le message"
+	)
+	@discord.option("message", str, description="Le message à envoyer")
+	@commands.is_owner()
+	async def send_message(
+		self, ctx: discord.ApplicationContext, channel: discord.TextChannel, message: str
+	) -> None:
+		if ctx.author.id != self.bot.owner_id:
+			raise commands.NotOwner
+		await ctx.response.defer()
+		await channel.send(message)
+		await ctx.respond(content="Message envoyé !", ephemeral=True)
+
+	@commands.slash_command(name="stop-bot", description="Arrête le bot")
+	@commands.is_owner()
+	async def stop_bot(self, ctx: discord.ApplicationContext) -> None:
+		await ctx.response.defer()
+		await ctx.respond(content="Arrêt en cours...", ephemeral=True)
+		self.bot.shutdown_event.set()
+
+	@send_message.error
+	async def send_message_error(
+		ctx: discord.ApplicationContext, error: commands.CommandError
+	) -> None:
+		if isinstance(error, commands.NotOwner):
+			await ctx.respond("Vous n'êtes pas propriétaire du bot !", ephemeral=True)
+
 
 def setup(bot: Bot) -> None:
 	bot.add_cog(Admin(bot))

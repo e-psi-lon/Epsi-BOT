@@ -8,10 +8,10 @@ Epsi-BOT is a Discord music bot written in Python 3.13+ with a sophisticated dua
 ### Core Processes
 - **Panel Process** (`epsi_bot/panel/`): Primary Quart web application that spawns and manages the bot process
 - **Bot Process** (`epsi_bot/bot/`): Discord bot using Pycord 2.6.1, organized in functional cogs
-- **Shared Utilities** (`epsi_bot/utils/`): Common components for audio, IPC, database, caching, and data models
+- **Shared Utilities** (`epsi_bot/utils/`): Common components for audio, database, caching, and data models
 
 ### External Dependencies
-- **Redis**: Session storage, audio caching, and IPC result caching
+- **Redis**: Session storage, audio caching
 - **MySQL**: Primary database via Tortoise ORM (async operations)
 - **FFmpeg**: Audio format conversion and processing
 - **Docker**: Optional containerized deployment
@@ -22,20 +22,10 @@ Epsi-BOT is a Discord music bot written in Python 3.13+ with a sophisticated dua
 1. `__main__.py` creates Panel app and sets start time
 2. Panel app initializes during `startup()` event:
    - Creates SQLite database if missing
-   - Spawns Bot process via `aiomultiprocess.Process`
-   - Establishes bidirectional IPC channels
-
-### IPC System (`epsi_bot/utils/ipc.py`)
-- **Custom Implementation**: Uses multiprocessing Queues with async wrappers
-- **Message Types**: EVENT, DATA, REQUEST, RESPONSE (via `MessageType` enum)
-- **Request/Response Pattern**: Panel can request data from bot with timeout support
-- **Error Handling**: Automatic future cancellation, timeout management, reconnection logic
-- **Key IPC Channels**: `guilds`, `guild`, `user`, `connected_servers`, `voice_channels`
 
 ### Redis Integration
 - **Audio Cache**: Compressed audio files with TTL management and bulk operations
 - **Session Storage**: Discord OAuth2 tokens and user data
-- **IPC Caching**: Bot responses cached for 60 seconds to reduce latency
 - **Custom Compression**: Base64 + zlib compression for audio data
 
 ## Bot Architecture
@@ -87,7 +77,6 @@ BaseModel (abstract)
 - **Auto-Positioning**: `AudioReference` subclasses automatically calculate position on save (transaction-safe/atomic)
 - **Bulk Operations**: Efficient bulk creation for playlist imports and queue operations
 - **Relationship Prefetching**: Extensive use of `prefetch_related()` for performance
-- **Database Context Manager**: `async with database_context()` to manage connections to the database
 - **Connection Pooling**: Automatic connection management with `connections.close_all()`
 
 ### Key Relationships
@@ -211,7 +200,6 @@ cp .env.example .env
 
 ### Async Patterns
 - **Database Context**: Always use context managers or decorators for DB operations
-- **IPC Timeouts**: All IPC requests have configurable timeouts (default 5s)
 - **Background Tasks**: Discord.py tasks for periodic operations
 - **Connection Pooling**: Proper async connection management
 
@@ -225,12 +213,11 @@ cp .env.example .env
 
 ### Core Application
 - `epsi_bot/__main__.py`: Application entry point with logging setup
-- `epsi_bot/panel/app.py`: Panel class with process management and IPC
+- `epsi_bot/panel/app.py`: Panel class
 - `epsi_bot/bot/bot.py`: Bot class with cog loading and event handling
 
 ### Database & Models
 - `epsi_bot/utils/models.py`: Complete ORM model definitions
-- `epsi_bot/utils/ipc.py`: Custom IPC implementation with async support
 
 ### Audio & Caching
 - `epsi_bot/utils/audio.py`: Audio processing and playback logic
@@ -265,9 +252,3 @@ cp .env.example .env
 2. Use Tortoise field types and relationships
 3. Add proper indexes and constraints
 4. Consider migration strategy for existing data
-
-### IPC Extensions
-1. Register handlers with `@bot.handle("channel_name")` in bot.py
-2. Use `panel.get_from_bot("channel_name", **params)` from panel
-3. Implement proper error handling and timeouts
-4. Consider caching for frequently accessed data

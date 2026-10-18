@@ -1,29 +1,25 @@
-import os
+import asyncio
+import pkgutil
 import sys
 import traceback
 from collections.abc import Callable, Coroutine, Iterable
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 import discord
 from discord.ext import commands, tasks
 from discord.ext.commands import when_mentioned
-from tortoise import Tortoise, connections
 
-from epsi_bot.utils import models
+from epsi_bot.bot import cogs
 from epsi_bot.utils.cache import AudioCache, download_bulk
-from epsi_bot.utils.ipc import IPCManager
 from epsi_bot.utils.loggers import get_logger
-from epsi_bot.utils.models import Server, SongListenCount, get_db_url
-from epsi_bot.utils.panel_data import GuildData, UserData
-from epsi_bot.utils.secrets import get_secret
+from epsi_bot.utils.models import Server, SongListenCount
+from epsi_bot.utils.protocols.panel_protocol import PanelProtocol
 
-COGS_DIR = os.path.join(os.path.dirname(__file__), "cogs")
 
 @tasks.loop(hours=36)
 async def update_top_songs(self: Bot) -> None:
 	# Calculate top 5 songs
-	await Tortoise.init(db_url=get_db_url(), modules={"models": [models]})
 	top_songs = (
 		await SongListenCount.all().prefetch_related("song").order_by("-count").limit(5)
 	)
@@ -32,7 +28,6 @@ async def update_top_songs(self: Bot) -> None:
 		for song in top_songs
 	]
 	await SongListenCount.all().delete()
-	await connections.close_all()
 	to_download: list[str]
 	async with AudioCache(len(top_songs_data)) as cache:
 		to_download = []
@@ -55,7 +50,6 @@ async def update_top_songs(self: Bot) -> None:
 class Bot(commands.Bot):
 	def __init__(
 		self,
-		manager: IPCManager,
 		command_prefix: str
 		| Iterable[str]
 		| Callable[
@@ -67,11 +61,22 @@ class Bot(commands.Bot):
 	) -> None:
 		super().__init__(command_prefix, help_command, **options)
 		self.start_time: datetime | None = None
-		self.ipc: IPCManager = manager
 		self.logger = get_logger("Bot")
-		self.handle = self.ipc.handle
-		self.post_to_panel = self.ipc.send
-		self.get_from_panel = self.ipc.request
+		self.panel: PanelProtocol | None = None
+		self._load_cogs()
+		self.shutdown_event: asyncio.Event | None = None
+
+	def _load_cogs(self) -> None:
+		names = [
+			m.name
+			for m in pkgutil.iter_modules(cogs.__path__, prefix=f"{cogs.__name__}.")
+			if not m.name.rsplit(".", 1)[-1].startswith("_")
+		]
+		results = self.load_extensions(*names, store=True)
+		for name, result in results.items():
+			if result is not True:
+				self.logger.error("Failed to load extension %s", name, exc_info=result)
+
 
 	async def on_ready(self) -> None:
 		await self.change_presence(
@@ -81,13 +86,10 @@ class Bot(commands.Bot):
 			)
 		)
 		if self.start_time is not None:
-			self.logger.info(f"Bot ready in {datetime.now(datetime.timezone.utc) - self.start_time}")
-		await Tortoise.init(db_url=get_db_url(), modules={"models": [models]})
-		await Tortoise.generate_schemas(safe=True)
+			self.logger.info(f"Bot ready in {datetime.now(timezone.utc) - self.start_time}")
 		for guild in self.guilds:
 			# Si la guilde n'existe pas dans la db, on l'ajoute avec les paramètres par défaut
 			await Server.get_or_create(server_id=guild.id)
-		await connections.close_all()
 		if not update_top_songs.is_running():
 			update_top_songs.start(self)
 
@@ -166,132 +168,11 @@ class Bot(commands.Bot):
 				f"Error in {event_method}\n Error message: {exc_value}\n Traceback: {traceback_str}\n Args: {args}"
 				f"\n Kwargs: {kwargs}"
 			)
+	
+	def get_guilds_for(self, user_id: int) -> list[discord.Guild]:
+		return [
+			guild
+			for guild in self.guilds
+			if user_id == self.owner_id or user_id is None or user_id in [member.id for member in guild.members]
+		]
 
-
-async def start(instance: Bot, start_time: datetime) -> None:
-	instance.start_time = start_time
-	instance.owner_id = 708006478807695450
-
-	@instance.slash_command(name="send", description="Envoie un message dans un salon")
-	@discord.option(
-		"channel", discord.TextChannel, description="Le salon où envoyer le message"
-	)
-	@discord.option("message", str, description="Le message à envoyer")
-	async def send_message(
-		ctx: discord.ApplicationContext, channel: discord.TextChannel, message: str
-	) -> None:
-		if ctx.author.id != instance.owner_id:
-			raise commands.NotOwner
-		await ctx.response.defer()
-		await channel.send(message)
-		await ctx.respond(content="Message envoyé !", ephemeral=True)
-
-	@instance.slash_command(name="stop-bot", description="Arrête le bot")
-	async def stop_bot(ctx: discord.ApplicationContext) -> None:
-		if ctx.author.id != instance.owner_id:
-			raise commands.NotOwner
-		await ctx.response.defer()
-		await ctx.respond(content="Arrêt en cours...", ephemeral=True)
-		await instance.close()
-		await instance.post_to_panel("stop")
-
-	@send_message.error
-	async def send_message_error(
-		ctx: discord.ApplicationContext, error: commands.CommandError
-	) -> None:
-		if isinstance(error, commands.NotOwner):
-			await ctx.respond("Vous n'êtes pas propriétaire du bot !", ephemeral=True)
-
-	db_logger = get_logger("Database")
-
-	@instance.before_invoke
-	async def before_invoke(_: commands.Context) -> None:
-		await Tortoise.init(db_url=get_db_url(), modules={"models": [models]})
-		# noinspection PyProtectedMember
-		db_logger.debug(
-			"Tortoise-ORM started, %s, %s", connections._get_storage(), Tortoise.apps
-		)
-
-	@instance.after_invoke
-	async def after_invoke(_: commands.Context) -> None:
-		await connections.close_all()
-		db_logger.info("Tortoise-ORM shutdown")
-
-	@instance.handle("guilds")
-	async def handle_guilds(request_id: str, user_id: int | None = None) -> None:
-		if user_id is None or user_id == 708006478807695450:
-			guilds = [GuildData.from_guild(guild) for guild in instance.guilds]
-		else:
-			guilds = [
-				GuildData.from_guild(guild)
-				for guild in instance.guilds
-				if user_id in [member.id for member in guild.members]
-			]
-		instance.logger.debug("Got a request for all guilds of a user")
-		await instance.ipc.respond(request_id, guilds)
-
-	@instance.handle("guild")
-	async def handle_guild(request_id: str, server_id: int) -> None:
-		guild = instance.get_guild(server_id)
-		if guild is None:
-			instance.logger.error(f"Guild with ID {server_id} not found")
-			await instance.ipc.respond(request_id, None)
-			return
-		guild_data = GuildData.from_guild(guild)
-		instance.logger.debug(f"Got a request for a specific guild : {server_id}")
-		await instance.ipc.respond(request_id, guild_data)
-
-	@instance.handle("user")
-	async def handle_user(request_id: str, user_id: int) -> None:
-		user = instance.get_user(user_id)
-		if user is None:
-			instance.logger.error(f"User with ID {user_id} not found")
-			await instance.ipc.respond(request_id, None)
-			return
-		user_data = UserData.from_user(user)
-		instance.logger.debug(f"Got a request for a specific user : {user_id}")
-		await instance.ipc.respond(request_id, user_data)
-
-	@instance.handle("connected_servers")
-	async def handle_connected_servers(request_id: str) -> None:
-		server_count = len(instance.guilds)
-		instance.logger.debug("Got a request for connected servers count")
-		await instance.ipc.respond(request_id, server_count)
-
-	@instance.handle("voice_channels")
-	async def handle_voice_channels(request_id: str) -> None:
-		active_voice = sum(
-			1
-			for guild in instance.guilds
-			for vc in guild.voice_channels
-			if len(vc.members) > 0
-		)
-		instance.logger.debug("Got a request for active voice channels count")
-		await instance.ipc.respond(request_id, active_voice)
-
-	# Load the cogs
-	instance.logger.info(
-		f"Bot started at {start_time.strftime('%d/%m/%Y %H:%M:%S')} "
-		f"using python executable {sys.executable}"
-	)
-	for file in os.listdir(COGS_DIR):
-		if file.endswith(".py") and not file.startswith("__"):
-			try:
-				instance.load_extension(f"epsi_bot.bot.cogs.{file[:-3]}")
-			except Exception:
-				instance.logger.exception(f"Failed to load extension {file}")
-
-	await instance.ipc.start()
-	# Start bot instance
-	try:
-		token = get_secret("TOKEN")
-		if token is None:
-			instance.logger.error(
-				"No token found, please set the environment variable TOKEN"
-			)
-			sys.exit(1)
-		await instance.start(token)
-	except KeyboardInterrupt:
-		pass
-	finally:
-		await instance.close()

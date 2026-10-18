@@ -43,7 +43,7 @@ async def server_detail(server_id: int) -> Response | str:
 			config.position,
 			await config.queue,
 			server_id,
-			(await panel_app.get_from_bot("guild", server_id=server_id)).name,
+			panel_app.bot.get_guild(server_id).name,
 			config.volume,
 		)
 		return await render_template(

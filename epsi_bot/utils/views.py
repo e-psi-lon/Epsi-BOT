@@ -5,7 +5,7 @@ import pytubefix  # type: ignore[import-untyped]
 
 from epsi_bot.utils.audio import get_youtube, play_song
 from epsi_bot.utils.constants import EMBED_ERROR_BOT_NOT_CONNECTED, MAX_TRACK_LENGTH
-from epsi_bot.utils.models import Queue, Server, Song, User, database_context
+from epsi_bot.utils.models import Queue, Server, Song, User
 
 
 class SelectVideo(discord.ui.Select):
@@ -152,56 +152,54 @@ class SelectVideo(discord.ui.Select):
 				)
 			)
 			return
-
-		async with database_context():
-			server = await Server.get(server_id=interaction.guild.id).prefetch_related(
-				"queue", "queue__song"
+		server = await Server.get(server_id=interaction.guild.id).prefetch_related(
+			"queue", "queue__song"
+		)
+		if not await server.queue.all():
+			server.position = 0
+			await server.save()
+			yt_video = get_youtube(selected_url)
+			song, _ = await Song.get_or_create_important(
+				["url"], url=selected_url, name=yt_video.title
 			)
-			if not await server.queue.all():
-				server.position = 0
-				await server.save()
-				yt_video = get_youtube(selected_url)
-				song, _ = await Song.get_or_create_important(
-					["url"], url=selected_url, name=yt_video.title
-				)
-				user, _ = await User.get_or_create(discord_id=interaction.user.id)
-				await Queue.create(song=song, asker=user, position=0, server=server)
-			else:
-				yt_video = get_youtube(selected_url)
-				song, _ = await Song.get_or_create_important(
-					["url"], url=selected_url, name=yt_video.title
-				)
-				user, _ = await User.get_or_create(discord_id=interaction.user.id)
-				await Queue.create(
-					song=song, asker=user, position=len(server.queue), server=server
-				)
+			user, _ = await User.get_or_create(discord_id=interaction.user.id)
+			await Queue.create(song=song, asker=user, position=0, server=server)
+		else:
+			yt_video = get_youtube(selected_url)
+			song, _ = await Song.get_or_create_important(
+				["url"], url=selected_url, name=yt_video.title
+			)
+			user, _ = await User.get_or_create(discord_id=interaction.user.id)
+			await Queue.create(
+				song=song, asker=user, position=len(server.queue), server=server
+			)
 
-			if interaction.guild.voice_client is None:
-				await interaction.message.edit(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
-				return
+		if interaction.guild.voice_client is None:
+			await interaction.message.edit(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
+			return
 
-			if not interaction.guild.voice_client.is_playing():
-				await interaction.message.edit(
-					embed=discord.Embed(
-						title="Play",
-						description=f"Playing song "
-						f"[{get_youtube(selected_url).title}]"
-						f"({selected_url})",
-						color=discord.Color.green(),
-					)
+		if not interaction.guild.voice_client.is_playing():
+			await interaction.message.edit(
+				embed=discord.Embed(
+					title="Play",
+					description=f"Playing song "
+					f"[{get_youtube(selected_url).title}]"
+					f"({selected_url})",
+					color=discord.Color.green(),
 				)
-				await play_song(self.ctx, server.queue[server.position].song.url)
-				return
-			else:
-				await interaction.message.edit(
-					embed=discord.Embed(
-						title="Queue",
-						description=f"Song "
-						f"[{get_youtube(selected_url).title}]"
-						f"({selected_url}) added to queue.",
-						color=discord.Color.green(),
-					)
+			)
+			await play_song(self.ctx, server.queue[server.position].song.url)
+			return
+		else:
+			await interaction.message.edit(
+				embed=discord.Embed(
+					title="Queue",
+					description=f"Song "
+					f"[{get_youtube(selected_url).title}]"
+					f"({selected_url}) added to queue.",
+					color=discord.Color.green(),
 				)
+			)
 
 
 class Research(discord.ui.View):
