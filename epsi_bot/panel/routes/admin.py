@@ -55,8 +55,6 @@ async def _get_admin_data() -> dict[str, Any]:
 
 	# Get process information
 	current_process = psutil.Process(os.getpid())
-	bot_process = psutil.Process(panel_app.bot_process.pid)
-	start_time: datetime.datetime
 	if panel_app.start_time is None:
 		start_time = datetime.datetime.now(datetime.UTC)
 	else:
@@ -71,10 +69,6 @@ async def _get_admin_data() -> dict[str, Any]:
 			"uptime": (datetime.datetime.now(datetime.UTC) - start_time).total_seconds(),
 		},
 		"bot": {
-			"pid": bot_process.pid,
-			"cpu_percent": bot_process.cpu_percent(interval=0.1),
-			"memory_percent": bot_process.memory_percent(),
-			"memory_usage": bot_process.memory_info().rss,
 			"voice_channels": sum(
 				1
 				for guild in panel_app.bot.guilds

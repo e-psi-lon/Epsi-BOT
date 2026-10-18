@@ -80,22 +80,10 @@
         </div>
     </div>
 
-    <!-- Bot Process Widget -->
+    <!-- Bot Part Widget -->
     <div class="stats-widget wide-widget">
-        <div class="stats-title">Bot Process</div>
+        <div class="stats-title">Bot Part</div>
         <div class="process-info">
-            <div class="info-row">
-                <span class="info-label">PID:</span>
-                <span class="info-value" id="botPidValue"></span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">CPU Usage:</span>
-                <span class="info-value" id="botCpuValue"></span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Memory Usage:</span>
-                <span class="info-value" id="botMemValue"></span>
-            </div>
             <div class="info-row">
                 <span class="info-label">Active Voice Channels:</span>
                 <span class="info-value" id="voiceChannels"></span>
@@ -241,9 +229,6 @@
                 document.getElementById('cpuValue').textContent = `${main_stats.cpu_percent.toFixed(2)}%`;
                 document.getElementById('memValue').textContent = `${formatBytes(main_stats.memory_usage)} (${main_stats.memory_percent.toFixed(2)}%)`;
                 document.getElementById('threadsValue').textContent = main_stats.threads;
-                document.getElementById('botPidValue').textContent = bot_stats.pid;
-                document.getElementById('botCpuValue').textContent = `${bot_stats.cpu_percent.toFixed(2)}%`;
-                document.getElementById('botMemValue').textContent = `${formatBytes(bot_stats.memory_usage)} (${bot_stats.memory_percent.toFixed(2)}%)`;
                 document.getElementById('voiceChannels').textContent = bot_stats.voice_channels;
                 document.getElementById('connectedServers').textContent = bot_stats.connected_servers;
 
