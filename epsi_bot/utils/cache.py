@@ -46,9 +46,9 @@ class AudioCache(RedisCache, CacheProtocol):
 		super().__init__(
 			serializer=Base64Serializer(),
 			namespace="audio",
-			endpoint="127.0.0.1",
-			port=11211,
-			pool_size=max(1, min(int(scale_factor**0.5), 10)),
+			endpoint=get_secret("REDIS_HOST"),
+			port=int(get_secret("REDIS_PORT")),
+			pool_max_size=max(1, min(int(scale_factor**0.5), 10)),
 			timeout=15,
 		)
 		self.logger = get_logger("Redis Audio Cache")
