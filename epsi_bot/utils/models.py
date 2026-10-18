@@ -1,14 +1,11 @@
 from abc import abstractmethod
-from collections.abc import AsyncGenerator, Iterable
-from contextlib import asynccontextmanager
+from collections.abc import Iterable
 from typing import Any
 from urllib.parse import quote_plus
 
 from tortoise import (
 	BaseDBAsyncClient,
 	Model,
-	Tortoise,
-	connections,
 	exceptions,
 	fields,
 	models,
@@ -18,7 +15,6 @@ from tortoise.fields.relational import ReverseRelation
 from tortoise.transactions import in_transaction
 from tortoise.validators import MaxValueValidator, MinValueValidator
 
-import epsi_bot.utils
 from epsi_bot.utils.loggers import get_logger
 from epsi_bot.utils.secrets import get_secret
 

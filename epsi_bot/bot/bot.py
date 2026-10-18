@@ -3,7 +3,7 @@ import pkgutil
 import sys
 import traceback
 from collections.abc import Callable, Coroutine, Iterable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import discord
@@ -86,7 +86,7 @@ class Bot(commands.Bot):
 			)
 		)
 		if self.start_time is not None:
-			self.logger.info(f"Bot ready in {datetime.now(timezone.utc) - self.start_time}")
+			self.logger.info(f"Bot ready in {datetime.now(UTC) - self.start_time}")
 		for guild in self.guilds:
 			# Si la guilde n'existe pas dans la db, on l'ajoute avec les paramètres par défaut
 			await Server.get_or_create(server_id=guild.id)

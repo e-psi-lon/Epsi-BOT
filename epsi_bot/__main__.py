@@ -1,9 +1,9 @@
 import asyncio
-import datetime
 import logging
 import os
 import signal
 import sys
+from datetime import UTC, datetime
 
 import discord
 from dotenv import load_dotenv
@@ -21,7 +21,7 @@ from epsi_bot.utils.secrets import get_secret
 if os.getenv("DOCKER_ENV") is not None:
 	load_dotenv()
 
-start_time = datetime.datetime.now(datetime.UTC)
+start_time = datetime.now(UTC)
 
 handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(CustomFormatter("Root"))

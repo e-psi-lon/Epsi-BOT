@@ -1,71 +1,8 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
-from discord import Guild, User
-from discord.abc import GuildChannel
+from discord import User
 
 from epsi_bot.utils.models import Queue
-
-
-@dataclass
-class ChannelData:
-	"""Dataclass to represent a discord channel in the panel.
-
-	Attributes
-	----------
-	name : str
-	        The name of the channel
-	id : int
-	         The id of the channel
-	type : str
-	        The type of the channel
-
-	Methods
-	-------
-	from_channel(cls, channel: GuildChannel) -> ChannelData (classmethod)
-	        Class method to create a ChannelData instance from a discord.abc.GuildChannel instance.
-	from_dict(cls, dict_: dict) -> ChannelData (classmethod)
-	        Class method to create a ChannelData instance from a dictionary.
-	"""
-
-	name: str
-	id: int
-	type: str
-
-	@classmethod
-	def from_channel(cls, channel: GuildChannel) -> ChannelData:
-		"""
-		Class method to create a ChannelData instance from a discord.abc.GuildChannel instance.
-
-		Parameters
-		----------
-		channel : GuildChannel
-		        The discord channel
-
-		Returns
-		-------
-		ChannelData
-		        The ChannelData instance
-		"""
-		# `name` in fact exists since type is an enum and enum members have a `name` attribute.
-		# noinspection PyUnresolvedReferences
-		return cls(name=channel.name, id=channel.id, type=channel.type.name)
-
-	@classmethod
-	def from_dict(cls, dict_: dict) -> ChannelData:
-		"""
-		Class method to create a ChannelData instance from a dictionary.
-
-		Parameters
-		----------
-		dict_ : dict
-		        The dictionary containing the channel data
-
-		Returns
-		-------
-		ChannelData
-		        The ChannelData instance
-		"""
-		return cls(name=dict_["name"], id=dict_["id"], type=dict_["type"])
 
 
 @dataclass
@@ -165,79 +102,6 @@ class UserData:
 			id=dict_["id"],
 			avatar=dict_["avatar"],
 		)
-
-
-@dataclass
-class GuildData:
-	"""Dataclass to represent a discord guild in the panel.
-
-	Attributes
-	----------
-	name : str
-	        The name of the guild
-	id : int
-	        The id of the guild
-	icon : str
-	        The icon's url of the guild
-	channels : list[ChannelData]
-	        The channels of the guild
-
-	Methods
-	-------
-	from_guild(cls, guild: Guild) -> GuildData (classmethod)
-	        Class method to create a GuildData instance from a discord.Guild instance.
-	from_dict(cls, dict_: dict) -> GuildData (classmethod)
-	        Class method to create a GuildData instance from a dictionary.
-	"""
-
-	name: str
-	id: int
-	icon: str
-	channels: list[ChannelData] = field(default_factory=list)
-
-	@classmethod
-	def from_guild(cls, guild: Guild) -> GuildData:
-		"""
-		Class method to create a GuildData instance from a discord.Guild instance.
-
-		Parameters
-		----------
-		guild : Guild
-		        The discord guild.
-		Returns
-		-------
-		GuildData
-		        The GuildData instance.
-		"""
-		return cls(
-			name=guild.name,
-			id=guild.id,
-			icon=getattr(guild.icon, "url", ""),
-			channels=[ChannelData.from_channel(channel) for channel in guild.channels],
-		)
-
-	@classmethod
-	def from_dict(cls, dict_: dict) -> GuildData:
-		"""
-		Class method to create a GuildData instance from a dictionary.
-
-		Parameters
-		----------
-		dict_ : dict
-		        The dictionary containing the guild data
-
-		Returns
-		-------
-		GuildData
-		        The GuildData instance
-		"""
-		return cls(
-			name=dict_["name"],
-			id=dict_["id"],
-			icon=dict_["icon"],
-			channels=[ChannelData.from_dict(channel) for channel in dict_["channels"]],
-		)
-
 
 class ConfigData:
 	"""Dataclass to represent a server's bot configuration in the panel.
