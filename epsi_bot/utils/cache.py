@@ -10,7 +10,7 @@ from typing import Any
 
 import pytubefix  # type: ignore[import-untyped]
 import redis.asyncio as redis
-from aiocache import RedisCache  # type: ignore[import-untyped]
+from aiocache import RedisCache
 from aiocache.serializers import (  # type: ignore[import-untyped]
 	JsonSerializer,
 )
@@ -53,7 +53,7 @@ class AudioCache(RedisCache, CacheProtocol):
 
 	async def get_audio(self, key: str, **_: Any) -> io.BytesIO | None:
 		"""Get a value from the cache"""
-		return (await super().get(key)) or None
+		return (await super(RedisCache, self).get(key)) or None
 
 	async def set_audio(
 		self, key: str, value: io.BytesIO, ttl: int = 3600, **_: Any
@@ -66,7 +66,7 @@ class AudioCache(RedisCache, CacheProtocol):
 		self, key: str, namespace: Any | None = None, _conn: Any | None = None
 	) -> Any:
 		"""Check if a key exists in the cache"""
-		return await super().exists(key, namespace=namespace, _conn=_conn)
+		return await super(RedisCache, self).exists(key, namespace=namespace, _conn=_conn)
 
 	async def update_ttl(self, key: str, new_ttl: int) -> None:
 		"""Update the ttl of a key in the cache"""
@@ -80,10 +80,10 @@ class AudioCache(RedisCache, CacheProtocol):
 		await super().clear(namespace=namespace, _conn=_conn)
 
 	def __aenter__(self) -> Coroutine[Any, Any, AudioCache]:
-		return super().__aenter__()
+		return super(RedisCache, self).__aenter__()
 
 	def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> Any:
-		return super().__aexit__(exc_type, exc_val, exc_tb)
+		return super(RedisCache, self).__aexit__(exc_type, exc_val, exc_tb)
 
 
 class Base64Serializer(JsonSerializer):

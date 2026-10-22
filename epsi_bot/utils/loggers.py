@@ -39,7 +39,7 @@ class CustomFormatter(logging.Formatter):
 	}
 
 	_path_cache: ClassVar[dict[str, str]] = {}
-	_NIX_STORE_RE: ClassVar[re.Pattern] = re.compile(r"^/nix/store/[a-z0-9]+-[^/]+/")
+	_NIX_STORE_RE: ClassVar[re.Pattern[str]] = re.compile(r"^/nix/store/[a-z0-9]+-[^/]+/")
 
 
 	def _calculate_path(self, cache_key: str) -> None:
@@ -116,7 +116,7 @@ def parse_args() -> argparse.Namespace:
 	return parsed
 
 
-_configured_loggers = set()
+_configured_loggers: set[str] = set()
 _queue_handlers: dict[str, logging.handlers.QueueHandler] = {}
 _queue_listeners: dict[str, logging.handlers.QueueListener] = {}
 

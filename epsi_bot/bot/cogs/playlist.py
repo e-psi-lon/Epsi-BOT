@@ -554,9 +554,12 @@ class Playlists(commands.Cog):
 		await ctx.response.defer()
 
 		# Parse playlist type
-		_, parsed_type, error = validate_and_parse_playlist("dummy", playlist_type)
-		if error:
-			await ctx.respond(embed=error)
+		parsed_type = parse_playlist_type(playlist_type)
+		if parsed_type is None:
+			await ctx.respond(embed=discord.Embed(
+				title="Error",
+				description="Invalid playlist type. Use 'server' or 'user'.",
+			))
 			return
 
 		# Use get_common_data for consistent error handling
@@ -870,7 +873,7 @@ def validate_and_parse_playlist(
 		name_error = validate_playlist_name(name)
 		if name_error:
 			return None, None, name_error
-		parsed_type = parse_playlist_name_and_type(playlist_type)[1]
+		parsed_type = parse_playlist_type(playlist_type)
 		if not parsed_type:
 			return (
 				None,
@@ -936,6 +939,11 @@ def validate_playlist_name(name: str) -> discord.Embed | None:
 	if len(name) > 20:
 		return EMBED_ERROR_NAME_TOO_LONG
 	return None
+
+_PLAYLIST_TYPES = {"server": PlaylistType.SERVER, "user": PlaylistType.USER}
+
+def parse_playlist_type(value: str | None) -> PlaylistType | None:
+    return _PLAYLIST_TYPES.get((value or "").strip().lower())
 
 
 def parse_playlist_name_and_type(name: str) -> tuple[str, PlaylistType | None]:

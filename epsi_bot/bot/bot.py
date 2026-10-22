@@ -48,6 +48,7 @@ async def update_top_songs(self: Bot) -> None:
 
 
 class Bot(commands.Bot):
+	owner_id: int
 	def __init__(
 		self,
 		command_prefix: str
@@ -56,7 +57,7 @@ class Bot(commands.Bot):
 			[commands.Bot | commands.AutoShardedBot, discord.Message],
 			str | Iterable[str] | Coroutine[Any, Any, str | Iterable[str]],
 		] = when_mentioned,
-		help_command: commands.HelpCommand | None = discord.MISSING,
+		help_command: commands.HelpCommand | None = discord.utils.MISSING,
 		**options: Any,
 	) -> None:
 		super().__init__(command_prefix, help_command, **options)
@@ -117,12 +118,12 @@ class Bot(commands.Bot):
 		embed.add_field(name="Traceback", value=f"```\n{traceback_str[:1014]}...```")
 		try:
 			await ctx.respond(embed=embed, ephemeral=True)
-			await self.get_user(self.owner_id).send(embed=embed)  # type: ignore[union-attr]
+			await (await self.get_or_fetch(discord.User, self.owner_id)).send(embed=embed)
 		except discord.HTTPException:
 			await ctx.channel.send(
 				"Ce message se supprimera d'ici 20s", embed=embed, delete_after=20
 			)
-			await self.get_user(self.owner_id).send(embed=embed)  # type: ignore[union-attr]
+			await (await self.get_or_fetch(discord.User, self.owner_id)).send(embed=embed)
 
 	async def on_error(self, event_method: str, *args: Any, **kwargs: Any) -> None:
 		context = None
@@ -157,12 +158,12 @@ class Bot(commands.Bot):
 			embed.add_field(name="Traceback", value=f"```\n{traceback_str}```")
 			try:
 				await context.respond(embed=embed, ephemeral=True)
-				await self.get_user(self.owner_id).send(embed=embed)  # type: ignore[union-attr]
+				await (await self.get_or_fetch(discord.User, self.owner_id)).send(embed=embed)
 			except discord.DiscordException:
 				await context.send(
 					"Ce message se supprimera d'ici 20s", embed=embed, delete_after=20
 				)
-				await self.get_user(self.owner_id).send(embed=embed)  # type: ignore[union-attr]
+				await (await self.get_or_fetch(discord.User, self.owner_id)).send(embed=embed)
 		else:
 			self.logger.error(
 				f"Error in {event_method}\n Error message: {exc_value}\n Traceback: {traceback_str}\n Args: {args}"

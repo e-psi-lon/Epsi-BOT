@@ -1,5 +1,6 @@
 from typing import cast
 
+from discord import Guild
 from quart import (
 	Blueprint,
 	current_app,
@@ -43,7 +44,7 @@ async def server_detail(server_id: int) -> Response | str:
 			config.position,
 			await config.queue,
 			server_id,
-			panel_app.bot.get_guild(server_id).name,
+			(await panel_app.bot.get_or_fetch(Guild, server_id)).name,
 			config.volume,
 		)
 		return await render_template(

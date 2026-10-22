@@ -63,9 +63,9 @@ EMBED_ERROR_PLAYLIST_EXISTS: Final[discord.Embed] = _embed_error(
 	"A playlist with this name already exists."
 )
 
-YOUTUBE_REGEX: Final[re.Pattern] = re.compile(
+YOUTUBE_REGEX: Final[re.Pattern[str]] = re.compile(
 	r"(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/((watch\?v=)|(embed/)|(v/)|(.+\?v=))?([^&=%?]{11})"
 )
-GET_FILE_HTTP_URL: Final[re.Pattern] = re.compile(
+GET_FILE_HTTP_URL: Final[re.Pattern[str]] = re.compile(
 	r"^https?://[^\s/$.?#]+\.[^\s/]+/.*?([^/]+\.[^/\s?#]+)(?:\?.*)?(?:#.*)?$"
 )

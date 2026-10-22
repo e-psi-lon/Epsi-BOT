@@ -114,7 +114,7 @@ async def merge_audio_streams(
 	ffmpeg = FFmpeg("ffmpeg")
 
 	# Add inputs
-	for i, stream in enumerate(audio_streams):
+	for i, _ in enumerate(audio_streams):
 		ffmpeg = ffmpeg.input(f"pipe:{i}", format=format_name)
 
 	# Add filter complex and output

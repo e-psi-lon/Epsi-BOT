@@ -36,7 +36,7 @@ async def main() -> None:
 	
 	app = create_app()
 	app.set_start_time(start_time)
-	bot = Bot(intents=discord.Intents.all(), owner_id=OWNER_ID)
+	bot = Bot(intents=discord.Intents.all(), owner_id=OWNER_ID, default_command_contexts={discord.InteractionContextType.guild})
 	bot.start_time = start_time
 	bot.logger.info(
 		f"Bot started at {start_time.strftime('%d/%m/%Y %H:%M:%S')} "
