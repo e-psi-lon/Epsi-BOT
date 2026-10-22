@@ -1,158 +1,134 @@
 import argparse
+import atexit
+import copy
+import functools
 import logging
 import logging.handlers
 import os
 import queue
 import re
 import sys
-from typing import Any, ClassVar, Literal
+import time
+from typing import ClassVar, Final
+
+_NIX_STORE_RE = re.compile(r"^/nix/store/[a-z0-9]+-[^/]+/")
+LogLevel = int | str
+
+
+@functools.cache
+def _module_path(pathname: str) -> str:
+	if m := _NIX_STORE_RE.match(pathname):
+		path = pathname[m.end():]
+		path = re.sub(r"^lib/python\d+\.\d+/site-packages/", "libs.", path)
+		path = re.sub(r"^lib/python\d+\.\d+/", "stdlib.", path)
+		path = path.replace(os.sep, ".")
+	else:
+		roots = (os.path.abspath(r) for r in sys.path if r)
+		best_root = max(
+			(r for r in roots if pathname.startswith(r + os.sep)),
+			key=len,
+			default=None,
+		)
+		if best_root:
+			path = os.path.relpath(pathname, best_root).replace(os.sep, ".")
+			if os.path.basename(best_root) == "site-packages":
+				path = f"libs.{path}"
+		else:
+			path = os.path.relpath(pathname, os.getcwd()).replace(os.sep, ".")
+	return path.removesuffix(".py").lower()
 
 
 class CustomFormatter(logging.Formatter):
-	"""Custom formatter for the bot and the panel's logs"""
-
-	def __init__(
-		self,
-		source: str,
-		fmt: str | None = None,
-		datefmt: str | None = None,
-		style: Literal["%", "{", "$"] = "%",
-		validate: bool = True,
-		*,
-		defaults: dict[str, Any] | None = None,
-	) -> None:
-		super().__init__(
-			fmt=fmt, datefmt=datefmt, style=style, validate=validate, defaults=defaults
-		)
-		self.source = source
-
-	FORMAT = (
-		"[{asctime}] {source} — {color}{levelname}\033[0m : {message} ({path}:{lineno})"
-	)
-
-	FORMATS: ClassVar[dict[int, str]] = {
-		logging.DEBUG: "\033[34m",  # Blue
-		logging.INFO: "\033[32m",  # Green
-		logging.WARNING: "\033[33m",  # Yellow
-		logging.ERROR: "\033[31m",  # Red
-		logging.CRITICAL: "\033[41m",  # Red
+	COLORS: ClassVar[dict[int, str]] = {
+		logging.DEBUG: "\033[34m",     # Blue
+		logging.INFO: "\033[32m",      # Green
+		logging.WARNING: "\033[33m",   # Yellow
+		logging.ERROR: "\033[31m",     # Red
+		logging.CRITICAL: "\033[41m",  # Red background
 	}
-
-	_path_cache: ClassVar[dict[str, str]] = {}
-	_NIX_STORE_RE: ClassVar[re.Pattern[str]] = re.compile(r"^/nix/store/[a-z0-9]+-[^/]+/")
-
-
-	def _calculate_path(self, cache_key: str) -> None:
-		if cache_key not in self._path_cache:
-			path = cache_key
-			nix_match = self._NIX_STORE_RE.match(path)
-			if nix_match:
-				path = path[nix_match.end():]
-				path = re.sub(r"^lib/python\d+\.\d+/site-packages/", "libs.", path)
-				path = re.sub(r"^lib/python\d+\.\d+/", "stdlib.", path)
-				path = path.replace(os.sep, ".")
-			else:
-				best_root = None
-				for root in sys.path:
-					if not root:
-						continue
-					root_abs = os.path.abspath(root)
-					if path.startswith(root_abs + os.sep) and (
-						best_root is None or len(root_abs) > len(best_root)
-					):
-						best_root = root_abs
-				if best_root:
-					rel = os.path.relpath(path, best_root)
-					path = rel.replace(os.sep, ".")
-					if os.path.basename(best_root) == "site-packages":
-						path = f"libs.{path}"
-				else:
-					path = os.path.relpath(path, os.getcwd()).replace(os.sep, ".")
-
-			path = path.removesuffix(".py").lower()
-			self._path_cache[cache_key] = path
+	def __init__(self, source: str | None = None) -> None:
+		super().__init__(
+			fmt=(
+				"[{asctime}] {source} — {color}{levelname}\033[0m : "
+				"{message} ({module_path}:{lineno})"
+			),
+			datefmt="%d/%m/%Y %H:%M:%S UTC",
+			style="{",
+		)
+		self.converter = time.gmtime
+		self.source = source
 
 
 	def format(self, record: logging.LogRecord) -> str:
-		log_color = self.FORMATS.get(record.levelno)
-
-		# Cache key based on pathname
-		cache_key = record.pathname
-		self._calculate_path(cache_key)
-		
-
-		formatter = logging.Formatter(
-			self.FORMAT,
-			"%d/%m/%Y %H:%M:%S",
-			"{",
-			True,
-			defaults={
-				"source": self.source,
-				"path": self._path_cache[cache_key],
-				"color": log_color,
-			},
+		record = copy.copy(record)
+		record.__dict__.update(
+			source=self.source or record.__dict__.get("source", record.name),
+			color=self.COLORS.get(record.levelno, ""),
+			module_path=_module_path(record.pathname),
 		)
-		return formatter.format(record)
+		return super().format(record)
 
+
+class _SourceFilter(logging.Filter):
+	def __init__(self, source: str) -> None:
+		super().__init__()
+		self.source = source
+
+	def filter(self, record: logging.LogRecord) -> bool:
+		record.source = self.source
+		return True
+
+
+_VALID_LEVELS: Final[set[str]] = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 
 def parse_args() -> argparse.Namespace:
-	parser = argparse.ArgumentParser()
+	parser = argparse.ArgumentParser(add_help=False)
 	parser.add_argument(
 		"--log-level",
-		type=str,
 		default="INFO",
-		help="The log level of the bot (valid levels: DEBUG, INFO, WARNING, ERROR, CRITICAL)",
-		required=False,
+		help=f"Log level (valid: {', '.join(_VALID_LEVELS)})",
 	)
 	parsed = parser.parse_known_args()[0]
-	if not hasattr(parsed, "log_level") or parsed.log_level.upper() not in [
-		"DEBUG",
-		"INFO",
-		"WARNING",
-		"ERROR",
-		"CRITICAL",
-	]:
+	if parsed.log_level.upper() not in _VALID_LEVELS:
 		parsed.log_level = "INFO"
 	return parsed
 
 
+_log_queue: queue.SimpleQueue[logging.LogRecord] = queue.SimpleQueue()
+_listener: logging.handlers.QueueListener | None = None
 _configured_loggers: set[str] = set()
-_queue_handlers: dict[str, logging.handlers.QueueHandler] = {}
-_queue_listeners: dict[str, logging.handlers.QueueListener] = {}
+
+@functools.cache
+def _default_level() -> str:
+	return parse_args().log_level.upper()
 
 
-def get_logger(
-	name: str, level: int | None = parse_args().log_level.upper()
-) -> logging.Logger:
-	"""Get a logger with the specified name and level"""
+def _ensure_listener() -> None:
+	global _listener
+	if _listener is not None:
+		return
+	stream_handler = logging.StreamHandler()
+	stream_handler.setFormatter(CustomFormatter())  # source comes from the record
+	_listener = logging.handlers.QueueListener(
+		_log_queue, stream_handler, respect_handler_level=True
+	)
+	_listener.start()
+	atexit.register(_listener.stop)
+
+
+def get_logger(name: str, level: LogLevel | None = None) -> logging.Logger:
+	"""Get a logger with the specified name and level."""
 	logger = logging.getLogger(name)
 	if name in _configured_loggers:
 		return logger
+
+	_ensure_listener()
+	handler = logging.handlers.QueueHandler(_log_queue)
+	handler.addFilter(_SourceFilter(name))
+
 	logger.propagate = False
-	if level is not None:
-		logger.setLevel(level)
-	else:
-		logger.setLevel(logging.INFO)
-	for handler in logger.handlers:
-		if isinstance(handler.formatter, CustomFormatter):
-			break
-	else:
-		logger.handlers.clear()
-		log_queue: queue.Queue[logging.LogRecord] = queue.Queue(-1)
-		queue_handler = logging.handlers.QueueHandler(log_queue)
-		logger.addHandler(queue_handler)
-		_queue_handlers[name] = queue_handler
-
-		# Set up a stream handler for the queue listener
-		stream_handler = logging.StreamHandler()
-		stream_handler.setFormatter(CustomFormatter(name))
-
-		# Create and start the queue listener
-		listener = logging.handlers.QueueListener(
-			log_queue, stream_handler, respect_handler_level=True
-		)
-		listener.start()
-		_queue_listeners[name] = listener
-
-		_configured_loggers.add(name)
+	logger.handlers.clear()
+	logger.addHandler(handler)
+	logger.setLevel(level if level is not None else _default_level())
+	_configured_loggers.add(name)
 	return logger
