@@ -30,20 +30,33 @@
 
       perSystem = { pkgs, lib, ... }:
         let
+          ffmpeg-slim = pkgs.ffmpeg-headless.override {
+            # video codecs / image formats
+            withAom = false; withDav1d = false; withSvtav1 = false; withVpx = false;
+            withX264 = false; withX265 = false; withXvid = false; withTheora = false;
+            withWebp = false; withOpenjpeg = false; withOpenapv = false;
+            withBluray = false; withZimg = false; withVidStab = false;
+            # text rendering
+            withAss = false; withFontconfig = false; withFreetype = false;
+            withFribidi = false; withHarfbuzz = false; withZvbi = false;
+            # hardware / devices
+            withVulkan = false; withV4l2 = false; withVaapi = false; withDrm = false;
+            withOpencl = false; withAlsa = false; withNvcodec = false;
+            # audio extras (this is what removes pulse/dbus/glib/jack)
+            withOpenmpt = false; withMp3lame = false; withVorbis = false; withSpeex = false;
+            # network extras (gnutls stays on)
+            withSsh = false; withSrt = false; withRist = false; withGmp = false;
+            # build time and size
+            withSmallBuild = true;
+            withCudaLLVM = false;
+            withHtmlDoc = false; withManPages = false; withPodDoc = false; withTxtDoc = false;
+          };
           workspace = uv2nix.lib.workspace.loadWorkspace { workspaceRoot = ./.; };
 
           overlay = workspace.mkPyprojectOverlay {
             sourcePreference = "wheel";
           };
           pyprojectOverrides = final: prev: {
-            pynacl = prev.pynacl.overrideAttrs (old: {
-              buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.libsodium ];
-              nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.pkg-config ];
-            });
-            asyncpg = prev.asyncpg.overrideAttrs (old: {
-              nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.pkg-config ];
-              buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.postgresql.lib ];
-            });
             epsi-bot = prev.epsi-bot.overrideAttrs (old: {
               nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ final.resolveBuildSystem {
                 editables = [ ];
@@ -61,6 +74,18 @@
               ]);
 
           venv = pythonSet.mkVirtualEnv "epsi-bot-env" workspace.deps.default;
+          runtimeDeps = [ ffmpeg-slim ];
+
+          epsi-bot = pkgs.symlinkJoin {
+            name = "epsi-bot";
+            paths = [ venv ];
+            nativeBuildInputs = [ pkgs.makeWrapper ];
+            postBuild = ''
+              wrapProgram $out/bin/epsi-bot \
+                --prefix PATH : ${lib.makeBinPath runtimeDeps}
+            '';
+            meta.mainProgram = "epsi-bot";
+          };
 
           editableOverlay = workspace.mkEditablePyprojectOverlay {
             root = "$REPO_ROOT";
@@ -70,14 +95,14 @@
         in
         {
           packages = {
-            default = venv;
-            epsi-bot = venv;
+            default = epsi-bot;
+            epsi-bot = epsi-bot;
             image = pkgs.dockerTools.streamLayeredImage {
               name = "epsi-bot";
               tag = "latest";
-              contents = with pkgs; [ venv cacert ];
+              contents = with pkgs; [ epsi-bot cacert ];
               config = {
-                Entrypoint = [ "${venv}/bin/epsi-bot" ];
+                Entrypoint = [ (lib.getExe epsi-bot) ];
                 Env = [
                   "DB_USER=epsi_bot"
                   "DB_NAME=epsi_bot"
@@ -89,20 +114,18 @@
 
           apps.default = {
             type = "app";
-            program = "${venv}/bin/epsi-bot";
+            program = lib.getExe epsi-bot;
           };
 
           devShells.default = pkgs.mkShell {
-            packages = with pkgs; [
-              editableVenv
+             packages = [ editableVenv ] ++ runtimeDeps ++ (with pkgs; [
               uv
-              ffmpeg
               libsodium
               postgresql
               pkg-config
               gcc
               git
-            ];
+            ]);
 
             env = {
               UV_NO_SYNC = "1";
@@ -119,9 +142,9 @@
           };
 
           devShells.impure = pkgs.mkShell {
-            packages = with pkgs; [ python uv ffmpeg libsodium postgresql pkg-config gcc git ];
-            env = {
-              UV_PYTHON = "${python}/bin/python3.14";
+              packages = [ python ] ++ runtimeDeps ++ (with pkgs; [ uv libsodium postgresql pkg-config gcc git ]);
+              env = {
+              UV_PYTHON = lib.getExe python;
               UV_PYTHON_DOWNLOADS = "never";
               UV_LINK_MODE = "copy";
             };
