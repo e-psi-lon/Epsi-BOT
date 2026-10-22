@@ -1,9 +1,7 @@
 import asyncio
-import binascii
 import hashlib
 import io
 import logging
-import zlib
 from collections.abc import Coroutine
 from math import log2
 from typing import Any
@@ -12,7 +10,7 @@ import pytubefix  # type: ignore[import-untyped]
 import redis.asyncio as redis
 from aiocache import RedisCache
 from aiocache.serializers import (  # type: ignore[import-untyped]
-	JsonSerializer,
+	BaseSerializer,
 )
 
 from epsi_bot.utils import requests
@@ -41,8 +39,8 @@ class AudioCache(RedisCache, CacheProtocol):
 
 	def __init__(self, scale_factor: int = 5):
 		scale_factor = max(scale_factor, 1)
-		super().__init__(
-			serializer=Base64Serializer(),
+		super(RedisCache, self).__init__(
+			serializer=AudioSerializer(),
 			namespace="audio",
 			endpoint=get_secret("REDIS_HOST"),
 			port=int(get_secret("REDIS_PORT")),
@@ -73,12 +71,6 @@ class AudioCache(RedisCache, CacheProtocol):
 		key = self.build_key(key, namespace=self.namespace)
 		await self.client.touch(key.encode(), new_ttl)
 
-	async def clear(
-		self, namespace: Any | None = None, _conn: Any | None = None
-	) -> None:
-		"""Clear the cache"""
-		await super().clear(namespace=namespace, _conn=_conn)
-
 	def __aenter__(self) -> Coroutine[Any, Any, AudioCache]:
 		return super(RedisCache, self).__aenter__()
 
@@ -86,23 +78,14 @@ class AudioCache(RedisCache, CacheProtocol):
 		return super(RedisCache, self).__aexit__(exc_type, exc_val, exc_tb)
 
 
-class Base64Serializer(JsonSerializer):
-	def dumps(self, value: Any) -> str:
-		if isinstance(value, io.BytesIO):
-			logger = get_logger("Redis")
-			logger.debug(f"Audio size: {len(value.getvalue())} bytes")
-			compressed = zlib.compress(value.getvalue())
-			logger.debug(f"Compressed audio size: {len(compressed)} bytes")
-			return binascii.hexlify(compressed).decode()
-		return super().dumps(value)
+class AudioSerializer(BaseSerializer):
+    DEFAULT_ENCODING = None  # values reach loads() as raw bytes
 
-	def loads(self, value: str) -> io.BytesIO | Any:
-		try:
-			val = io.BytesIO(zlib.decompress(binascii.unhexlify(value.encode())))
-			val.seek(0)
-			return val
-		except (TypeError, binascii.Error, zlib.error, AttributeError):
-			return super().loads(value)
+    def dumps(self, value: io.BytesIO) -> bytes:
+        return value.getvalue()
+
+    def loads(self, value: bytes | None) -> io.BytesIO | None:
+        return None if value is None else io.BytesIO(value)
 
 
 async def get_or_download_audio(url: str, cache: AudioCache) -> io.BytesIO:

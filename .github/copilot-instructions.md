@@ -26,7 +26,6 @@ Epsi-BOT is a Discord music bot written in Python 3.13+ with a sophisticated dua
 ### Redis Integration
 - **Audio Cache**: Compressed audio files with TTL management and bulk operations
 - **Session Storage**: Discord OAuth2 tokens and user data
-- **Custom Compression**: Base64 + zlib compression for audio data
 
 ## Bot Architecture
 
@@ -95,7 +94,6 @@ BaseModel (abstract)
 
 ### Audio Cache System (`epsi_bot/utils/cache.py`)
 - **Intelligent Caching**: TTL-based with automatic refresh for popular tracks
-- **Compression**: zlib + base64 encoding for storage efficiency
 - **Bulk Downloads**: Concurrent download system for playlists
 - **Cache Management**: Automatic cleanup and TTL updates for frequently accessed content
 
