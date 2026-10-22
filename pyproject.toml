@@ -17,7 +17,7 @@ dependencies = [
     "pynacl>=1.6.2",
     "python-dotenv>=1.2.4",
     "python-ffmpeg>=2.0.12",
-    "pytubefix>=11.2.0",
+    "pytubefix>=11.2.1",
     "quart>=0.23.1",
     "quart-session>=3.0.0",
     "tortoise-orm[asyncpg]>=1.1.9",
@@ -44,9 +44,10 @@ dev = [
     "pytest>=9.1.1",
     "pytest-aio>=2.1.7",
     "pytest-cov>=7.1.0",
-    "pytest-mock>=3.16.0",
-    "ruff>=0.17.0",
+    "pytest-mock>=3.17.0",
+    "ruff>=0.17.2",
     "pre-commit>=4.7.0",
+    "types-yt-dlp>=2026.8.19.20261008",
 ]
 
 
