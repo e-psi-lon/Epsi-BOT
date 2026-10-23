@@ -47,13 +47,13 @@ class Queue(commands.Cog):
 			if i == server.position:
 				embed.add_field(
 					name=f"{i + 1}. {song.name} - __**Now Playing**__",
-					value=f"{song.url} asked by <@{queue_elem.asker.discord_id}>",
+					value=f"{song.url} asked by <@{queue_elem.asker.user_id}>",
 					inline=False,
 				)
 			else:
 				embed.add_field(
 					name=f"{i + 1}. {song.name}",
-					value=f"{song.url} asked by <@{queue_elem.asker.discord_id}>",
+					value=f"{song.url} asked by <@{queue_elem.asker.user_id}>",
 					inline=False,
 				)
 		await ctx.respond(embed=embed)
@@ -178,7 +178,7 @@ class Queue(commands.Cog):
 		song = queue_elem.song
 		embed = discord.Embed(
 			title="Now Playing",
-			description=f"[{song.name}]({song.url}) asked by <@{queue_elem.asker.discord_id}>",
+			description=f"[{song.name}]({song.url}) asked by <@{queue_elem.asker.user_id}>",
 			color=discord.Color.green(),
 		)
 		await ctx.respond(embed=embed)

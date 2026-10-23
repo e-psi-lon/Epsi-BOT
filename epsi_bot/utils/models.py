@@ -1,16 +1,13 @@
-from abc import abstractmethod
 from collections.abc import Iterable
 from typing import Any
-from urllib.parse import quote_plus
+from urllib.parse import quote
 
 from tortoise import (
 	BaseDBAsyncClient,
 	Model,
-	exceptions,
 	fields,
-	models,
 )
-from tortoise.exceptions import IntegrityError, NoValuesFetched, OperationalError
+from tortoise.exceptions import IntegrityError, OperationalError
 from tortoise.fields.relational import ReverseRelation
 from tortoise.transactions import in_transaction
 from tortoise.validators import MaxValueValidator, MinValueValidator
@@ -34,6 +31,8 @@ __all__ = [
 	"get_db_url",
 ]
 
+_logger = get_logger("Database")
+
 
 class BaseModel(Model):
 	"""
@@ -46,9 +45,9 @@ class BaseModel(Model):
 	Attributes
 	----------
 	created_at : fields.DatetimeField
-	        Automatically sets the creation timestamp when an object is first created
+			Automatically sets the creation timestamp when an object is first created
 	updated_at : fields.DatetimeField
-	        Automatically updates the timestamp whenever an object is modified
+			Automatically updates the timestamp whenever an object is modified
 	"""
 
 	created_at = fields.DatetimeField(auto_now_add=True)
@@ -61,7 +60,6 @@ class BaseModel(Model):
 		force_create: bool = False,
 		force_update: bool = False,
 	) -> None:
-		logger = get_logger("Database")
 		try:
 			await super().save(
 				using_db=using_db,
@@ -69,78 +67,32 @@ class BaseModel(Model):
 				force_create=force_create,
 				force_update=force_update,
 			)
-			logger.debug(f"Saved {self}")
-		except (IntegrityError, OperationalError):
-			logger.exception(f"Error while saving {self}: ")
+			_logger.debug("Saved %s", self)
+		except IntegrityError:
+			raise
+		except OperationalError:
+			_logger.exception("Error while saving %s: ", self)
 			raise
 
-	@classmethod
-	async def get_or_create_important(
-		cls: type[models.MODEL], important_fields: list[str], **kwargs: Any
-	) -> tuple[models.MODEL, bool]:
-		"""
-		Class method to retrieve an existing object or create a new one based on specified important fields.
-
-		Parameters
-		----------
-		important_fields : list[str]
-		    List of field names that are considered important for uniqueness checking
-		**kwargs : Any
-		    Additional field values to use for object creation or retrieval
-
-		Returns
-		-------
-		tuple[models.MODEL, bool]
-		    A tuple containing the retrieved or created object and a boolean indicating
-		    whether the object was created (True) or retrieved (False)
-		"""
-		importants = {key: kwargs.pop(key) for key in important_fields}
-
-		# First try to get existing
-		try:
-			item = await cls.get(**importants)
-			return item, False
-		except exceptions.DoesNotExist:
-			# Create new with all fields at once
-			create_data = {**importants, **kwargs}
-			item = await cls.create(**create_data)
-			return item, True
+	def _describe(self, *, expand: bool) -> str:
+		parts: list[str] = []
+		for name in self._meta.fields:
+			try:
+				value = getattr(self, name)
+				if isinstance(value, ReverseRelation):
+					value = [repr(v) for v in value] if expand else "<ReverseRelation>"
+			except OperationalError:
+				value = None
+			except TypeError:
+				value = "<not serializable>"
+			parts.append(f"{name}={value}")
+		return f"{type(self).__name__}({', '.join(parts)})"
 
 	def __repr__(self) -> str:
-		class_name = self.__class__.__name__
-		elements = []
-		for elem in self._meta.fields:
-			try:
-				element = getattr(self, elem)
-				if isinstance(element, ReverseRelation):
-					try:
-						element = [repr(elem) for elem in element]
-						elements.append(f"{elem}={element}")
-					except NoValuesFetched:
-						elements.append(f"{elem}=None")
-				else:
-					elements.append(f"{elem}={getattr(self, elem)}")
-			except OperationalError:
-				elements.append(f"{elem}=None")
-			except TypeError:
-				elements.append(f"{elem}=<not serializable>")
-		return f"{class_name}({', '.join(elements)})"
+		return self._describe(expand=True)
 
 	def __str__(self) -> str:
-		class_name = self.__class__.__name__
-		elements = []
-		for elem in self._meta.fields:
-			try:
-				element = getattr(self, elem)
-				if isinstance(element, ReverseRelation):
-					elements.append(f"{elem}=<ReverseRelation>")
-				else:
-					elements.append(f"{elem}={getattr(self, elem)}")
-			except OperationalError:
-				elements.append(f"{elem}=None")
-			except TypeError:
-				elements.append(f"{elem}=<not serializable>")
-		return f"{class_name}({', '.join(elements)})"
+		return self._describe(expand=False)
 
 	class Meta:
 		abstract = True
@@ -152,22 +104,22 @@ class Server(BaseModel):
 
 	Attributes
 	----------
-	server_id : fields.IntField
-	        The primary key identifier for the server
+	server_id : fields.BigIntField
+			The primary key identifier for the server
 	loop_queue : fields.BooleanField
-	        Flag indicating if queue looping is enabled
+			Flag indicating if queue looping is enabled
 	loop_song : fields.BooleanField
-	        Flag indicating if song looping is enabled
+			Flag indicating if song looping is enabled
 	position : fields.IntField
-	        Current position in the queue
+			Current position in the queue
 	random : fields.BooleanField
-	        Flag indicating if random mode is enabled
+			Flag indicating if random mode is enabled
 	volume : fields.IntField
-	        Current volume level (0-100)
+			Current volume level (0-100)
 	queue : fields.ReverseRelation
-	        Associated queue entries for the server
+			Associated queue entries for the server
 	playlists : fields.ReverseRelation
-	        Associated playlists for the server
+			Associated playlists for the server
 	"""
 
 	server_id = fields.BigIntField(primary_key=True, generated=False)
@@ -188,16 +140,13 @@ class User(BaseModel):
 
 	Attributes
 	----------
-	user_id : fields.IntField
-	        The primary key identifier for the user
-	discord_id : fields.BigIntField
-	        Unique Discord identifier for the user
+	user_id : fields.BigIntField
+			The primary key identifier for the user
 	playlists : fields.ReverseRelation
-	        Associated playlists belonging to the user
+			Associated playlists belonging to the user
 	"""
 
-	user_id = fields.IntField(primary_key=True)
-	discord_id = fields.BigIntField(unique=True)
+	user_id = fields.BigIntField(primary_key=True, generated=False)
 	playlists: fields.ReverseRelation[UserPlaylist]
 
 
@@ -208,11 +157,11 @@ class Playlist(BaseModel):
 	Attributes
 	----------
 	playlist_id : fields.IntField
-	        The primary key identifier for the playlist
+			The primary key identifier for the playlist
 	name : fields.CharField
-	        The name of the playlist, with a maximum length of 100 characters
+			The name of the playlist, with a maximum length of 100 characters
 	songs : fields.ReverseRelation
-	        Reverse relation that links the playlist to its associated songs
+			Reverse relation that links the playlist to its associated songs
 	"""
 
 	playlist_id = fields.IntField(primary_key=True)
@@ -227,11 +176,11 @@ class Song(BaseModel):
 	Attributes
 	----------
 	song_id : fields.IntField
-	        The primary key identifier for the song
+			The primary key identifier for the song
 	name : fields.CharField
-	        The name of the song, with a maximum length of 100 characters
+			The name of the song, with a maximum length of 100 characters
 	url : fields.CharField
-	        The unique URL of the song, with a maximum length of 200 characters
+			The unique URL of the song, with a maximum length of 200 characters
 	"""
 
 	song_id = fields.IntField(primary_key=True)
@@ -246,7 +195,7 @@ class AudioReference(BaseModel):
 	"""
 
 	asker: fields.ForeignKeyRelation[User] = fields.ForeignKeyField("models.User")
-	position = fields.IntField()
+	position: fields.IntField = fields.IntField()
 	song: fields.ForeignKeyRelation[Song] = fields.ForeignKeyField(
 		"models.Song", on_delete=fields.CASCADE
 	)
@@ -254,7 +203,6 @@ class AudioReference(BaseModel):
 	class Meta:
 		abstract = True
 
-	@abstractmethod
 	def _get_scope_field(self) -> dict[str, Any]:
 		"""
 		Abstract method to get the scope field for position calculation.
@@ -264,8 +212,9 @@ class AudioReference(BaseModel):
 		Returns
 		-------
 		dict[str, Any]
-		        A dictionary representing the scope field for filtering
+				A dictionary representing the scope field for filtering
 		"""
+		raise NotImplementedError("Subclasses must implement _get_scope_field()")
 
 	async def save(
 		self,
@@ -276,13 +225,13 @@ class AudioReference(BaseModel):
 	) -> None:
 		async with in_transaction():
 			if self.position is None:
-				# Use the correct filter depending on subclass
-				values = await (
+				last = await (
 					self.__class__.filter(**self._get_scope_field())
 					.select_for_update()
+					.order_by("-position")
+					.first()
 				)
-				max_position = max((v.position for v in values), default=0)
-				self.position = max_position + 1
+				self.position = (last.position if last else 0) + 1
 			return await super().save(
 				using_db=using_db,
 				update_fields=update_fields,
@@ -300,7 +249,7 @@ class PlaylistReference(BaseModel):
 	Attributes
 	----------
 	playlist : fields.ForeignKeyRelation
-	        A foreign key reference to the Playlist model
+			A foreign key reference to the Playlist model
 	"""
 
 	playlist: fields.ForeignKeyRelation[Playlist] = fields.ForeignKeyField(
@@ -319,13 +268,13 @@ class PlaylistSong(AudioReference):
 	Attributes
 	----------
 	asker : fields.ForeignKeyRelation
-	        Link to the User who added the song
+			Link to the User who added the song
 	playlist : fields.ForeignKeyRelation
-	        Link to the associated playlist
+			Link to the associated playlist
 	position : fields.IntField
-	        The song's position within the playlist
+			The song's position within the playlist
 	song : fields.ForeignKeyRelation
-	        Link to the associated song
+			Link to the associated song
 	"""
 
 	playlist: fields.ForeignKeyRelation[Playlist] = fields.ForeignKeyField(
@@ -348,13 +297,13 @@ class Queue(AudioReference):
 	Attributes
 	----------
 	asker : fields.ForeignKeyRelation
-	        The user who requested the song
+			The user who requested the song
 	position : fields.IntField
-	        The position of the song within the queue
+			The position of the song within the queue
 	server : fields.ForeignKeyRelation
-	        The server to which the queue belongs
+			The server to which the queue belongs
 	song : fields.ForeignKeyRelation
-	        The song associated with the queued entry
+			The song associated with the queued entry
 	"""
 
 	server: fields.ForeignKeyRelation[Server] = fields.ForeignKeyField(
@@ -366,7 +315,7 @@ class Queue(AudioReference):
 
 	class Meta:
 		unique_together = (("server", "song"),)
-		indexes = [("server", "position")]  # noqa: RUF012
+		indexes = [("server", "position"), ("song_id",)]  # noqa: RUF012
 
 
 class ServerPlaylist(PlaylistReference):
@@ -377,7 +326,7 @@ class ServerPlaylist(PlaylistReference):
 	Attributes
 	----------
 	server : fields.ForeignKeyRelation
-	        A foreign key reference to the Server model
+			A foreign key reference to the Server model
 	"""
 
 	server: fields.ForeignKeyRelation[Server] = fields.ForeignKeyField(
@@ -396,7 +345,7 @@ class UserPlaylist(PlaylistReference):
 	Attributes
 	----------
 	user : fields.ForeignKeyRelation
-	        A foreign key relation linking to the associated User
+			A foreign key relation linking to the associated User
 	"""
 
 	user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
@@ -413,36 +362,26 @@ class SongListenCount(BaseModel):
 
 	Attributes
 	----------
-	song : fields.ForeignKeyRelation
-	        Foreign key relation to the Song model
+	song : fields.OneToOneRelation
+			Foreign key relation to the Song model
 	count : fields.IntField
-	        Count of how many times the song has been listened to
+			Count of how many times the song has been listened to
 	"""
 
-	song: fields.ForeignKeyRelation[Song] = fields.ForeignKeyField(
-		"models.Song", related_name="listen_count", unique=True
+	song: fields.OneToOneRelation[Song] = fields.OneToOneField(
+		"models.Song", related_name="listen_count"
 	)
 	count = fields.IntField(default=0, validators=[MinValueValidator(0)])
 
 
-def get_db_url() -> str:
-	"""
-	Returns the database URL for the Tortoise-ORM configuration.
+def _require(name: str) -> str:
+	if not (value := get_secret(name)):
+		raise ValueError(f"Secret '{name}' is not set")
+	return value
 
-	Returns
-	-------
-	str
-	        The database URL for the Tortoise-ORM configuration
-	"""
-	required = ("DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT", "DB_NAME")
-	for var in required:
-		if not get_secret(var):
-			raise ValueError(f"Environment variable '{var}' is not set")
-	# Load everything from the environment variables
-	return (
-		f"asyncpg://{get_secret('DB_USER')}:"
-		+ f"{quote_plus(get_secret('DB_PASSWORD'))}@"
-		+ f"{get_secret('DB_HOST')}:"
-		+ f"{get_secret('DB_PORT')}/"
-		+ f"{get_secret('DB_NAME')}"
+
+def get_db_url() -> str:
+	user, password, host, port, name = (
+		_require(n) for n in ("DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT", "DB_NAME")
 	)
+	return f"asyncpg://{quote(user, safe='')}:{quote(password, safe='')}@{host}:{port}/{name}"

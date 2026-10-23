@@ -33,9 +33,9 @@ The bot uses MySQL for data persistence. You need to provide all the information
 
 **User** — Discord user mapping
 
-| ASKER_ID (PK) | DISCORD_ID (UQ) |
-|---------------|-----------------|
-| INTEGER       | INTEGER         |
+| ASKER_ID (PK) |
+|---------------|
+| INTEGER       |
 
 ### Playlists
 

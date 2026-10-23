@@ -86,7 +86,7 @@ async def _handle_server_update(server_id: int, config: models.Server) -> Respon
 			ignore_conflicts=True,
 		)
 		await models.User.bulk_create(
-			[models.User(discord_id=song["user_id"]) for song in queue_data],
+			[models.User(user_id=song["user_id"]) for song in queue_data],
 			ignore_conflicts=True,
 		)
 		await models.Queue.bulk_create(
@@ -94,7 +94,7 @@ async def _handle_server_update(server_id: int, config: models.Server) -> Respon
 				models.Queue(
 					server=config,
 					song=await models.Song.get(name=song["title"]),
-					asker=await models.User.get(discord_id=song["user_id"]),
+					asker=await models.User.get(user_id=song["user_id"]),
 				)
 				for song in queue_data
 			],
@@ -127,7 +127,7 @@ async def add_song(server_id: int) -> Response:
 		song, _ = await models.Song.get_or_create(
 			name=form_data["name"], url=form_data["url"]
 		)
-		user, _ = await models.User.get_or_create(discord_id=session["user"].id)
+		user, _ = await models.User.get_or_create(user_id=session["user"].id)
 
 		queue_item = await models.Queue.create(server=config, song=song, asker=user)
 		await queue_item.save()

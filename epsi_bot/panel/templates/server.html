@@ -50,7 +50,7 @@
                     <div class="url" draggable="false"><a draggable="false" target="_blank"
                                                           href={{ queue.song.url }}>{{ queue.song.url }}</a></div>
                     <div class="asker">Asked
-                        by {{ app.bot.get_user(queue.asker.discord_id).global_name }}
+                        by {{ app.bot.get_user(queue.asker.user_id).global_name }}
                     </div>
                     <button class="remove"
                             onclick="window.location.href='/server/{{ server.id }}/remove/{{ queue.song.id }}'"

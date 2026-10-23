@@ -159,17 +159,17 @@ class SelectVideo(discord.ui.Select):
 			server.position = 0
 			await server.save()
 			yt_video = get_youtube(selected_url)
-			song, _ = await Song.get_or_create_important(
-				["url"], url=selected_url, name=yt_video.title
+			song, _ = await Song.get_or_create(
+				url=selected_url, defaults={"name": yt_video.title}
 			)
-			user, _ = await User.get_or_create(discord_id=interaction.user.id)
+			user, _ = await User.get_or_create(user_id=interaction.user.id)
 			await Queue.create(song=song, asker=user, position=0, server=server)
 		else:
 			yt_video = get_youtube(selected_url)
-			song, _ = await Song.get_or_create_important(
-				["url"], url=selected_url, name=yt_video.title
+			song, _ = await Song.get_or_create(
+				url=selected_url, defaults={"name": yt_video.title}
 			)
-			user, _ = await User.get_or_create(discord_id=interaction.user.id)
+			user, _ = await User.get_or_create(user_id=interaction.user.id)
 			await Queue.create(
 				song=song, asker=user, position=len(server.queue), server=server
 			)

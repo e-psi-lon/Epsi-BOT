@@ -846,7 +846,7 @@ async def get_common_data(
 		)
 
 	await server.fetch_related("playlists", "playlists__playlist")
-	user, _ = await User.get_or_create(discord_id=ctx.user.id)
+	user, _ = await User.get_or_create(user_id=ctx.user.id)
 	user_playlists = await user.playlists.all().prefetch_related("playlist")
 	return server, user, user_playlists
 

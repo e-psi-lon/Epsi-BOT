@@ -81,30 +81,30 @@ async def test_playlist_crud(db_fixture):
 
 async def test_user_crud(db_fixture):
 	# Create
-	user = await User.create(discord_id=123456789)
-	assert user.discord_id == 123456789
+	user = await User.create(user_id=123456789)
+	assert user.user_id == 123456789
 	assert user.user_id is not None
 
 	# Read
-	fetched_user = await User.get(discord_id=123456789)
-	assert fetched_user.discord_id == user.discord_id
+	fetched_user = await User.get(user_id=123456789)
+	assert fetched_user.user_id == user.user_id
 
 	# Update
-	await user.update_from_dict({"discord_id": 987654321}).save()
-	updated_user = await User.get(discord_id=987654321)
-	assert updated_user.discord_id == 987654321
+	await user.update_from_dict({"user_id": 987654321}).save()
+	updated_user = await User.get(user_id=987654321)
+	assert updated_user.user_id == 987654321
 
 	# Delete
 	await user.delete()
 	with pytest.raises(DoesNotExist):
-		await User.get(discord_id=user.discord_id)
+		await User.get(user_id=user.user_id)
 
 
 async def test_playlist_relationships(db_fixture):
 	# Create test data
 	playlist = await Playlist.create(name="Test Playlist")
 	song = await Song.create(name="Test Song", url="https://test.com")
-	user = await User.create(discord_id=123456789)
+	user = await User.create(user_id=123456789)
 
 	# Create a playlist song relationship
 	playlist_song = await PlaylistSong.create(playlist=playlist, song=song, asker=user)
@@ -122,7 +122,7 @@ async def test_queue_position_auto_increment(db_fixture):
 	server = await Server.create(server_id=123456789)
 	song1 = await Song.create(name="Song 1", url="https://test1.com")
 	song2 = await Song.create(name="Song 2", url="https://test2.com")
-	user = await User.create(discord_id=987654321)
+	user = await User.create(user_id=987654321)
 
 	queue1 = await Queue.create(server=server, song=song1, asker=user)
 	queue2 = await Queue.create(server=server, song=song2, asker=user)
@@ -136,7 +136,7 @@ async def test_queue_position_auto_increment(db_fixture):
 
 async def test_user_playlist_relationships(db_fixture):
 	# Create test data
-	user = await User.get(discord_id=123456789)
+	user = await User.get(user_id=123456789)
 	playlist = await Playlist.create(name="Test Playlist")
 
 	# Create a user playlist relationship

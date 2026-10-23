@@ -195,7 +195,7 @@ async def sample_server(clean_db) -> Server:
 @pytest.fixture
 async def sample_user(clean_db) -> User:
 	"""Create a sample user for testing."""
-	return await User.create(discord_id=123456789)
+	return await User.create(user_id=123456789)
 
 
 @pytest.fixture
