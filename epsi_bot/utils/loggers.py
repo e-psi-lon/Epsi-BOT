@@ -18,7 +18,7 @@ LogLevel = int | str
 @functools.cache
 def _module_path(pathname: str) -> str:
 	if m := _NIX_STORE_RE.match(pathname):
-		path = pathname[m.end():]
+		path = pathname[m.end() :]
 		path = re.sub(r"^lib/python\d+\.\d+/site-packages/", "libs.", path)
 		path = re.sub(r"^lib/python\d+\.\d+/", "stdlib.", path)
 		path = path.replace(os.sep, ".")
@@ -40,12 +40,13 @@ def _module_path(pathname: str) -> str:
 
 class CustomFormatter(logging.Formatter):
 	COLORS: ClassVar[dict[int, str]] = {
-		logging.DEBUG: "\033[34m",     # Blue
-		logging.INFO: "\033[32m",      # Green
-		logging.WARNING: "\033[33m",   # Yellow
-		logging.ERROR: "\033[31m",     # Red
+		logging.DEBUG: "\033[34m",  # Blue
+		logging.INFO: "\033[32m",  # Green
+		logging.WARNING: "\033[33m",  # Yellow
+		logging.ERROR: "\033[31m",  # Red
 		logging.CRITICAL: "\033[41m",  # Red background
 	}
+
 	def __init__(self, source: str | None = None) -> None:
 		super().__init__(
 			fmt=(
@@ -57,7 +58,6 @@ class CustomFormatter(logging.Formatter):
 		)
 		self.converter = time.gmtime
 		self.source = source
-
 
 	def format(self, record: logging.LogRecord) -> str:
 		record = copy.copy(record)
@@ -79,7 +79,8 @@ class _SourceFilter(logging.Filter):
 		return True
 
 
-_VALID_LEVELS: Final[set[str]] = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+_VALID_LEVELS: Final[tuple[str]] = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+
 
 def parse_args() -> argparse.Namespace:
 	parser = argparse.ArgumentParser(add_help=False)
@@ -97,6 +98,7 @@ def parse_args() -> argparse.Namespace:
 _log_queue: queue.SimpleQueue[logging.LogRecord] = queue.SimpleQueue()
 _listener: logging.handlers.QueueListener | None = None
 _configured_loggers: set[str] = set()
+
 
 @functools.cache
 def _default_level() -> str:

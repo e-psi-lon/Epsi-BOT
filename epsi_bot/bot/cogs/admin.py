@@ -118,7 +118,9 @@ class Admin(commands.Cog):
 				embed.add_field(
 					name="Failed Cogs",
 					value="\n- ".join(
-						bot_cog for bot_cog in self.bot.cogs if bot_cog not in reloaded_cogs
+						bot_cog
+						for bot_cog in self.bot.cogs
+						if bot_cog not in reloaded_cogs
 					),
 					inline=False,
 				)
@@ -156,7 +158,10 @@ class Admin(commands.Cog):
 	@discord.option("message", str, description="Le message à envoyer")
 	@commands.is_owner()
 	async def send_message(
-		self, ctx: discord.ApplicationContext, channel: discord.TextChannel, message: str
+		self,
+		ctx: discord.ApplicationContext,
+		channel: discord.TextChannel,
+		message: str,
 	) -> None:
 		if ctx.author.id != self.bot.owner_id:
 			raise commands.NotOwner
@@ -173,7 +178,7 @@ class Admin(commands.Cog):
 
 	@send_message.error
 	async def send_message_error(
-		ctx: discord.ApplicationContext, error: commands.CommandError
+		self, ctx: discord.ApplicationContext, error: commands.CommandError
 	) -> None:
 		if isinstance(error, commands.NotOwner):
 			await ctx.respond("Vous n'êtes pas propriétaire du bot !", ephemeral=True)

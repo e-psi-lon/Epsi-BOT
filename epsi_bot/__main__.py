@@ -31,12 +31,18 @@ logging.basicConfig(level=log_level, handlers=[handler])
 
 
 async def main() -> None:
-	await Tortoise.init(db_url=get_db_url(), modules={"models": ["epsi_bot.utils.models"]})
+	await Tortoise.init(
+		db_url=get_db_url(), modules={"models": ["epsi_bot.utils.models"]}
+	)
 	await Tortoise.generate_schemas(safe=True)
-	
+
 	app = create_app()
 	app.set_start_time(start_time)
-	bot = Bot(intents=discord.Intents.all(), owner_id=OWNER_ID, default_command_contexts={discord.InteractionContextType.guild})
+	bot = Bot(
+		intents=discord.Intents.all(),
+		owner_id=OWNER_ID,
+		default_command_contexts={discord.InteractionContextType.guild},
+	)
 	bot.start_time = start_time
 	bot.logger.info(
 		f"Bot started at {start_time.strftime('%d/%m/%Y %H:%M:%S')} "
@@ -44,10 +50,8 @@ async def main() -> None:
 	)
 	app.bot = bot
 	token = get_secret("TOKEN")
-	if token is None:
-		bot.logger.error(
-			"No token found, please set the environment variable TOKEN"
-		)
+	if not token:
+		bot.logger.error("No token found, please set the environment variable TOKEN")
 		sys.exit(1)
 	config = Config()
 	config.bind = ["0.0.0.0:8000"]
@@ -56,10 +60,12 @@ async def main() -> None:
 	shutdown = asyncio.Event()
 	asyncio.get_running_loop().add_signal_handler(signal.SIGTERM, shutdown.set)
 	tasks = {
-        asyncio.create_task(bot.start(token), name="discord"),
-        asyncio.create_task(serve(app, config, shutdown_trigger=shutdown.wait), name="web"),
-        asyncio.create_task(shutdown.wait(), name="sigterm"),
-    }
+		asyncio.create_task(bot.start(token), name="discord"),
+		asyncio.create_task(
+			serve(app, config, shutdown_trigger=shutdown.wait), name="web"
+		),
+		asyncio.create_task(shutdown.wait(), name="sigterm"),
+	}
 	try:
 		done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
 		for task in done:
@@ -71,14 +77,17 @@ async def main() -> None:
 		shutdown.set()
 		await bot.close()
 		try:
-			await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=10)
+			await asyncio.wait_for(
+				asyncio.gather(*tasks, return_exceptions=True), timeout=10
+			)
 		except TimeoutError:
 			bot.logger.warning("Shutdown timed out, tasks were cancelled")
 		await Tortoise.close_connections()
 
 
 def run() -> None:
-    asyncio.run(main())
+	asyncio.run(main())
+
 
 if __name__ == "__main__":
-    run()
+	run()

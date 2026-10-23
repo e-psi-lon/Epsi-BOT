@@ -66,7 +66,9 @@ async def _get_admin_data() -> dict[str, Any]:
 			"memory_percent": current_process.memory_percent(),
 			"memory_usage": current_process.memory_info().rss,
 			"threads": len(current_process.threads()),
-			"uptime": (datetime.datetime.now(datetime.UTC) - start_time).total_seconds(),
+			"uptime": (
+				datetime.datetime.now(datetime.UTC) - start_time
+			).total_seconds(),
 		},
 		"bot": {
 			"voice_channels": sum(

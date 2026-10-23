@@ -49,6 +49,7 @@ async def update_top_songs(self: Bot) -> None:
 
 class Bot(commands.Bot):
 	owner_id: int
+
 	def __init__(
 		self,
 		command_prefix: str
@@ -77,7 +78,6 @@ class Bot(commands.Bot):
 		for name, result in results.items():
 			if result is not True:
 				self.logger.error("Failed to load extension %s", name, exc_info=result)
-
 
 	async def on_ready(self) -> None:
 		await self.change_presence(
@@ -118,12 +118,16 @@ class Bot(commands.Bot):
 		embed.add_field(name="Traceback", value=f"```\n{traceback_str[:1014]}...```")
 		try:
 			await ctx.respond(embed=embed, ephemeral=True)
-			await (await self.get_or_fetch(discord.User, self.owner_id)).send(embed=embed)
+			await (await self.get_or_fetch(discord.User, self.owner_id)).send(
+				embed=embed
+			)
 		except discord.HTTPException:
 			await ctx.channel.send(
 				"Ce message se supprimera d'ici 20s", embed=embed, delete_after=20
 			)
-			await (await self.get_or_fetch(discord.User, self.owner_id)).send(embed=embed)
+			await (await self.get_or_fetch(discord.User, self.owner_id)).send(
+				embed=embed
+			)
 
 	async def on_error(self, event_method: str, *args: Any, **kwargs: Any) -> None:
 		context = None
@@ -158,22 +162,27 @@ class Bot(commands.Bot):
 			embed.add_field(name="Traceback", value=f"```\n{traceback_str}```")
 			try:
 				await context.respond(embed=embed, ephemeral=True)
-				await (await self.get_or_fetch(discord.User, self.owner_id)).send(embed=embed)
+				await (await self.get_or_fetch(discord.User, self.owner_id)).send(
+					embed=embed
+				)
 			except discord.DiscordException:
 				await context.send(
 					"Ce message se supprimera d'ici 20s", embed=embed, delete_after=20
 				)
-				await (await self.get_or_fetch(discord.User, self.owner_id)).send(embed=embed)
+				await (await self.get_or_fetch(discord.User, self.owner_id)).send(
+					embed=embed
+				)
 		else:
 			self.logger.error(
 				f"Error in {event_method}\n Error message: {exc_value}\n Traceback: {traceback_str}\n Args: {args}"
 				f"\n Kwargs: {kwargs}"
 			)
-	
+
 	def get_guilds_for(self, user_id: int) -> list[discord.Guild]:
 		return [
 			guild
 			for guild in self.guilds
-			if user_id == self.owner_id or user_id is None or user_id in [member.id for member in guild.members]
+			if user_id == self.owner_id
+			or user_id is None
+			or user_id in [member.id for member in guild.members]
 		]
-

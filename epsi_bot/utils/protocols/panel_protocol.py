@@ -7,12 +7,11 @@ if TYPE_CHECKING:
 	from epsi_bot.bot.bot import Bot
 
 
-
 class PanelProtocol(Protocol):
 	start_time: datetime.datetime | None
 	timers: dict[int, TimerHandle]
 
 	bot: Bot
 	logger: logging.Logger
-	async def shutdown(self) -> None: ...
 
+	async def shutdown(self) -> None: ...

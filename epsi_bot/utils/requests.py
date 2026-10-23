@@ -47,17 +47,20 @@ async def get(
 	Union[dict, str, bytes]
 	        The response of the request
 	"""
-	async with aiohttp.ClientSession() as session, session.get(
-		url,
-		params=params,
-		data=data,
-		headers=headers,
-		cookies=cookies,
-		auth=auth,
-		allow_redirects=allow_redirects,
-		timeout=timeout,
-		json=json,
-	) as response:
+	async with (
+		aiohttp.ClientSession() as session,
+		session.get(
+			url,
+			params=params,
+			data=data,
+			headers=headers,
+			cookies=cookies,
+			auth=auth,
+			allow_redirects=allow_redirects,
+			timeout=timeout,
+			json=json,
+		) as response,
+	):
 		response.raise_for_status()
 		match return_type:
 			case "json":
@@ -107,17 +110,20 @@ async def post(
 	return_type : Literal["json", "text", "content"]
 	        The type of the return value. The default is "json".
 	"""
-	async with aiohttp.ClientSession() as session, session.post(
-		url,
-		data=data,
-		json=json,
-		params=params,
-		headers=headers,
-		cookies=cookies,
-		auth=auth,
-		allow_redirects=allow_redirects,
-		timeout=timeout,
-	) as response:
+	async with (
+		aiohttp.ClientSession() as session,
+		session.post(
+			url,
+			data=data,
+			json=json,
+			params=params,
+			headers=headers,
+			cookies=cookies,
+			auth=auth,
+			allow_redirects=allow_redirects,
+			timeout=timeout,
+		) as response,
+	):
 		response.raise_for_status()
 		match return_type:
 			case "json":
@@ -163,14 +169,17 @@ async def head(
 	dict
 	        The response headers of the request
 	"""
-	async with aiohttp.ClientSession() as session, session.head(
-		url,
-		params=params,
-		headers=headers,
-		cookies=cookies,
-		auth=auth,
-		allow_redirects=allow_redirects,
-		timeout=timeout,
-	) as response:
+	async with (
+		aiohttp.ClientSession() as session,
+		session.head(
+			url,
+			params=params,
+			headers=headers,
+			cookies=cookies,
+			auth=auth,
+			allow_redirects=allow_redirects,
+			timeout=timeout,
+		) as response,
+	):
 		response.raise_for_status()
 		return dict(response.headers)

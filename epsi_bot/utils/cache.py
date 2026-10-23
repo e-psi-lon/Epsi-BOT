@@ -64,7 +64,9 @@ class AudioCache(RedisCache, CacheProtocol):
 		self, key: str, namespace: Any | None = None, _conn: Any | None = None
 	) -> Any:
 		"""Check if a key exists in the cache"""
-		return await super(RedisCache, self).exists(key, namespace=namespace, _conn=_conn)
+		return await super(RedisCache, self).exists(
+			key, namespace=namespace, _conn=_conn
+		)
 
 	async def update_ttl(self, key: str, new_ttl: int) -> None:
 		"""Update the ttl of a key in the cache"""
@@ -79,13 +81,13 @@ class AudioCache(RedisCache, CacheProtocol):
 
 
 class AudioSerializer(BaseSerializer):
-    DEFAULT_ENCODING = None  # values reach loads() as raw bytes
+	DEFAULT_ENCODING = None  # values reach loads() as raw bytes
 
-    def dumps(self, value: io.BytesIO) -> bytes:
-        return value.getvalue()
+	def dumps(self, value: io.BytesIO) -> bytes:
+		return value.getvalue()
 
-    def loads(self, value: bytes | None) -> io.BytesIO | None:
-        return None if value is None else io.BytesIO(value)
+	def loads(self, value: bytes | None) -> io.BytesIO | None:
+		return None if value is None else io.BytesIO(value)
 
 
 async def get_or_download_audio(url: str, cache: AudioCache) -> io.BytesIO:
@@ -112,8 +114,7 @@ async def get_or_download_audio(url: str, cache: AudioCache) -> io.BytesIO:
 	return buffer
 
 
-async def download(
-	url: str, download_logger: logging.Logger) -> io.BytesIO:
+async def download(url: str, download_logger: logging.Logger) -> io.BytesIO:
 	"""
 	Download a video from a YouTube (or other) URL.
 

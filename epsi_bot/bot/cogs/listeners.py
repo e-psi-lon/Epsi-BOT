@@ -20,7 +20,8 @@ class Listeners(commands.Cog):
 	async def on_message(self, message: discord.Message) -> None:
 		if (
 			not message.content.startswith("e!eval")
-			or message.author.id != self.bot.owner_id and self.bot.owner_id is not None
+			or message.author.id != self.bot.owner_id
+			and self.bot.owner_id is not None
 		):
 			return
 
@@ -61,7 +62,7 @@ class Listeners(commands.Cog):
 						if result is not None:
 							output.write(repr(result))
 					except SyntaxError:
-						exec(code, env)   # noqa: S102 intentional
+						exec(code, env)  # noqa: S102 intentional
 				else:
 					indented_code = "\n".join(
 						["\t" + line for line in code.split("\n")]
@@ -69,7 +70,6 @@ class Listeners(commands.Cog):
 					func_code = f"async def __ex():\n{indented_code}"
 					exec(func_code, env)  # noqa: S102 intentional
 					await env["__ex"]()  # type: ignore[operator]
-					
 
 			value = output.getvalue()
 			if not value:

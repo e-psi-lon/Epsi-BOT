@@ -103,6 +103,7 @@ class UserData:
 			avatar=dict_["avatar"],
 		)
 
+
 class ConfigData:
 	"""Dataclass to represent a server's bot configuration in the panel.
 
