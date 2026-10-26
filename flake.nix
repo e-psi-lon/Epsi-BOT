@@ -83,7 +83,7 @@
               ]);
 
           venv = pythonSet.mkVirtualEnv "epsi-bot-env" workspace.deps.default;
-          runtimeDeps = [ ffmpeg-slim ];
+          runtimeDeps = with pkgs; [ ffmpeg-slim quickjs-ng ];
 
           epsi-bot = pkgs.symlinkJoin {
             name = "epsi-bot";

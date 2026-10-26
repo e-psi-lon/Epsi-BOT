@@ -79,7 +79,7 @@ class _SourceFilter(logging.Filter):
 		return True
 
 
-_VALID_LEVELS: Final[tuple[str]] = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+_VALID_LEVELS: Final[set[str]] = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -102,7 +102,8 @@ _configured_loggers: set[str] = set()
 
 @functools.cache
 def _default_level() -> str:
-	return parse_args().log_level.upper()
+	level: str = parse_args().log_level
+	return level.upper()
 
 
 def _ensure_listener() -> None:

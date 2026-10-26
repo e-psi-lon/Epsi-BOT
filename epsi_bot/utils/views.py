@@ -1,7 +1,8 @@
+import asyncio
 import io
 
 import discord
-import pytubefix  # type: ignore[import-untyped]
+import pytubefix
 
 from epsi_bot.utils.audio import get_youtube, play_song
 from epsi_bot.utils.constants import EMBED_ERROR_BOT_NOT_CONNECTED, MAX_TRACK_LENGTH
@@ -45,46 +46,28 @@ class SelectVideo(discord.ui.Select):
 		videos: list[pytubefix.YouTube],
 		ctx: discord.ApplicationContext,
 		download_file: bool,
-		select_type: discord.ComponentType = discord.ComponentType.string_select,
 		*,
 		custom_id: str | None = None,
-		placeholder: str | None = None,
-		min_values: int = 1,
-		max_values: int = 1,
-		options: list[discord.SelectOption] | None = None,
-		channel_types: list[discord.ChannelType] | None = None,
 		disabled: bool = False,
 		row: int | None = None,
 	) -> None:
-		if options is None:
-			options = []
-		if channel_types is None:
-			channel_types = []
-
+		select_options: list[discord.SelectOption] = []
+		seen: set[str] = set()
+		for video in videos:
+			if video.watch_url not in seen:
+				seen.add(video.watch_url)
+				select_options.append(
+					discord.SelectOption(label=video.title, value=video.watch_url)
+				)
 		super().__init__(
-			select_type,
+			placeholder="Select an audio to play",
 			custom_id=custom_id,
-			placeholder=placeholder,
-			min_values=min_values,
-			max_values=max_values,
-			options=options,
-			channel_types=channel_types,
+			options=select_options,
 			disabled=disabled,
 			row=row,
 		)
-		self.placeholder = "Select an audio to play"
-		self.min_values = 1
-		self.max_values = 1
 		self.ctx = ctx
 		self.download = download_file
-
-		for video in videos:
-			if any(option.value == video.watch_url for option in options):
-				continue
-			options.append(
-				discord.SelectOption(label=video.title, value=video.watch_url)
-			)
-		self.options = options
 
 	async def callback(self, interaction: discord.Interaction) -> None:
 		"""
@@ -107,19 +90,19 @@ class SelectVideo(discord.ui.Select):
 			)
 			return
 		selected_url = str(self.values[0])
-		await interaction.message.edit(
+		await interaction.response.edit_message(
 			embed=discord.Embed(
 				title="Select audio",
-				description=f"You selected : {self.options[0].label}",
+				description=f"You selected : {next(o.label for o in self.options if o.value == selected_url)}",
 				color=discord.Color.green(),
 			),
 			view=None,
 		)
 
 		if self.download:
-			yt_video = get_youtube(selected_url)
+			yt_video = await asyncio.to_thread(get_youtube, selected_url)
 			if yt_video.length > MAX_TRACK_LENGTH:
-				await interaction.message.edit(
+				await interaction.response.edit_message(
 					embed=discord.Embed(
 						title="Error",
 						description=f"The video "
@@ -128,11 +111,21 @@ class SelectVideo(discord.ui.Select):
 					)
 				)
 				return
-			stream = yt_video.streams.get_audio_only()
+			stream = await asyncio.to_thread(yt_video.streams.get_audio_only)
+			if not stream:
+				await interaction.response.edit_message(
+					embed=discord.Embed(
+						title="Error",
+						description=f"The video "
+						f"[{yt_video.title}]({selected_url}) has no audio",
+						color=discord.Color.dark_red(),
+					)
+				)
+				return
 			buffer = io.BytesIO()
 			stream.stream_to_buffer(buffer)
 			buffer.seek(0)
-			await interaction.message.edit(
+			await interaction.response.edit_message(
 				embed=discord.Embed(
 					title="Download",
 					description="Song downloaded.",
@@ -142,9 +135,8 @@ class SelectVideo(discord.ui.Select):
 				view=None,
 			)
 			return
-
-		if interaction.guild is None:
-			await interaction.message.edit(
+		if (guild := interaction.guild) is None:
+			await interaction.response.edit_message(
 				embed=discord.Embed(
 					title="Error",
 					description="This command can only be used in a guild.",
@@ -152,50 +144,50 @@ class SelectVideo(discord.ui.Select):
 				)
 			)
 			return
-		server = await Server.get(server_id=interaction.guild.id).prefetch_related(
+		server = await Server.get(server_id=guild.id).prefetch_related(
 			"queue", "queue__song"
 		)
 		if not await server.queue.all():
 			server.position = 0
 			await server.save()
-			yt_video = get_youtube(selected_url)
-			song, _ = await Song.get_or_create(
-				url=selected_url, defaults={"name": yt_video.title}
+		yt_video = await asyncio.to_thread(get_youtube, selected_url)
+		song, _ = await Song.get_or_create(
+			url=selected_url, defaults={"name": yt_video.title}
+		)
+		user, _ = await User.get_or_create(user_id=interaction.user.id)
+		_, created = await Queue.get_or_create(
+			server=server, song=song, defaults={"asker": user}
+		)
+		if not created:
+			await interaction.response.edit_message(
+				embed=discord.Embed(
+					title="Error",
+					description="This song is already in the queue.",
+					color=discord.Color.dark_red(),
+				)
 			)
-			user, _ = await User.get_or_create(user_id=interaction.user.id)
-			await Queue.create(song=song, asker=user, position=0, server=server)
-		else:
-			yt_video = get_youtube(selected_url)
-			song, _ = await Song.get_or_create(
-				url=selected_url, defaults={"name": yt_video.title}
-			)
-			user, _ = await User.get_or_create(user_id=interaction.user.id)
-			await Queue.create(
-				song=song, asker=user, position=len(server.queue), server=server
-			)
-
-		if interaction.guild.voice_client is None:
-			await interaction.message.edit(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
 			return
 
-		if not interaction.guild.voice_client.is_playing():
-			await interaction.message.edit(
+		if (voice_client := guild.voice_client) is None:
+			await interaction.response.edit_message(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
+			return
+
+		if not voice_client.is_playing():
+			await interaction.response.edit_message(
 				embed=discord.Embed(
 					title="Play",
-					description=f"Playing song "
-					f"[{get_youtube(selected_url).title}]"
-					f"({selected_url})",
+					description=f"Playing song [{yt_video.title}]({selected_url})",
 					color=discord.Color.green(),
 				)
 			)
 			await play_song(self.ctx, server.queue[server.position].song.url)
 			return
 		else:
-			await interaction.message.edit(
+			await interaction.response.edit_message(
 				embed=discord.Embed(
 					title="Queue",
 					description=f"Song "
-					f"[{get_youtube(selected_url).title}]"
+					f"[{yt_video.title}]"
 					f"({selected_url}) added to queue.",
 					color=discord.Color.green(),
 				)
@@ -232,7 +224,7 @@ class Research(discord.ui.View):
 		videos: list[pytubefix.YouTube],
 		ctx: discord.ApplicationContext,
 		download_file: bool,
-		*items: discord.ui.Item,
+		*items: discord.ui.ViewItem[discord.ui.BaseView],
 		timeout: float | None = 180,
 		disable_on_timeout: bool = False,
 	) -> None:

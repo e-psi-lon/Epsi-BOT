@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands, pages
 
 from epsi_bot.bot.bot import Bot
+from epsi_bot.utils.type_utils import get_channel
 
 
 def format_params(cmd: discord.SlashCommand) -> str:
@@ -51,7 +52,7 @@ def get_subcommands(
 			)
 		)
 	else:
-		raise TypeError(f"Unknown command type {type(cmd)}")
+		raise TypeError(f"Unknown command type {type(cmd).__name__}")
 	return command_list
 
 
@@ -76,11 +77,16 @@ class Help(commands.Cog):
 		# Generate pages for each cog
 		for cog_name, cog in self.bot.cogs.items():
 			# Skip hidden cogs
+			is_private_todo_channel = False
+			try:
+				is_private_todo_channel = get_channel(ctx).id == 1128286383161745479
+			except commands.ChannelNotFound:
+				is_private_todo_channel = False
 			if (
 				cog_name.startswith("_")
 				or cog_name == "Help"
 				or (cog_name == "Admin" and ctx.author.id != self.bot.owner_id)
-				or (cog_name == "Todo" and ctx.channel.id != 1128286383161745479)
+				or (cog_name == "Todo" and not is_private_todo_channel)
 			):
 				continue
 

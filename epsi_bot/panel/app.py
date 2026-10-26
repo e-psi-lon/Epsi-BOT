@@ -4,19 +4,21 @@ import logging
 from asyncio import TimerHandle
 from typing import TYPE_CHECKING, Any
 
-from quart import Quart
-from quart_session import Session  # type: ignore[import-untyped]
+from quart_session import Session
 
 if TYPE_CHECKING:
 	from epsi_bot.bot.bot import Bot
 from epsi_bot.panel.config import config
 from epsi_bot.panel.helpers import register_error_handlers
+from epsi_bot.panel.panel_base import PanelBase
 from epsi_bot.panel.routes import register_blueprints
 from epsi_bot.utils.loggers import get_logger, parse_args
 
 
-class Panel(Quart):
-	def __init__(self, config_name: str = "default", *args: Any, **kwargs: Any) -> None:
+class Panel(PanelBase):
+	def __init__(
+		self, bot: Bot, config_name: str = "default", *args: Any, **kwargs: Any
+	) -> None:
 		super().__init__(__name__, *args, **kwargs)
 
 		# Load configuration
@@ -24,7 +26,7 @@ class Panel(Quart):
 		config[config_name].init_app(self)
 
 		# Initialize components
-		self.bot: Bot | None = None
+		self.bot: Bot
 		self.start_time: datetime.datetime | None = None
 		self.timers: dict[int, TimerHandle] = {}
 
@@ -42,9 +44,15 @@ class Panel(Quart):
 
 	@property
 	def logger(self) -> logging.Logger:
-		if self._logger is None:
-			self._logger = get_logger("Panel", parse_args().log_level.upper())
-		return self._logger
+		logger = self._logger
+		if logger is None:
+			logger = get_logger("Panel", parse_args().log_level.upper())
+			self._logger = logger
+		return logger
+
+	@logger.setter
+	def logger(self, value: logging.Logger) -> None:
+		raise RuntimeError("Cannot set logger directly")
 
 	def set_start_time(self, start_time: datetime.datetime) -> None:
 		self.start_time = start_time
@@ -66,6 +74,6 @@ class Panel(Quart):
 		super().run(host=host, port=port, debug=debug, **kwargs)
 
 
-def create_app(config_name: str = "default") -> Panel:
+def create_app(bot: Bot, config_name: str = "default") -> Panel:
 	"""Application factory."""
-	return Panel(config_name)
+	return Panel(bot, config_name)

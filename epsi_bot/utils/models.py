@@ -195,7 +195,7 @@ class AudioReference(BaseModel):
 	"""
 
 	asker: fields.ForeignKeyRelation[User] = fields.ForeignKeyField("models.User")
-	position: fields.IntField = fields.IntField()
+	position: fields.IntField[int] = fields.IntField()
 	song: fields.ForeignKeyRelation[Song] = fields.ForeignKeyField(
 		"models.Song", on_delete=fields.CASCADE
 	)

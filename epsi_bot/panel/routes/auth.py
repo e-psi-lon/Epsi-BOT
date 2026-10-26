@@ -1,18 +1,17 @@
 import asyncio
-from typing import cast
 
 import aiohttp
-from quart import Blueprint, current_app, redirect, request, session, url_for
+from quart import Blueprint, redirect, request, session, url_for
 from werkzeug import Response
 
 from epsi_bot.panel.helpers import to_url
+from epsi_bot.panel.panel_base import current_panel
 from epsi_bot.panel.services.discord_api import (
 	get_user_data,
 	refresh_token,
 	revoke_access_token,
 	token_from_code,
 )
-from epsi_bot.utils.protocols import PanelProtocol
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -20,19 +19,18 @@ auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 @auth_bp.route("/login")
 async def login() -> Response:
 	return redirect(
-		f"{current_app.config['API_ENDPOINT']}/oauth2/authorize?"
-		f"client_id={current_app.config['CLIENT_ID']}&"
-		f"redirect_uri={to_url(current_app.config['REDIRECT_URI'])}&"
+		f"{current_panel.config['API_ENDPOINT']}/oauth2/authorize?"
+		f"client_id={current_panel.config['CLIENT_ID']}&"
+		f"redirect_uri={to_url(current_panel.config['REDIRECT_URI'])}&"
 		f"response_type=code&scope=identify%20guilds"
 	)
 
 
 @auth_bp.route("/discord/callback")
 async def callback() -> Response:
-	panel_app = cast(PanelProtocol, current_app)
 	code = request.args.get("code")
 	if code is None:
-		panel_app.logger.error("No code provided in callback request")
+		current_panel.logger.error("No code provided in callback request")
 		return redirect(url_for("main.index"))
 	try:
 		token = await token_from_code(code)
@@ -45,7 +43,7 @@ async def callback() -> Response:
 
 		user = await get_user_data(token["access_token"])
 		session["user_id"] = user.id
-		panel_app.timers[user.id] = timer
+		current_panel.timers[user.id] = timer
 		return redirect(url_for("main.panel"))
 	except aiohttp.ClientResponseError:
 		return redirect(url_for("main.index"))
@@ -53,7 +51,6 @@ async def callback() -> Response:
 
 @auth_bp.route("/logout")
 async def logout() -> Response:
-	panel_app = cast(PanelProtocol, current_app)
 	if "token" in session:
 		await revoke_access_token(session["token"]["access_token"])
 		session.pop("token", None)
@@ -61,9 +58,9 @@ async def logout() -> Response:
 	session.pop("user", None)
 
 	user_id = session.get("user_id")
-	if user_id and user_id in panel_app.timers:
-		panel_app.timers[user_id].cancel()
-		del panel_app.timers[user_id]
+	if user_id is not None and user_id in current_panel.timers:
+		current_panel.timers[user_id].cancel()
+		del current_panel.timers[user_id]
 
 	session.pop("user_id", None)
 	return redirect(url_for("main.index"))

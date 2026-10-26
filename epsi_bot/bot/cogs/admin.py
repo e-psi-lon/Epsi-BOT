@@ -5,6 +5,7 @@ from epsi_bot.bot.bot import Bot
 from epsi_bot.utils.cache import AudioCache
 from epsi_bot.utils.constants import EMBED_ERROR_NOT_BOT_OWNER, OWNER_ID
 from epsi_bot.utils.models import Server
+from epsi_bot.utils.type_utils import get_channel, get_guild, option
 
 
 def cogs_autocomplete(ctx: discord.AutocompleteContext) -> list[str]:
@@ -31,9 +32,10 @@ class Admin(commands.Cog):
 		if ctx.author.id != OWNER_ID:
 			await ctx.respond(embed=EMBED_ERROR_NOT_BOT_OWNER, delete_after=30)
 			return
-		server = await Server.get(server_id=ctx.guild.id)
-		if ctx.voice_client is not None and ctx.voice_client.is_playing():
-			ctx.voice_client.stop()
+		guild = get_guild(ctx)
+		server = await Server.get(server_id=guild.id)
+		if (voice_client := ctx.voice_client) is not None and voice_client.is_playing():
+			voice_client.stop()
 		await server.queue.all().delete()
 		async with AudioCache(1) as cache:
 			await cache.clear()
@@ -49,7 +51,7 @@ class Admin(commands.Cog):
 		description="Cleans the bot's messages",
 		guild_ids=[761485410596552736],
 	)
-	@discord.option(
+	@option(
 		"count",
 		int,
 		description="The number of messages to delete",
@@ -68,7 +70,7 @@ class Admin(commands.Cog):
 		def check(m: discord.Message) -> bool:
 			nonlocal removed_count
 			if (
-				m.author.id == self.bot.user.id
+				m.author == self.bot.user
 				and m.id != 1128641774789861488
 				and removed_count < count
 			):
@@ -76,18 +78,28 @@ class Admin(commands.Cog):
 				return True
 			return False
 
-		await ctx.channel.purge(check=check)
-		embed = discord.Embed(
-			title="Clean",
-			description=f"Cleaned {removed_count} messages.",
-			color=discord.Color.green(),
-		)
+		channel = get_channel(ctx)
+		embed: discord.Embed
+		if isinstance(channel, discord.TextChannel):
+			await channel.purge(check=check)
+			embed = discord.Embed(
+				title="Clean",
+				description=f"Cleaned {removed_count} messages.",
+				color=discord.Color.green(),
+			)
+		else:
+			embed = discord.Embed(
+				title="Clean",
+				description=f"Cleaned {removed_count} messages.",
+				color=discord.Color.green(),
+			)
+
 		await ctx.respond(embed=embed, delete_after=30)
 
 	@commands.slash_command(
 		name="reload", description="Reloads the cogs", guild_ids=[761485410596552736]
 	)
-	@discord.option(
+	@option(
 		"cog",
 		str,
 		description="The cog to reload",
@@ -152,10 +164,10 @@ class Admin(commands.Cog):
 			await ctx.respond(embed=embed, delete_after=30)
 
 	@commands.slash_command(name="send", description="Envoie un message dans un salon")
-	@discord.option(
+	@option(
 		"channel", discord.TextChannel, description="Le salon où envoyer le message"
 	)
-	@discord.option("message", str, description="Le message à envoyer")
+	@option("message", str, description="Le message à envoyer")
 	@commands.is_owner()
 	async def send_message(
 		self,

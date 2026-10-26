@@ -13,6 +13,7 @@ from epsi_bot.utils.constants import (
 	EMBED_ERROR_QUEUE_EMPTY,
 )
 from epsi_bot.utils.models import Queue as ModelQueue, Server, Song
+from epsi_bot.utils.type_utils import get_guild, option
 
 
 class Queue(commands.Cog):
@@ -23,7 +24,7 @@ class Queue(commands.Cog):
 	@commands.slash_command(name="queue", description="Shows the current queue")
 	async def queue(self, ctx: discord.ApplicationContext) -> None:
 		await ctx.response.defer()
-		server = await Server.get(server_id=ctx.guild.id)
+		server = await Server.get(server_id=get_guild(ctx).id)
 		if not await server.queue.all():
 			await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
 			return
@@ -59,10 +60,13 @@ class Queue(commands.Cog):
 		await ctx.respond(embed=embed)
 
 	@commands.slash_command(name="skip", description="Skips the current song")
-	@discord.option("by", int, description="How many songs to skip", required=False)
-	async def skip(self, ctx: discord.ApplicationContext, by: int) -> None:
+	@option(
+		"by", int, description="How many songs to skip", required=False, default=None
+	)
+	async def skip(self, ctx: discord.ApplicationContext, by: int | None) -> None:
 		await ctx.response.defer()
-		server = await Server.get(server_id=ctx.guild.id).prefetch_related(
+		guild = get_guild(ctx)
+		server = await Server.get(server_id=guild.id).prefetch_related(
 			"queue", "queue__song"
 		)
 		loop_song = server.loop_song
@@ -75,14 +79,15 @@ class Queue(commands.Cog):
 			await server.save()
 			await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
 			return
-		if ctx.guild.voice_client is None:
+		voice_client = guild.voice_client
+		if voice_client is None:
 			server.loop_song = loop_song
 			server.loop_queue = loop_queue
 			await server.save()
 			await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
 			return
 		if by is None:
-			ctx.guild.voice_client.stop()
+			voice_client.stop()
 			server.loop_song = loop_song
 			server.loop_queue = loop_queue
 			await server.save()
@@ -111,7 +116,7 @@ class Queue(commands.Cog):
 			)
 			return
 		server.position = server.position + by - 1
-		ctx.guild.voice_client.stop()
+		voice_client.stop()
 		server.loop_song = loop_song
 		server.loop_queue = loop_queue
 		await server.save()
@@ -128,10 +133,12 @@ class Queue(commands.Cog):
 	)
 
 	@loop.command(name="song", description="Loops the current song")
-	@discord.option("state", bool, description="The loop state", required=False)
-	async def loop_song(self, ctx: discord.ApplicationContext, state: bool) -> None:
+	@option("state", bool, description="The loop state", required=False, default=None)
+	async def loop_song(
+		self, ctx: discord.ApplicationContext, state: bool | None
+	) -> None:
 		await ctx.response.defer()
-		server = await Server.get(server_id=ctx.guild.id)
+		server = await Server.get(server_id=get_guild(ctx).id)
 		if state is None:
 			state = not server.loop_song
 		server.loop_song = state
@@ -147,10 +154,12 @@ class Queue(commands.Cog):
 		)
 
 	@loop.command(name="queue", description="Loops the current song")
-	@discord.option("state", bool, description="The loop state", required=False)
-	async def loop_queue(self, ctx: discord.ApplicationContext, state: bool) -> None:
+	@option("state", bool, description="The loop state", required=False, default=None)
+	async def loop_queue(
+		self, ctx: discord.ApplicationContext, state: bool | None
+	) -> None:
 		await ctx.response.defer()
-		server = await Server.get(server_id=ctx.guild.id)
+		server = await Server.get(server_id=get_guild(ctx).id)
 		if state is None:
 			state = not server.loop_queue
 		server.loop_queue = state
@@ -168,7 +177,7 @@ class Queue(commands.Cog):
 	@commands.slash_command(name="now", description="Shows the current song")
 	async def now(self, ctx: discord.ApplicationContext) -> None:
 		await ctx.response.defer()
-		server = await Server.get(server_id=ctx.guild.id).prefetch_related(
+		server = await Server.get(server_id=get_guild(ctx).id).prefetch_related(
 			"queue", "queue__song", "queue__asker"
 		)
 		if not server.queue:
@@ -188,7 +197,7 @@ class Queue(commands.Cog):
 	)
 
 	@remove.command(name="from-name", description="Removes a song from the queue")
-	@discord.option(
+	@option(
 		"song",
 		str,
 		description="The name of the song to remove",
@@ -197,7 +206,7 @@ class Queue(commands.Cog):
 	)
 	async def remove_name(self, ctx: discord.ApplicationContext, song: str) -> None:
 		await ctx.response.defer()
-		server = await Server.get(server_id=ctx.guild.id)
+		server = await Server.get(server_id=get_guild(ctx).id)
 		if not await server.queue.all():
 			await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
 			return
@@ -213,12 +222,10 @@ class Queue(commands.Cog):
 		)
 
 	@remove.command(name="from-index", description="Removes a song from the queue ")
-	@discord.option(
-		"index", int, description="The index of the song to remove", required=True
-	)
+	@option("index", int, description="The index of the song to remove", required=True)
 	async def remove_index(self, ctx: discord.ApplicationContext, index: int) -> None:
 		await ctx.response.defer()
-		server = await Server.get(server_id=ctx.guild.id)
+		server = await Server.get(server_id=get_guild(ctx).id)
 		if index < 0 or index >= len(server.queue):
 			await ctx.respond(
 				embed=discord.Embed(
@@ -242,18 +249,18 @@ class Queue(commands.Cog):
 	@commands.slash_command(name="clear", description="Clears the queue")
 	async def clear(self, ctx: discord.ApplicationContext) -> None:
 		await ctx.response.defer()
-		server = await Server.get(server_id=ctx.guild.id)
+		guild = get_guild(ctx)
+		server = await Server.get(server_id=guild.id)
 		if not await server.queue.all():
 			await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
 			return
 		await server.queue.all().delete()
 		server.position = 0
 		await server.save()
-		if ctx.guild.voice_client is not None:
-			try:
-				ctx.guild.voice_client.stop()
-			except discord.errors.ClientException:
-				pass
+		if (voice_client := guild.voice_client) is None:
+			await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
+			return
+		voice_client.stop()
 		await ctx.respond(
 			embed=discord.Embed(
 				title="Clear", description="Queue cleared.", color=discord.Color.green()
@@ -263,7 +270,8 @@ class Queue(commands.Cog):
 	@commands.slash_command(name="back", description="Goes back to the previous song")
 	async def back(self, ctx: discord.ApplicationContext) -> None:
 		await ctx.response.defer()
-		server = await Server.get(server_id=ctx.guild.id)
+		guild = get_guild(ctx)
+		server = await Server.get(server_id=guild.id)
 		loop_song = server.loop_song
 		loop_queue = server.loop_queue
 		server.loop_song = False
@@ -274,7 +282,7 @@ class Queue(commands.Cog):
 			await server.save()
 			await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
 			return
-		if ctx.guild.voice_client is None:
+		if (voice_client := guild.voice_client) is None:
 			server.loop_song = loop_song
 			server.loop_queue = loop_queue
 			await server.save()
@@ -293,7 +301,7 @@ class Queue(commands.Cog):
 			)
 			return
 		server.position = server.position - 2
-		ctx.guild.voice_client.stop()
+		voice_client.stop()
 		server.loop_song = loop_song
 		server.loop_queue = loop_queue
 		await server.save()
@@ -308,7 +316,7 @@ class Queue(commands.Cog):
 	@commands.slash_command(name="shuffle", description="Shuffles the queue")
 	async def shuffle(self, ctx: discord.ApplicationContext) -> None:
 		await ctx.response.defer()
-		server = await Server.get(server_id=ctx.guild.id).prefetch_related("queue")
+		server = await Server.get(server_id=get_guild(ctx).id).prefetch_related("queue")
 		if not server.queue:
 			await ctx.respond(embed=EMBED_ERROR_QUEUE_EMPTY)
 			return
@@ -330,10 +338,12 @@ class Queue(commands.Cog):
 	)
 
 	@random_command.command(name="toggle", description="Toggles the random mode")
-	@discord.option("state", bool, description="The random state", required=False)
-	async def random_toggle(self, ctx: discord.ApplicationContext, state: bool) -> None:
+	@option("state", bool, description="The random state", required=False, default=None)
+	async def random_toggle(
+		self, ctx: discord.ApplicationContext, state: bool | None
+	) -> None:
 		await ctx.response.defer()
-		server = await Server.get(server_id=ctx.guild.id)
+		server = await Server.get(server_id=get_guild(ctx).id)
 		if state is None:
 			state = not server.random
 		server.random = state
@@ -349,7 +359,7 @@ class Queue(commands.Cog):
 	@random_command.command(name="query", description="Shows the current random state")
 	async def random(self, ctx: discord.ApplicationContext) -> None:
 		await ctx.response.defer()
-		server = await Server.get(server_id=ctx.guild.id)
+		server = await Server.get(server_id=get_guild(ctx).id)
 		await ctx.respond(
 			embed=discord.Embed(
 				title="Random",
@@ -364,7 +374,7 @@ class Queue(commands.Cog):
 	)
 
 	@play.command(name="song", description="Plays a song from the queue")
-	@discord.option(
+	@option(
 		"song",
 		str,
 		description="The song to play",
@@ -373,7 +383,8 @@ class Queue(commands.Cog):
 	)
 	async def play_queue_song(self, ctx: discord.ApplicationContext, song: str) -> None:
 		await ctx.response.defer()
-		server = await Server.get(server_id=ctx.guild.id).prefetch_related(
+		guild = get_guild(ctx)
+		server = await Server.get(server_id=guild.id).prefetch_related(
 			"queue", "queue__song"
 		)
 		if not await server.queue.all():
@@ -395,7 +406,10 @@ class Queue(commands.Cog):
 			return
 		server.position = index - 1
 		await server.save()
-		ctx.guild.voice_client.stop()
+		if (voice_client := guild.voice_client) is None:
+			await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
+			return
+		voice_client.stop()
 		await ctx.respond(
 			embed=discord.Embed(
 				title="Play",
@@ -405,14 +419,13 @@ class Queue(commands.Cog):
 		)
 
 	@play.command(name="number", description="Plays a song from the queue")
-	@discord.option(
-		"index", int, description="The index of the song to play", required=True
-	)
+	@option("index", int, description="The index of the song to play", required=True)
 	async def play_queue_index(
 		self, ctx: discord.ApplicationContext, index: int
 	) -> None:
 		await ctx.response.defer()
-		server = await Server.get(server_id=ctx.guild.id).prefetch_related(
+		guild = get_guild(ctx)
+		server = await Server.get(server_id=guild.id).prefetch_related(
 			"queue", "queue__song"
 		)
 		if not await server.queue.all():
@@ -429,7 +442,10 @@ class Queue(commands.Cog):
 			return
 		server.position = index - 2
 		await server.save()
-		ctx.guild.voice_client.stop()
+		if (voice_client := guild.voice_client) is None:
+			await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
+			return
+		voice_client.stop()
 		await ctx.respond(
 			embed=discord.Embed(
 				title="Play",

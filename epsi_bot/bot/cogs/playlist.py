@@ -31,6 +31,7 @@ from epsi_bot.utils.models import (
 	User,
 	UserPlaylist,
 )
+from epsi_bot.utils.type_utils import get_guild, option
 
 
 class PlaylistType(Enum):
@@ -62,8 +63,8 @@ class Playlists(commands.Cog):
 	# ==================== PLAYLIST CREATION COMMANDS ====================
 
 	@create.command(name="from-queue", description="Creates a playlist from the queue")
-	@discord.option("name", str, description="The name of the playlist", required=True)
-	@discord.option(
+	@option("name", str, description="The name of the playlist", required=True)
+	@option(
 		"playlist-type",
 		str,
 		description="The type of the playlist",
@@ -132,9 +133,9 @@ class Playlists(commands.Cog):
 	@create.command(
 		name="from-youtube", description="Creates a playlist from a youtube playlist"
 	)
-	@discord.option("url", str, description="The url of the playlist", required=True)
-	@discord.option("name", str, description="The name of the playlist", required=False)
-	@discord.option(
+	@option("url", str, description="The url of the playlist", required=True)
+	@option("name", str, description="The name of the playlist", required=False)
+	@option(
 		"playlist-type",
 		str,
 		description="The type of the playlist",
@@ -222,7 +223,7 @@ class Playlists(commands.Cog):
 	# ==================== PLAYLIST MANAGEMENT COMMANDS ====================
 
 	@playlist.command(name="delete", description="Deletes a playlist")
-	@discord.option(
+	@option(
 		"name",
 		str,
 		description="The name of the playlist",
@@ -289,14 +290,14 @@ class Playlists(commands.Cog):
 		)
 
 	@playlist.command(name="add", description="Adds a song to a playlist")
-	@discord.option(
+	@option(
 		"name",
 		str,
 		description="The name of the playlist",
 		required=True,
 		autocomplete=discord.utils.basic_autocomplete(get_playlists),
 	)
-	@discord.option(
+	@option(
 		"query",
 		str,
 		description="The YouTube video to add to the playlist",
@@ -368,14 +369,14 @@ class Playlists(commands.Cog):
 			)
 
 	@playlist.command(name="remove", description="Removes a song from a playlist")
-	@discord.option(
+	@option(
 		"name",
 		str,
 		description="The name of the playlist",
 		required=True,
 		autocomplete=discord.utils.basic_autocomplete(get_playlists),
 	)
-	@discord.option(
+	@option(
 		"song",
 		str,
 		description="The name of the song",
@@ -455,7 +456,7 @@ class Playlists(commands.Cog):
 	# ==================== PLAYLIST PLAYBACK COMMANDS ====================
 
 	@playlist.command(name="play", description="Plays a playlist")
-	@discord.option(
+	@option(
 		"name",
 		str,
 		description="The name of the playlist",
@@ -464,7 +465,8 @@ class Playlists(commands.Cog):
 	)
 	async def play(self, ctx: discord.ApplicationContext, name: str) -> None:
 		await ctx.response.defer()
-		if ctx.guild.voice_client is None:
+		guild = get_guild(ctx)
+		if guild.voice_client is None:
 			await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
 			return
 
@@ -537,7 +539,7 @@ class Playlists(commands.Cog):
 	# ==================== PLAYLIST VIEW/INFO COMMANDS ====================
 
 	@playlist.command(name="list", description="Lists all the playlists")
-	@discord.option(
+	@option(
 		"playlist-type",
 		str,
 		description="The type of the playlist",
@@ -596,7 +598,7 @@ class Playlists(commands.Cog):
 		await ctx.respond(embed=embed)
 
 	@playlist.command(name="show", description="Shows a playlist")
-	@discord.option(
+	@option(
 		"name",
 		str,
 		description="The name of the playlist",
@@ -656,14 +658,14 @@ class Playlists(commands.Cog):
 		await ctx.respond(embed=embed)
 
 	@playlist.command(name="rename", description="Renames a playlist")
-	@discord.option(
+	@option(
 		"name",
 		str,
 		description="The name of the playlist",
 		required=True,
 		autocomplete=discord.utils.basic_autocomplete(get_playlists),
 	)
-	@discord.option(
+	@option(
 		"new-name",
 		str,
 		description="The new name of the playlist",
@@ -734,7 +736,7 @@ class Playlists(commands.Cog):
 	@playlist.command(
 		name="copy", description="Copies a playlist to the other playlist type"
 	)
-	@discord.option(
+	@option(
 		"name",
 		str,
 		description="The name of the playlist",

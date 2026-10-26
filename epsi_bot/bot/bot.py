@@ -4,17 +4,19 @@ import sys
 import traceback
 from collections.abc import Callable, Coroutine, Iterable
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 import discord
 from discord.ext import commands, tasks
 from discord.ext.commands import when_mentioned
+from discord.utils import get_or_fetch
 
 from epsi_bot.bot import cogs
+from epsi_bot.panel.panel_base import PanelBase
 from epsi_bot.utils.cache import AudioCache, download_bulk
 from epsi_bot.utils.loggers import get_logger
 from epsi_bot.utils.models import Server, SongListenCount
-from epsi_bot.utils.protocols.panel_protocol import PanelProtocol
+from epsi_bot.utils.type_utils import get_channel
 
 
 @tasks.loop(hours=36)
@@ -64,9 +66,15 @@ class Bot(commands.Bot):
 		super().__init__(command_prefix, help_command, **options)
 		self.start_time: datetime | None = None
 		self.logger = get_logger("Bot")
-		self.panel: PanelProtocol | None = None
+		self.panel: PanelBase | None = None
 		self._load_cogs()
-		self.shutdown_event: asyncio.Event | None = None
+		self._shutdown_event: asyncio.Event | None = None
+
+	@property
+	def shutdown_event(self) -> asyncio.Event:
+		if self._shutdown_event is None:
+			raise RuntimeError("Bot shutdown event not initialized")
+		return self._shutdown_event
 
 	def _load_cogs(self) -> None:
 		names = [
@@ -74,7 +82,9 @@ class Bot(commands.Bot):
 			for m in pkgutil.iter_modules(cogs.__path__, prefix=f"{cogs.__name__}.")
 			if not m.name.rsplit(".", 1)[-1].startswith("_")
 		]
-		results = self.load_extensions(*names, store=True)
+		results = cast(
+			dict[str, bool | Exception], self.load_extensions(*names, store=True)
+		)
 		for name, result in results.items():
 			if result is not True:
 				self.logger.error("Failed to load extension %s", name, exc_info=result)
@@ -89,43 +99,57 @@ class Bot(commands.Bot):
 		if self.start_time is not None:
 			self.logger.info(f"Bot ready in {datetime.now(UTC) - self.start_time}")
 		for guild in self.guilds:
-			# Si la guilde n'existe pas dans la db, on l'ajoute avec les paramètres par défaut
+			# If the guild doesn't exist in the db, we add it with default parameters
 			await Server.get_or_create(server_id=guild.id)
 		if not update_top_songs.is_running():
 			update_top_songs.start(self)
 
 	async def on_application_command_error(
-		self, ctx: discord.ApplicationContext, error: discord.DiscordException
+		self, context: discord.ApplicationContext, exception: discord.DiscordException
 	) -> None:
-		exc_type, exc_value, exc_traceback = type(error), error, error.__traceback__
+		exc_type, exc_value, exc_traceback = (
+			type(exception),
+			exception,
+			exception.__traceback__,
+		)
 		traceback_str = "".join(
 			traceback.format_exception(exc_type, exc_value, exc_traceback)
 		)
+		cog_name: str
+		if (command := context.command) is not None:
+			cog_name = command.cog.__class__.__name__
+		else:
+			cog_name = "None"
 		self.logger.error(
-			f"Error in {ctx.command} from module {ctx.command.cog.__class__.__name__}"
+			f"Error in {context.command} from module {cog_name}"
 			f"\n Error message: {exc_value}\n Traceback: {traceback_str}"
 		)
 		embed = discord.Embed(
 			title="Une erreur est survenue",
-			description=f"Erreur provoquée par {ctx.author.mention}",
+			description=f"Erreur provoquée par {context.author.mention}",
 			color=discord.Color.dark_red(),
 		)
-		embed.add_field(name="Commande", value=f"`/{ctx.command}`")
-		embed.add_field(
-			name="Module", value=f"`{ctx.command.cog.__class__.__name__!r}`"
-		)
+		embed.add_field(name="Commande", value=f"`/{context.command}`")
+		embed.add_field(name="Module", value=f"`{cog_name!r}`")
 		embed.add_field(name="Message d'erreur", value=f"`{exc_value}`")
 		embed.add_field(name="Traceback", value=f"```\n{traceback_str[:1014]}...```")
 		try:
-			await ctx.respond(embed=embed, ephemeral=True)
-			await (await self.get_or_fetch(discord.User, self.owner_id)).send(
+			await context.respond(embed=embed, ephemeral=True)
+			await (await get_or_fetch(self, discord.User, self.owner_id)).send(
 				embed=embed
 			)
 		except discord.HTTPException:
-			await ctx.channel.send(
-				"Ce message se supprimera d'ici 20s", embed=embed, delete_after=20
-			)
-			await (await self.get_or_fetch(discord.User, self.owner_id)).send(
+			try:
+				channel = get_channel(context)
+				if isinstance(channel, discord.abc.Messageable):
+					await channel.send(
+						"Ce message se supprimera d'ici 20s",
+						embed=embed,
+						delete_after=20,
+					)
+			except commands.ChannelNotFound:
+				pass
+			await (await get_or_fetch(self, discord.User, self.owner_id)).send(
 				embed=embed
 			)
 
@@ -154,22 +178,27 @@ class Bot(commands.Bot):
 				description=f"Erreur provoquée par {context.author.mention}",
 				color=discord.Color.dark_red(),
 			)
-			embed.add_field(name="Commande", value=f"`{context.command}`")
-			embed.add_field(
-				name="Module", value=f"`{context.command.cog.__class__.__name__}`"
-			)
+			if (command := context.command) is None:
+				embed.add_field(
+					name="Commande", value="Aucune commande n'a été exécutée"
+				)
+			else:
+				embed.add_field(name="Commande", value=f"`{command}`")
+				embed.add_field(
+					name="Module", value=f"`{command.cog.__class__.__name__}`"
+				)
 			embed.add_field(name="Message d'erreur", value=f"`{exc_value}`")
 			embed.add_field(name="Traceback", value=f"```\n{traceback_str}```")
 			try:
 				await context.respond(embed=embed, ephemeral=True)
-				await (await self.get_or_fetch(discord.User, self.owner_id)).send(
+				await (await get_or_fetch(self, discord.User, self.owner_id)).send(
 					embed=embed
 				)
 			except discord.DiscordException:
 				await context.send(
 					"Ce message se supprimera d'ici 20s", embed=embed, delete_after=20
 				)
-				await (await self.get_or_fetch(discord.User, self.owner_id)).send(
+				await (await get_or_fetch(self, discord.User, self.owner_id)).send(
 					embed=embed
 				)
 		else:

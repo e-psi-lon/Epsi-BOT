@@ -4,11 +4,11 @@ import logging
 import random
 
 import discord
-import pytubefix  # type: ignore[import-untyped]
+import pytubefix
 from discord.ext import commands
-from ffmpeg.asyncio import FFmpeg  # type: ignore[import-untyped]
+from ffmpeg.asyncio import FFmpeg
 from pytubefix.exceptions import (
-	RegexMatchError as PytubeRegexMatchError,  # type: ignore[import-untyped]
+	RegexMatchError as PytubeRegexMatchError,
 )
 
 from epsi_bot.utils.cache import download
@@ -19,7 +19,7 @@ from epsi_bot.utils.constants import (
 )
 from epsi_bot.utils.loggers import get_logger
 from epsi_bot.utils.models import Server, Song, SongListenCount
-from epsi_bot.utils.type_utils import FfmpegFormats
+from epsi_bot.utils.type_utils import FfmpegFormats, GuildMessageable, get_guild
 
 __all__ = [
 	"convert",
@@ -33,7 +33,7 @@ __all__ = [
 
 
 async def finished_record_callback(
-	sink: discord.sinks.Sink, channel: discord.TextChannel
+	sink: discord.sinks.Sink, channel: GuildMessageable
 ) -> None:
 	"""Callback function to execute when the recording is finished that processes the audio and sends it to the
 	channel"""
@@ -133,7 +133,8 @@ async def disconnect_from_channel(state: discord.VoiceState, bot: commands.Bot) 
 	for client in bot.voice_clients:
 		for guild in client.client.guilds:
 			if state.channel is None:
-				return await client.disconnect(force=True)
+				await client.disconnect(force=True)
+				return
 			if guild.id == state.channel.guild.id:
 				await client.disconnect(force=True)
 				server = await Server.get(server_id=guild.id)
@@ -159,7 +160,7 @@ def get_index_from_title(title: str, list_to_check: list[Song]) -> int:
 async def change_song(ctx: discord.ApplicationContext) -> None:
 	"""Callback function to execute when a song is finished to change the song taking into account the server's
 	configuration"""
-	server = await Server.get(server_id=ctx.guild.id).prefetch_related(
+	server = await Server.get(server_id=get_guild(ctx).id).prefetch_related(
 		"queue", "queue__song"
 	)
 	if not await server.queue.all():
@@ -197,21 +198,15 @@ async def play_song(
 	        If True, the song will be played as a direct stream without downloading it.
 	        A download will still occur for processing through ffmpeg
 	"""
-	if ctx.guild.voice_client is None:
+	guild = get_guild(ctx)
+	if (voice_client := guild.voice_client) is None:
 		return
-	if ctx.guild.voice_client.is_playing():
-		ctx.guild.voice_client.stop()
+	if voice_client.is_playing():
+		voice_client.stop()
 	loop = asyncio.get_running_loop()
-	server = await Server.get(server_id=ctx.guild.id)
-	song = await Song.get(url=url)
-	song_listen_count = await SongListenCount.get_or_none(song=song)
-	if song_listen_count is not None:
-		song_listen_count.count += 1
-		await song_listen_count.save()
-	else:
-		await SongListenCount.create(song=song, count=1)
+	server = await Server.get(server_id=guild.id)
 	to_play: str | io.BytesIO
-	pipe = direct_play
+	pipe = not direct_play
 	before_options = None
 	if direct_play:
 		to_play = url
@@ -234,32 +229,28 @@ async def play_song(
 			to_play = await download(url)
 		except PytubeRegexMatchError:
 			to_play = await download(url)
+	song = await Song.get(url=url)
+	song_listen_count, created = await SongListenCount.get_or_create(
+		song=song, defaults={"count": 1}
+	)
+	if not created:
+		song_listen_count.count += 1
+	await song_listen_count.save()
 	player = discord.PCMVolumeTransformer(
 		discord.FFmpegPCMAudio(
 			to_play, executable="ffmpeg", pipe=pipe, before_options=before_options
 		),
 		server.volume / 100,
 	)
-	try:
-		get_logger("Bot").info(f"Playing song {url}")
-		_ = ctx.guild.voice_client.play(
-			player,
-			after=lambda e: asyncio.run_coroutine_threadsafe(
-				on_play_song_finished(ctx, e), loop
-			),
-			wait_finish=True,
-		)
-	except discord.errors.ClientException:
-		while ctx.guild.voice_client.is_playing():
-			await asyncio.sleep(0.1)
-		get_logger("Bot").info(f"Playing song {url}")
-		_ = ctx.guild.voice_client.play(
-			player,
-			after=lambda e: asyncio.run_coroutine_threadsafe(
-				on_play_song_finished(ctx, e), loop
-			),
-			wait_finish=True,
-		)
+	while voice_client.is_playing():
+		await asyncio.sleep(0.1)
+	get_logger("Bot").info(f"Playing song {url}")
+	_ = voice_client.play(
+		player,
+		after=lambda e: asyncio.run_coroutine_threadsafe(
+			on_play_song_finished(ctx, e), loop
+		),
+	)
 
 
 async def on_play_song_finished(

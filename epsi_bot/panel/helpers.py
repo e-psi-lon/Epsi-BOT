@@ -25,7 +25,7 @@ def to_url(url: str) -> str:
 
 
 def format_table_info(
-	tables_metadata: dict[type[BaseModel], dict[str, fields.Field]],
+	tables_metadata: dict[type[BaseModel], dict[str, fields.Field[Any]]],
 ) -> dict[type[BaseModel], dict[str, bool | None]]:
 	"""Format table metadata for display."""
 	formatted = {}
@@ -50,7 +50,7 @@ def register_error_handlers(app: Quart) -> None:
 		try:
 
 			@app.errorhandler(error_code)
-			async def _error_page(e: Any, code=error_code) -> tuple[str, int]:
+			async def _error_page(e: Any, code: int = error_code) -> tuple[str, int]:
 				if hasattr(e, "name") and e.name == "NotFound":
 					return await render_template("error.html", code=404), 404
 				return await render_template("error.html", code=code), code

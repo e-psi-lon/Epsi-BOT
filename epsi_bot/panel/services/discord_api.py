@@ -1,18 +1,17 @@
 import asyncio
-from typing import cast
 
 import aiohttp
-from quart import current_app, session
+from quart import session
 
+from epsi_bot.panel.panel_base import current_panel
 from epsi_bot.utils import requests
 from epsi_bot.utils.panel_data import UserData
-from epsi_bot.utils.protocols import PanelProtocol
 
 
 async def get_user_data(access_token: str) -> UserData:
 	"""Get user data from Discord API."""
 	user = await requests.get(
-		f"{current_app.config['API_ENDPOINT']}/users/@me",
+		f"{current_panel.config['API_ENDPOINT']}/users/@me",
 		headers={"Authorization": f"Bearer {access_token}"},
 	)
 	if not isinstance(user, dict):
@@ -25,17 +24,17 @@ async def token_from_code(code: str) -> dict:
 	data = {
 		"grant_type": "authorization_code",
 		"code": code,
-		"redirect_uri": current_app.config["REDIRECT_URI"],
+		"redirect_uri": current_panel.config["REDIRECT_URI"],
 	}
 	headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
 	r = await requests.post(
-		f"{current_app.config['API_ENDPOINT']}/oauth2/token",
+		f"{current_panel.config['API_ENDPOINT']}/oauth2/token",
 		data=data,
 		headers=headers,
 		auth=aiohttp.BasicAuth(
-			str(current_app.config["CLIENT_ID"]),
-			str(current_app.config["CLIENT_SECRET"]),
+			str(current_panel.config["CLIENT_ID"]),
+			str(current_panel.config["CLIENT_SECRET"]),
 		),
 	)
 	if not isinstance(r, dict):
@@ -49,12 +48,12 @@ async def refresh_token(token: str) -> dict:
 	headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
 	r = await requests.post(
-		f"{current_app.config['API_ENDPOINT']}/oauth2/token",
+		f"{current_panel.config['API_ENDPOINT']}/oauth2/token",
 		data=data,
 		headers=headers,
 		auth=aiohttp.BasicAuth(
-			str(current_app.config["CLIENT_ID"]),
-			str(current_app.config["CLIENT_SECRET"]),
+			str(current_panel.config["CLIENT_ID"]),
+			str(current_panel.config["CLIENT_SECRET"]),
 		),
 	)
 	if not isinstance(r, dict):
@@ -69,8 +68,7 @@ async def refresh_token(token: str) -> dict:
 		asyncio.get_running_loop().create_task,
 		refresh_token(session["token"]["refresh_token"]),
 	)
-	panel_app = cast(PanelProtocol, current_app)
-	panel_app.timers[user_id] = timer
+	current_panel.timers[user_id] = timer
 	return r
 
 
@@ -80,11 +78,11 @@ async def revoke_access_token(access_token: str) -> None:
 	headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
 	await requests.post(
-		f"{current_app.config['API_ENDPOINT']}/oauth2/token/revoke",
+		f"{current_panel.config['API_ENDPOINT']}/oauth2/token/revoke",
 		data=data,
 		headers=headers,
 		auth=aiohttp.BasicAuth(
-			str(current_app.config["CLIENT_ID"]),
-			str(current_app.config["CLIENT_SECRET"]),
+			str(current_panel.config["CLIENT_ID"]),
+			str(current_panel.config["CLIENT_SECRET"]),
 		),
 	)

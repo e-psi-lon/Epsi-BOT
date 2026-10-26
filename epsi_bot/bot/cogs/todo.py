@@ -1,10 +1,12 @@
 import re
+from typing import cast
 
 import discord
 from discord.commands import SlashCommandGroup
 from discord.ext import commands
 
 from epsi_bot.bot.bot import Bot
+from epsi_bot.utils.type_utils import get_channel, option
 
 
 class Todo(commands.Cog):
@@ -19,8 +21,8 @@ class Todo(commands.Cog):
 	)
 
 	@todo.command(name="add_line", description="Adds a line to the message")
-	@discord.option("line", str, description="The line to add", required=True)
-	@discord.option(
+	@option("line", str, description="The line to add", required=True)
+	@option(
 		"index",
 		int,
 		description="The index of the line to add",
@@ -28,10 +30,11 @@ class Todo(commands.Cog):
 		default=None,
 	)
 	async def add_line(
-		self, ctx: discord.ApplicationContext, line: str, index: int
+		self, ctx: discord.ApplicationContext, line: str, index: int | None
 	) -> None:
 		await ctx.response.defer()
-		if ctx.channel.id != 1128286383161745479:
+		channel = cast(discord.TextChannel, get_channel(ctx))
+		if channel.id != 1128286383161745479:
 			embed = discord.Embed(
 				title="Ajout d'une ligne",
 				description="Cette commande ne peut être utilisée que dans"
@@ -40,7 +43,7 @@ class Todo(commands.Cog):
 			)
 			await ctx.respond(embed=embed, delete_after=30)
 			return
-		message = await ctx.channel.fetch_message(1128641774789861488)
+		message = await channel.fetch_message(1128641774789861488)
 		if index is None:
 			index = len(message.embeds[0].fields) + 1
 		lines = message.embeds[0].fields
@@ -68,12 +71,11 @@ class Todo(commands.Cog):
 		await ctx.respond(embed=embed, delete_after=30)
 
 	@todo.command(name="remove_line", description="Removes a line from the message")
-	@discord.option(
-		"index", int, description="The index of the line to remove", required=True
-	)
+	@option("index", int, description="The index of the line to remove", required=True)
 	async def remove_line(self, ctx: discord.ApplicationContext, index: int) -> None:
 		await ctx.response.defer()
-		if ctx.channel.id != 1128286383161745479:
+		channel = cast(discord.TextChannel, get_channel(ctx))
+		if channel.id != 1128286383161745479:
 			embed = discord.Embed(
 				title="Suppression d'une ligne",
 				description="Cette commande ne peut être utilisée que"
@@ -82,7 +84,7 @@ class Todo(commands.Cog):
 			)
 			await ctx.respond(embed=embed, delete_after=30)
 			return
-		message = await ctx.channel.fetch_message(1128641774789861488)
+		message = await channel.fetch_message(1128641774789861488)
 		lines = message.embeds[0].fields
 		if 0 < index <= len(lines):
 			old_line = lines.pop(index - 1)
@@ -113,15 +115,14 @@ class Todo(commands.Cog):
 		await ctx.respond(embed=embed, delete_after=30)
 
 	@todo.command(name="edit_line", description="Edits a line from the message")
-	@discord.option(
-		"index", int, description="The index of the line to edit", required=True
-	)
-	@discord.option("line", str, description="The new line", required=True)
+	@option("index", int, description="The index of the line to edit", required=True)
+	@option("line", str, description="The new line", required=True)
 	async def edit_line(
 		self, ctx: discord.ApplicationContext, index: int, line: str
 	) -> None:
 		await ctx.response.defer()
-		if ctx.channel.id != 1128286383161745479:
+		channel = cast(discord.TextChannel, get_channel(ctx))
+		if channel.id != 1128286383161745479:
 			embed = discord.Embed(
 				title="Modification d'une ligne",
 				description="Cette commande ne peut être utilisée "
@@ -130,7 +131,7 @@ class Todo(commands.Cog):
 			)
 			await ctx.respond(embed=embed, delete_after=30)
 			return
-		message = await ctx.channel.fetch_message(1128641774789861488)
+		message = await channel.fetch_message(1128641774789861488)
 		lines = message.embeds[0].fields
 		if index <= 0 or index > len(lines):
 			embed = discord.Embed(
@@ -168,10 +169,8 @@ class Todo(commands.Cog):
 		await ctx.respond(embed=embed, delete_after=30)
 
 	@todo.command(name="assign", description="Assigns a task to a user")
-	@discord.option(
-		"index", int, description="The index of the line to assign", required=True
-	)
-	@discord.option(
+	@option("index", int, description="The index of the line to assign", required=True)
+	@option(
 		"user",
 		discord.User,
 		description="The user to assign the task to",
@@ -181,7 +180,8 @@ class Todo(commands.Cog):
 		self, ctx: discord.ApplicationContext, index: int, user: discord.User
 	) -> None:
 		await ctx.response.defer()
-		if ctx.channel.id != 1128286383161745479:
+		channel = cast(discord.TextChannel, get_channel(ctx))
+		if channel.id != 1128286383161745479:
 			embed = discord.Embed(
 				title="Assignation d'une ligne",
 				description="Cette commande ne peut être utilisée "
@@ -191,7 +191,7 @@ class Todo(commands.Cog):
 			)
 			await ctx.respond(embed=embed, delete_after=30)
 			return
-		message = await ctx.channel.fetch_message(1128641774789861488)
+		message = await channel.fetch_message(1128641774789861488)
 		lines: list[discord.EmbedField] = message.embeds[0].fields
 		line: discord.EmbedField = lines[index - 1]
 		regex1 = r" - Assigned to (.+)$"

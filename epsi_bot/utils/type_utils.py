@@ -1,14 +1,20 @@
+from collections.abc import Callable
 from enum import Enum
+from typing import Any, cast
 
 import discord
+from discord import commands as base_commands, interactions
 from discord.ext import commands
 
-__all__ = ["FfmpegFormats", "Sinks", "get_guild"]
+__all__ = ["FfmpegFormats", "GuildMessageable", "Sinks", "get_channel", "get_guild"]
+
+GuildMessageable = discord.TextChannel | discord.VoiceChannel | discord.StageChannel
 
 
 class Sinks(Enum):
 	"""Enum for the different types of audio sinks"""
 
+	_value_: type[discord.sinks.Sink]
 	mp3 = discord.sinks.MP3Sink
 	wav = discord.sinks.WaveSink
 	ogg = discord.sinks.OGGSink
@@ -28,8 +34,23 @@ class FfmpegFormats(Enum):
 	WAV = ("-codec:a", "pcm_s16le")
 
 
+def option[F: Callable[..., Any]](
+	name: str,
+	input_type: base_commands.options.InputType | None = None,
+	**kwargs: Any,
+) -> Callable[[F], F]:
+	return cast(Callable[[F], F], discord.option(name, input_type, **kwargs))
+
+
+def get_channel(ctx: discord.ApplicationContext) -> interactions.InteractionChannel:
+	"""Get the channel from the context"""
+	if (channel := ctx.channel) is None:
+		raise commands.ChannelNotFound("Couldn't find the channel.")
+	return channel
+
+
 def get_guild(ctx: discord.ApplicationContext) -> discord.Guild:
 	"""Get the guild from the context"""
-	if ctx.guild is None:
+	if (guild := ctx.guild) is None:
 		raise commands.NoPrivateMessage("This command cannot be used in DMs.")
-	return ctx.guild
+	return guild

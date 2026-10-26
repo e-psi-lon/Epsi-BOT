@@ -95,8 +95,8 @@ class Listeners(commands.Cog):
 			if (
 				voice_state.channel is not None
 				and len(voice_state.channel.members) == 1
-				and voice_state.channel.members[0].id == self.bot.user.id
-			):  # type: ignore[union-attr]
+				and voice_state.channel.members[0] == self.bot.user
+			):
 				await disconnect_from_channel(voice_state, self.bot)
 				self.bot.logger.info(
 					f"Bot disconnected from {voice_state.channel.name}, no more members in it"

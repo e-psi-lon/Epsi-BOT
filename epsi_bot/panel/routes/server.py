@@ -1,9 +1,7 @@
-from typing import cast
-
 from discord import Guild
+from discord.utils import get_or_fetch
 from quart import (
 	Blueprint,
-	current_app,
 	redirect,
 	render_template,
 	request,
@@ -12,12 +10,12 @@ from quart import (
 )
 from werkzeug.wrappers.response import Response
 
+from epsi_bot.panel.panel_base import current_panel
 from epsi_bot.utils import models
 from epsi_bot.utils.audio import get_youtube
 from epsi_bot.utils.constants import YOUTUBE_REGEX
 from epsi_bot.utils.decorators import login_required
 from epsi_bot.utils.panel_data import ConfigData
-from epsi_bot.utils.protocols import PanelProtocol
 
 server_bp = Blueprint("server", __name__, url_prefix="/server")
 
@@ -26,7 +24,6 @@ server_bp = Blueprint("server", __name__, url_prefix="/server")
 async def server_detail(server_id: int) -> Response | str:
 	@login_required
 	async def _server_detail() -> Response | str:
-		panel_app = cast(PanelProtocol, current_app)
 		config = await models.Server.get_or_none(server_id=server_id)
 		if (
 			server_id not in [guild["id"] for guild in session.get("guilds", [])]
@@ -44,13 +41,13 @@ async def server_detail(server_id: int) -> Response | str:
 			config.position,
 			await config.queue,
 			server_id,
-			(await panel_app.bot.get_or_fetch(Guild, server_id)).name,
+			(await get_or_fetch(current_panel.bot, Guild, server_id)).name,
 			config.volume,
 		)
 		return await render_template(
 			"server.html",
 			server=server_data,
-			app=current_app,
+			app=current_panel,
 			get_youtube=get_youtube,
 			yt_regex=YOUTUBE_REGEX,
 		)

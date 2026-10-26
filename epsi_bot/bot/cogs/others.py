@@ -1,7 +1,7 @@
 import io
 
 import discord
-import pytubefix.exceptions  # type: ignore[import-untyped]
+import pytubefix.exceptions
 from discord.ext import commands
 
 from epsi_bot.bot.bot import Bot
@@ -12,7 +12,7 @@ from epsi_bot.utils.constants import (
 	YOUTUBE_REGEX,
 )
 from epsi_bot.utils.models import Server
-from epsi_bot.utils.type_utils import FfmpegFormats
+from epsi_bot.utils.type_utils import FfmpegFormats, get_guild, option
 from epsi_bot.utils.views import Research
 
 
@@ -24,7 +24,7 @@ class Others(commands.Cog):
 	@commands.slash_command(
 		name="download_file", description="Download the audio of a youtube video"
 	)
-	@discord.option(
+	@option(
 		"file-format",
 		str,
 		description="The file_format of the file",
@@ -106,10 +106,11 @@ class Others(commands.Cog):
 	)
 	async def lyrics(self, ctx: discord.ApplicationContext) -> None:
 		await ctx.response.defer()
-		if ctx.guild.voice_client is None:
+		guild = get_guild(ctx)
+		if guild.voice_client is None:
 			await ctx.respond(embed=EMBED_ERROR_BOT_NOT_CONNECTED)
 			return
-		server = await Server.get(server_id=ctx.guild.id).prefetch_related(
+		server = await Server.get(server_id=guild.id).prefetch_related(
 			"queue", "queue__song"
 		)
 		if not await server.queue.all():

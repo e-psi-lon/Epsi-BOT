@@ -2,16 +2,13 @@ import asyncio
 import hashlib
 import io
 import logging
-from collections.abc import Coroutine
 from math import log2
 from typing import Any
 
-import pytubefix  # type: ignore[import-untyped]
+import pytubefix
 import redis.asyncio as redis
 from aiocache import RedisCache
-from aiocache.serializers import (  # type: ignore[import-untyped]
-	BaseSerializer,
-)
+from aiocache.serializers import BaseSerializer
 
 from epsi_bot.utils import requests
 from epsi_bot.utils.constants import YOUTUBE_CLIENT, YOUTUBE_REGEX
@@ -64,20 +61,12 @@ class AudioCache(RedisCache, CacheProtocol):
 		self, key: str, namespace: Any | None = None, _conn: Any | None = None
 	) -> Any:
 		"""Check if a key exists in the cache"""
-		return await super(RedisCache, self).exists(
-			key, namespace=namespace, _conn=_conn
-		)
+		return await RedisCache.exists(self, key, namespace=namespace, _conn=_conn)
 
 	async def update_ttl(self, key: str, new_ttl: int) -> None:
 		"""Update the ttl of a key in the cache"""
 		key = self.build_key(key, namespace=self.namespace)
-		await self.client.touch(key.encode(), new_ttl)
-
-	def __aenter__(self) -> Coroutine[Any, Any, AudioCache]:
-		return super(RedisCache, self).__aenter__()
-
-	def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> Any:
-		return super(RedisCache, self).__aexit__(exc_type, exc_val, exc_tb)
+		await self.expire(key, new_ttl)
 
 
 class AudioSerializer(BaseSerializer):
@@ -114,7 +103,9 @@ async def get_or_download_audio(url: str, cache: AudioCache) -> io.BytesIO:
 	return buffer
 
 
-async def download(url: str, download_logger: logging.Logger) -> io.BytesIO:
+async def download(
+	url: str, download_logger: logging.Logger | None = None
+) -> io.BytesIO:
 	"""
 	Download a video from a YouTube (or other) URL.
 
@@ -171,11 +162,10 @@ async def download_bulk(
 		return results
 
 
-async def get_cache_stats() -> dict[bytes, bytes] | None:
+async def get_cache_stats() -> dict[str, Any]:
 	"""Get redis statistics."""
-	rc = redis.Redis(host="host.containers.internal", port=6379)
-	try:
+	async with redis.Redis(
+		host=get_secret("REDIS_HOST"), port=int(get_secret("REDIS_PORT"))
+	) as rc:
 		stats = await rc.info()
 		return {key: value for key, value in stats.items() if value is not None}
-	finally:
-		await rc.close()

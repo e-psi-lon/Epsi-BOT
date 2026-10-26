@@ -1,11 +1,9 @@
-from typing import cast
-
-from quart import Blueprint, current_app, redirect, render_template, session, url_for
+from quart import Blueprint, redirect, render_template, session, url_for
 from werkzeug import Response
 
+from epsi_bot.panel.panel_base import current_panel
 from epsi_bot.panel.services.discord_api import get_user_data
 from epsi_bot.utils.decorators import login_required
-from epsi_bot.utils.protocols import PanelProtocol
 
 main_bp = Blueprint("main", __name__)
 
@@ -21,17 +19,16 @@ async def index() -> Response | str:
 async def panel() -> Response | str:
 	@login_required
 	async def _panel() -> Response | str:
-		panel_app = cast(PanelProtocol, current_app)
 		token = session["token"]
 		if "user" not in session:
 			user = await get_user_data(token["access_token"])
-			session["guilds"] = panel_app.bot.get_guilds_for(session["user_id"])
+			session["guilds"] = current_panel.bot.get_guilds_for(session["user_id"])
 			session["user"] = user
 
 		if session.get("guilds", None) is None:
-			session["guilds"] = panel_app.bot.get_guilds_for(session["user_id"])
+			session["guilds"] = current_panel.bot.get_guilds_for(session["user_id"])
 
-		panel_app.logger.debug(
+		current_panel.logger.debug(
 			f"Showing panel with user:\n- {session['user']}\nwho has guilds:\n- {session['guilds']}"
 		)
 		return await render_template(

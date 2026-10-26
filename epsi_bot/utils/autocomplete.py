@@ -28,11 +28,10 @@ async def get_playlists(ctx: discord.AutocompleteContext) -> list[str]:
 	user = await User.get_or_none(user_id=ctx.interaction.user.id).prefetch_related(
 		"playlists", "playlists__playlist"
 	)
+	server = [playlist.playlist.name + " - SERVER" for playlist in config.playlists]
 	if user is None:
-		return [playlist.playlist.name + " - SERVER" for playlist in config.playlists]
-	return [playlist.playlist.name + " - SERVER" for playlist in config.playlists] + [
-		playlist.playlist.name + " - USER" for playlist in user.playlists
-	]
+		return server
+	return server + [playlist.playlist.name + " - USER" for playlist in user.playlists]
 
 
 async def get_playlists_songs(ctx: discord.AutocompleteContext) -> list[str]:

@@ -36,13 +36,13 @@ async def main() -> None:
 	)
 	await Tortoise.generate_schemas(safe=True)
 
-	app = create_app()
-	app.set_start_time(start_time)
 	bot = Bot(
 		intents=discord.Intents.all(),
 		owner_id=OWNER_ID,
 		default_command_contexts={discord.InteractionContextType.guild},
 	)
+	app = create_app(bot)
+	app.set_start_time(start_time)
 	bot.start_time = start_time
 	bot.logger.info(
 		f"Bot started at {start_time.strftime('%d/%m/%Y %H:%M:%S')} "
