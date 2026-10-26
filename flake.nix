@@ -146,7 +146,8 @@
               export REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
               echo "Python: $(python3 --version)"
               echo "uv: $(uv --version)"
-              echo "epsi-bot dev venv active (editable, live source)"
+              echo "epsi-bot dev venv active (live source)"
+              ln -sfn ${editableVenv} .venv
             '';
           };
 
