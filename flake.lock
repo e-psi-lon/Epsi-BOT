@@ -49,6 +49,22 @@
         "type": "github"
       }
     },
+    "nixpkgs-patchelf": {
+      "locked": {
+        "lastModified": 1790856935,
+        "narHash": "sha256-9j0894470NaCOYhjUM9gL5RXNaR+rJAIJ9kjqVxqnJA=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "621f280856e63d113b70e2761d7d2e04324e58a4",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "621f280856e63d113b70e2761d7d2e04324e58a4",
+        "type": "github"
+      }
+    },
     "pyproject-build-systems": {
       "inputs": {
         "nixpkgs": [
@@ -99,6 +115,7 @@
       "inputs": {
         "flake-parts": "flake-parts",
         "nixpkgs": "nixpkgs",
+        "nixpkgs-patchelf": "nixpkgs-patchelf",
         "pyproject-build-systems": "pyproject-build-systems",
         "pyproject-nix": "pyproject-nix",
         "uv2nix": "uv2nix"

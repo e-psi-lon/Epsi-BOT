@@ -3,6 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs-patchelf.url = "github:NixOS/nixpkgs/621f280856e63d113b70e2761d7d2e04324e58a4";
     flake-parts.url = "github:hercules-ci/flake-parts";
 
     pyproject-nix = {
@@ -32,8 +33,9 @@
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
 
-      perSystem = { pkgs, lib, ... }:
+      perSystem = { pkgs, lib, system, ... }:
         let
+          oldPatchelf = inputs.nixpkgs-patchelf.legacyPackages.${system}.patchelf;
           ffmpeg-slim = pkgs.ffmpeg-headless.override {
             # video codecs / image formats
             withAom = false; withDav1d = false; withSvtav1 = false; withVpx = false;
@@ -65,6 +67,9 @@
               nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ final.resolveBuildSystem {
                 editables = [ ];
               };
+            });
+            nodejs-wheel-binaries = prev.nodejs-wheel-binaries.overrideAttrs (old: {
+              nativeBuildInputs = [ oldPatchelf ] ++ (old.nativeBuildInputs or [ ]);
             });
           };
 
